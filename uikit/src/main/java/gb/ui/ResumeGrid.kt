@@ -33,15 +33,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** A save state to resume: game title, slot label ("Quick save", "Slot 2"...), time and screenshot. */
-data class ResumeEntry(val key: String, val title: String, val label: String, val time: Long, val screenshot: File?)
+/**
+ * A save state to resume: unique [key], [game] it belongs to (e.g. the game's path), title, slot label ("Quick save",
+ * "Slot 2"...), time and screenshot.
+ */
+data class ResumeEntry(val key: String, val title: String, val label: String, val time: Long, val screenshot: File?, val game: String = title)
 
 /**
- * "Resume" view of the library: one card per save state with its screenshot, newest first. The first card takes the
- * focus so the controller works at once; A (or a tap) resumes.
+ * "Resume" view of the library: save states with their screenshots, newest first. By default only the latest save state
+ * of each game is shown ([latestPerGame]). The first card takes the focus so the controller works at once; A (or a
+ * tap) resumes.
  */
 @Composable
-fun ResumeGrid(entries: List<ResumeEntry>, onResume: (ResumeEntry) -> Unit, modifier: Modifier = Modifier) {
+fun ResumeGrid(all: List<ResumeEntry>, onResume: (ResumeEntry) -> Unit, modifier: Modifier = Modifier, latestPerGame: Boolean = true) {
+    val entries = remember(all, latestPerGame) {
+        all.sortedByDescending { it.time }.let { if (latestPerGame) it.distinctBy { e -> e.game } else it }
+    }
     val first = remember { FocusRequester() }
     LaunchedEffect(entries.firstOrNull()) { runCatching { first.requestFocus() } }
     LazyVerticalGrid(

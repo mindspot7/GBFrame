@@ -50,7 +50,7 @@ of these repositories.
   (always ending with a `PresetPicker` step), box art (`Covers`, libretro-thumbnails) and RetroAchievements
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`), play time
   (`PlayTime`), game-named save folders with Export/Import (`SaveData`), the "Resume" view of save states with
-  screenshots (`ResumeGrid`) and button mapping on a drawing of the console's controller (`PadDiagram` + `PadLayout`).
+  screenshots (`ResumeGrid`, only the latest save state of each game) and button mapping on a drawing of the console's controller (`PadDiagram` + `PadLayout`).
 - Controller: **A** confirms, **B** goes back (Exit dialog in the library), **X** opens the settings menu, **Y** opens the
   game options, **Select** switches all games / recent save states (handled in the Activity so it works without focus),
   **Start** does nothing in the library. The top bar is touch-only.
