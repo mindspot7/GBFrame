@@ -13,6 +13,10 @@ menus and controller behavior in every app, with a different color identity per 
 | `MenuIcons.kt` | Illustrated multicolor menu icons (`MenuIcon`, `MenuIconView`) |
 | `PerfOverlay.kt` | Monitoring overlay (FPS, speed, CPU/GPU, renderer, resolution, frame time) |
 | `Controller.kt` | `rememberHasGamepad()` |
+| `Wizard.kt` | First-run `SetupWizard` (steps with gradient badges), `WizardStatus`, `PresetPicker` |
+| `Covers.kt` | Box art: custom image → cache → libretro-thumbnails download with fuzzy title matching (`Covers.init(dataDir, system = "Sega - Saturn")`) |
+| `RetroAchievements.kt` | RetroAchievements client logic (login, hardcore, notifications, per-game achievement lists); the app implements `RaBackend` with its native rcheevos client |
+| `AchievementsUi.kt` | Unlock notifications, achievement list, `RetroAchievementsSettings`, `RaUserHeader` |
 
 ## Using it in an app
 
@@ -32,6 +36,12 @@ plugins { id("com.android.library") version "8.10.1" apply false }
 
 // app/build.gradle.kts
 dependencies { implementation(project(":uikit")) }
+```
+
+```kotlin
+// Box art and RetroAchievements (once, at startup)
+Covers.init(dataDir, system = "Sony - PlayStation")
+RetroAchievements.init(context, appName = "MyEmu", version = "1.0.0", backend = myRaBackend)
 ```
 
 ```kotlin

@@ -1,0 +1,98 @@
+package gb.ui
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+
+/**
+ * One page of the first-run wizard: a colorful badge, title and text, plus the step's own controls (buttons, status,
+ * a [PresetPicker]...).
+ */
+class WizardStep(
+    val icon: ImageVector, val title: String, val colors: List<Color>, val body: String,
+    val content: @Composable ColumnScope.() -> Unit = {},
+)
+
+/** First-run setup wizard: progress bar, one page per step, Back/Skip and Next/Start. */
+@Composable
+fun SetupWizard(steps: List<WizardStep>, onFinish: () -> Unit, message: String? = null, onStepChange: () -> Unit = {}) {
+    var step by remember { mutableIntStateOf(0) }
+    Column(Modifier.fillMaxSize().background(palette.backgroundBrush).safeDrawingPadding().padding(24.dp)) {
+        LinearProgressIndicator(progress = { (step + 1f) / steps.size }, modifier = Modifier.fillMaxWidth())
+        Column(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        ) {
+            val s = steps[step]
+            WizardPage(s.icon, s.title, s.colors, s.body)
+            s.content(this)
+            message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center) }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            if (step > 0) TextButton(onClick = { step--; onStepChange() }) { Text("Back") } else TextButton(onClick = onFinish) { Text("Skip") }
+            Button(onClick = { if (step < steps.size - 1) { step++; onStepChange() } else onFinish() }) {
+                Text(if (step < steps.size - 1) "Next" else "Start")
+            }
+        }
+    }
+}
+
+/** Rounded gradient badge with a soft glow, title and text. */
+@Composable
+fun WizardPage(icon: ImageVector, title: String, colors: List<Color>, body: String) {
+    Box(contentAlignment = Alignment.Center) {
+        Box(Modifier.size(132.dp).background(Brush.radialGradient(listOf(colors[0].copy(alpha = .35f), Color.Transparent)), CircleShape))
+        Box(Modifier.size(96.dp).background(Brush.linearGradient(colors), RoundedCornerShape(30.dp)), contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(52.dp), tint = Color.White)
+        }
+    }
+    Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, color = Color.White, fontWeight = FontWeight.Bold)
+    Text(body, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = Color.White.copy(alpha = .75f))
+}
+
+/** "Done" line under a wizard step (e.g. the chosen folder). */
+@Composable
+fun WizardStatus(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+/** A quality preset the user can pick (e.g. High / Mid / Low). */
+class PresetOption(val label: String, val description: String)
+
+/** List of selectable preset cards with radio buttons; [selected] is the index of the current one (or -1 for custom). */
+@Composable
+fun PresetPicker(options: List<PresetOption>, selected: Int, onSelect: (Int) -> Unit) {
+    options.forEachIndexed { i, p ->
+        val sel = i == selected
+        OutlinedCard(onClick = { onSelect(i) }, modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(if (sel) 2.dp else 1.dp, if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = sel, onClick = { onSelect(i) })
+                Column {
+                    Text(p.label, style = MaterialTheme.typography.titleMedium)
+                    Text(p.description, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}
