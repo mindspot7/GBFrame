@@ -22,4 +22,5 @@ dependencies {
     api("androidx.compose.ui:ui")
     api("androidx.compose.material3:material3")
     api("androidx.compose.material:material-icons-extended")
+    implementation("androidx.documentfile:documentfile:1.0.1")
 }

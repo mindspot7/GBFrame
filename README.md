@@ -16,6 +16,10 @@ menus and controller behavior in every app, with a different color identity per 
 | `Wizard.kt` | First-run `SetupWizard` (steps with gradient badges), `WizardStatus`, `PresetPicker` |
 | `Covers.kt` | Box art: custom image → cache → libretro-thumbnails download with fuzzy title matching (`Covers.init(dataDir, system = "Sega - Saturn")`) |
 | `RetroAchievements.kt` | RetroAchievements client logic (login, hardcore, notifications, per-game achievement lists); the app implements `RaBackend` with its native rcheevos client |
+| `PlayTime.kt` | Play time per game (`PlayTime.update(game, counting)`), `formatPlayTime` |
+| `SaveData.kt` | Game-named save folders (`gameFolderName`), Export (saves + save states) / Import |
+| `ResumeGrid.kt` | "Resume" view: save states with screenshots, newest first (`ResumeEntry`, `ResumeGrid`) |
+| `PadDiagram.kt` | Controller diagram for button mapping (`PadLayout`, `PadButton`, `PadDiagram`) |
 | `AchievementsUi.kt` | Unlock notifications, achievement list, `RetroAchievementsSettings`, `RaUserHeader` |
 
 ## Using it in an app
