@@ -23,6 +23,12 @@ of these repositories.
 - Never create tags by hand. Commit/push only to the app's working branch (GBSat: `android-port`); no pushes upstream.
 - This session type cannot edit or delete releases: tell the owner how to do it in the GitHub UI.
 
+## License
+
+- This kit is GPLv3, so every app built on it is distributed under GPLv3 with public source. Check the core's license
+  before starting: it must be GPLv3-compatible (GPLv2 "or later", GPLv3, MIT, BSD, Apache 2.0); "GPLv2 only" cores can't
+  use the kit.
+
 ## Signing
 
 - All APKs/AABs of an app are signed with one permanent release key from repository secrets (GBSat:

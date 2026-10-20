@@ -59,3 +59,7 @@ Inside the theme, components read the colors from `palette` (e.g. `palette.accen
 
 - Only emulator-independent code lives here: no core, JNI or console-specific options.
 - A change here reaches every app when it updates the submodule (`git submodule update --remote libs/ui_gb`).
+
+## License
+
+GPLv3 (see [LICENSE](LICENSE)). Apps using this kit are distributed under GPLv3 too, so their cores must be GPLv3-compatible (e.g. GPLv2 "or later", GPLv3, MIT, BSD, Apache 2.0).
