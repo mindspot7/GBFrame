@@ -19,6 +19,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `PlayTime.kt` | Play time per game (`PlayTime.update(game, counting)`), `formatPlayTime` |
 | `SaveData.kt` | Game-named save folders (`gameFolderName`), Export (saves + save states) / Import |
 | `ResumeGrid.kt` | "Resume" view: the latest save state of each game with its screenshot, newest first (`ResumeEntry`, `ResumeGrid`; `latestPerGame = false` lists them all) |
+| `LibraryView.kt` | Library layout (all games / recent save states) remembered between sessions (`LibraryView.init(prefs)`, `LibraryView.recent`, `toggle()`) |
 | `PadDiagram.kt` | Controller diagram for button mapping (`PadLayout`, `PadButton`, `PadDiagram`) |
 | `AchievementsUi.kt` | Unlock notifications, achievement list, `RetroAchievementsSettings`, `RaUserHeader` |
 

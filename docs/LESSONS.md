@@ -51,6 +51,10 @@ line here whenever a new app teaches something that would have saved time.
 
 ## Storage, saves and Play
 
+- Auto load should continue from the game's latest save state in any slot, not only the auto save; write the auto
+  save also when the app goes to the background (Android may close it there, and the in-game Exit never runs).
+- Remember UI state such as the library layout between sessions (`LibraryView`).
+
 - No `MANAGE_EXTERNAL_STORAGE`: read games through SAF (folder picker + persisted tree URI); path-based cores keep
   working with `/proc/self/fd/N` symlinks in a staging folder.
 - Export (saves + save states only) / Import, game-named save folders.

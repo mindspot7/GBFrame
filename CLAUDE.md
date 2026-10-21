@@ -63,6 +63,8 @@ of these repositories.
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`), play time
   (`PlayTime`), game-named save folders with Export/Import (`SaveData`), the "Resume" view of save states with
   screenshots (`ResumeGrid`, only the latest save state of each game) and button mapping on a drawing of the console's controller (`PadDiagram` + `PadLayout`).
+- Settings the user changes through the interface are remembered between sessions, including UI state such as the
+  library layout (all games / recent save states: `LibraryView`), so the app reopens the way it was left.
 - Controller: **A** confirms, **B** goes back (Exit dialog in the library), **X** opens the settings menu, **Y** opens the
   game options, **Select** switches all games / recent save states (handled in the Activity so it works without focus),
   **Start** does nothing in the library. The top bar is touch-only.
