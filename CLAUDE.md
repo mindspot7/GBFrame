@@ -63,6 +63,10 @@ of these repositories.
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`), play time
   (`PlayTime`), game-named save folders with Export/Import (`SaveData`), the "Resume" view of save states with
   screenshots (`ResumeGrid`, only the latest save state of each game) and button mapping on a drawing of the console's controller (`PadDiagram` + `PadLayout`).
+- Save states: **Auto save** writes the auto slot when the game is exited (in-game Exit, quitting the app) **and when
+  the app goes to the background** during a game (Home, recent apps: Android may close it there). **Auto load**
+  continues from the game's **latest save state in any slot** (auto, quick or numbered), so it also works with Auto
+  save off; the Resume view and the "Open" game option (without auto load) still start where the user chooses.
 - Settings the user changes through the interface are remembered between sessions, including UI state such as the
   library layout (all games / recent save states: `LibraryView`), so the app reopens the way it was left.
 - Controller: **A** confirms, **B** goes back (Exit dialog in the library), **X** opens the settings menu, **Y** opens the
