@@ -3,6 +3,12 @@
 These rules apply to every app built on this UI kit (GBSat and the next emulators). Read them before working on any
 of these repositories.
 
+## Documentation
+
+- Read [docs/LESSONS.md](docs/LESSONS.md) before starting an app, and add a line whenever an app teaches something new.
+- Every app has its own README.md written from [docs/APP_README_TEMPLATE.md](docs/APP_README_TEMPLATE.md); keep it
+  up to date with user-visible changes.
+
 ## Working with the owner
 
 - Talk to the owner in **Portuguese (pt-BR)**; code, comments, commit messages and CHANGELOG stay in English.

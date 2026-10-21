@@ -55,6 +55,12 @@ EmuTheme(palette = EmuPalette.fromAccent(Color(0xFF6FD3FF))) { /* app */ }
 
 Inside the theme, components read the colors from `palette` (e.g. `palette.accent`, `palette.backgroundBrush`).
 
+## Documentation for apps
+
+- [docs/LESSONS.md](docs/LESSONS.md): lessons learned (performance, GPU renderers, controller, storage, Play, CI).
+- [docs/APP_README_TEMPLATE.md](docs/APP_README_TEMPLATE.md): every app has its own README, written from this
+  template (same sections in every app).
+
 ## Rules
 
 - Only emulator-independent code lives here: no core, JNI or console-specific options.
