@@ -53,7 +53,7 @@ of these repositories.
 - targetSdk/compileSdk **36**, Android Gradle Plugin 8.10+, Gradle 8.14.
 - **16 KB page size**: `-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON` and `-Wl,-z,max-page-size=16384`; CI checks alignment.
 - **No `MANAGE_EXTERNAL_STORAGE`**: games are read through the Storage Access Framework (folder picker + persisted
-  tree URI). GBSat's `Storage.kt` stages disc files as `/proc/self/fd/N` symlinks so path-based cores work unchanged.
+  tree URI). The kit's `SafGames` stages disc files as `/proc/self/fd/N` symlinks so path-based cores work unchanged.
 - Data stays in the app's storage, with Export (saves and save states only) / Import data.
 - `enableEdgeToEdge()`, no deprecated status/navigation bar colors; screens use `safeDrawingPadding`.
 - With targetSdk 36 (predictive back), map the controller's B straight to `onBackPressedDispatcher.onBackPressed()`
@@ -66,7 +66,9 @@ of these repositories.
 - Use this kit (`gb.frame`): `EmuTheme` with the app's palette (GBSat: `EmuPalettes.Violet`; new apps:
   `EmuPalette.fromAccent(color)`), settings blocks, `ConfirmDialog`, `MenuIconView`, `PerfOverlay`, `rememberHasGamepad`, the first-run `SetupWizard`
   (always ending with a `PresetPicker` step), box art (`Covers`, libretro-thumbnails) and RetroAchievements
-  (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`), play time
+  (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`, offline
+  casual unlocks through `RaOffline`), the games folder (`SafGames`), hotkeys (`Hotkeys`), per-game recommended
+  settings (`GameProfiles`), play time
   (`PlayTime`), game-named save folders with Export/Import (`SaveData`), the "Resume" view of save states with
   screenshots (`ResumeGrid`, only the latest save state of each game) and button mapping on a drawing of the console's controller (`PadDiagram` + `PadLayout`).
 - Save states: **Auto save** writes the auto slot when the game is exited (in-game Exit, quitting the app) **and when

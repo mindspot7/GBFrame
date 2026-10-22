@@ -32,9 +32,6 @@ class OpenDisc(val path: String, private val fds: List<android.os.ParcelFileDesc
 open class SafGames(private val discExt: Set<String>, private val gamesDir: () -> String) {
     private val PREFIX = "saf:/"
 
-    /** Access is granted per folder through the picker; there is no broad permission to ask for anymore. */
-    fun hasAllFilesAccess() = true
-
     private lateinit var appContext: Context
     fun init(context: Context) { appContext = context.applicationContext }
 
