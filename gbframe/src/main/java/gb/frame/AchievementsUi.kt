@@ -175,6 +175,11 @@ fun RetroAchievementsSettings(appName: String) {
             ToggleRow(Icons.Default.LocalFireDepartment, "Hardcore mode",
                 "More points; save state loading and cheats are disabled. Turning it on during a game resets the game.",
                 ra.hardcore) { ra.changeHardcore(it) }
+            SettingsDivider()
+            ToggleRow(Icons.Default.CloudOff, "Offline achievements",
+                "Casual mode only: without a connection, unlocks are kept and sent when you are back online (the game must have been started online once)" +
+                    if (ra.pendingSync > 0) " · ${ra.pendingSync} waiting to sync" else "",
+                ra.offlineEnabled) { ra.changeOffline(it) }
         }
     }
 }

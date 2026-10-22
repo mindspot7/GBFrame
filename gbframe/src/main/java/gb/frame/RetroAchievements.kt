@@ -70,6 +70,18 @@ object RetroAchievements {
     var loginPending by mutableStateOf(false); private set
     var loginError by mutableStateOf<String?>(null); private set
     var gameTitle by mutableStateOf<String?>(null); private set
+    /** Offline achievements (casual mode): play without a connection and sync later. */
+    var offlineEnabled by mutableStateOf(true); private set
+    /** Casual unlocks made offline, waiting to be sent. */
+    var pendingSync by mutableStateOf(0); private set
+    /** The last request could not reach the server (offline answers in use). */
+    var offline by mutableStateOf(false); private set
+
+    fun changeOffline(on: Boolean) {
+        offlineEnabled = on
+        prefs.edit().putBoolean("offline", on).apply()
+    }
+
     /** Profile picture of the logged-in user. */
     var avatarUrl by mutableStateOf<String?>(null); private set
     private var userAgent = "GBApp"
@@ -81,6 +93,9 @@ object RetroAchievements {
         this.backend = backend
         prefs = context.getSharedPreferences("retroachievements", Context.MODE_PRIVATE)
         cacheDir = File(context.cacheDir, "ra_badges").apply { mkdirs() }
+        RaOffline.init(prefs, context.filesDir)
+        offlineEnabled = prefs.getBoolean("offline", true)
+        pendingSync = RaOffline.pending
         enabled = prefs.getBoolean("enabled", false)
         hardcore = prefs.getBoolean("hardcore", false)
         userAgent = "$appName/$version (Android ${Build.VERSION.RELEASE})"
@@ -157,7 +172,7 @@ object RetroAchievements {
             val url = p.getOrElse(4) { "" }
             when (kind) {
                 "login" -> {
-                    user = a; score = n + (p.getOrElse(5) { "0" }.toIntOrNull() ?: 0); loginPending = false; loginError = null
+                    user = a; score = n + (p.getOrElse(5) { "0" }.toIntOrNull() ?: 0); loginPending = false; loginError = null; prefs.edit().putInt("score", score).apply()
                     avatarUrl = url.ifBlank { "https://media.retroachievements.org/UserPic/$a.png" }
                     prefs.edit().putString("token", b).putString("avatar", avatarUrl).apply()
                     add += Notification("info", "RetroAchievements", "Logged in as $a ($score points)", 0, url)
@@ -271,26 +286,56 @@ object RetroAchievements {
         }?.also { memCache[url] = it }
     }
 
+    private fun send(url: String, post: String?, contentType: String?, agent: String): Pair<Int, ByteArray> = try {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.connectTimeout = 15000
+        conn.readTimeout = 30000
+        conn.setRequestProperty("User-Agent", agent)
+        if (post != null) {
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", contentType ?: "application/x-www-form-urlencoded")
+            conn.outputStream.use { it.write(post.toByteArray()) }
+        }
+        val status = conn.responseCode
+        status to ((if (status >= 400) conn.errorStream else conn.inputStream)?.use { it.readBytes() } ?: ByteArray(0))
+    } catch (_: Exception) {
+        -1 to ByteArray(0)
+    }
+
+    /** Sends the unlocks made offline, now that the server answered again. */
+    private fun syncOffline(url: String, contentType: String?, agent: String) {
+        val token = prefs.getString("token", null) ?: return
+        http.execute {
+            val sent = RaOffline.sync(token) { body -> send(url, body, contentType, agent) }
+            scope.launch {
+                pendingSync = RaOffline.pending
+                if (sent > 0) notifications = notifications + Notification("info", "RetroAchievements",
+                    "$sent achievement${if (sent == 1) "" else "s"} earned offline synced", 0, "")
+            }
+        }
+    }
+
     // ---- HTTP for rcheevos (called from native code) ----
     fun httpRequest(id: Int, url: String, post: String?, contentType: String?, userAgent: String) {
         http.execute {
             var status = -1
             var body = ByteArray(0)
-            try {
-                val conn = URL(url).openConnection() as HttpURLConnection
-                conn.connectTimeout = 15000
-                conn.readTimeout = 30000
-                conn.setRequestProperty("User-Agent", userAgent)
-                if (post != null) {
-                    conn.requestMethod = "POST"
-                    conn.doOutput = true
-                    conn.setRequestProperty("Content-Type", contentType ?: "application/x-www-form-urlencoded")
-                    conn.outputStream.use { it.write(post.toByteArray()) }
+            val result = send(url, post, contentType, userAgent)
+            status = result.first
+            body = result.second
+            val params = RaOffline.parse(post)
+            if (status == 200) {
+                if (offline) scope.launch { offline = false }
+                RaOffline.store(params, body)
+                if (offlineEnabled && RaOffline.pending > 0) syncOffline(url, contentType, userAgent)
+            } else if (status < 0 && offlineEnabled) {
+                // No connection: answer from the offline cache / queue (casual mode only)
+                RaOffline.offlineAnswer(params, hardcore)?.let { answer ->
+                    status = 200
+                    body = answer
+                    scope.launch { offline = true; pendingSync = RaOffline.pending }
                 }
-                status = conn.responseCode
-                body = (if (status >= 400) conn.errorStream else conn.inputStream)?.use { it.readBytes() } ?: ByteArray(0)
-            } catch (_: Exception) {
-                status = -1
             }
             backend.httpResponse(id, status, body)
         }
