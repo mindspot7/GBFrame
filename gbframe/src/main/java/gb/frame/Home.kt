@@ -577,6 +577,8 @@ fun HomeMenuPanel(
     recent: Boolean, gamesCount: Int, recentCount: Int, onShowRecent: (Boolean) -> Unit,
     items: List<HomeMenuItem>, onQuit: () -> Unit,
     header: @Composable () -> Unit = {},
+    /** Smaller entries shown as compact tiles next to Quit (e.g. About). */
+    extras: List<HomeMenuItem> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     val p = palette
@@ -611,13 +613,14 @@ fun HomeMenuPanel(
                     }
                     header()
                     val selectedItem = items.indexOfFirst { it.selected }
+                    val viewFocus = selectedItem < 0 && extras.none { it.selected } // no settings page to return to
                     // Library view
                     MenuSection("LIBRARY")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ViewTile(Icons.Default.GridView, "All games", if (gamesCount == 1) "1 game" else "$gamesCount games", !recent,
-                            Modifier.weight(1f).then(if (selectedItem < 0 && !recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(false) }
+                            Modifier.weight(1f).then(if (viewFocus && !recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(false) }
                         ViewTile(Icons.Default.History, "Recent", if (recentCount == 1) "1 save state" else "$recentCount save states", recent,
-                            Modifier.weight(1f).then(if (selectedItem < 0 && recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(true) }
+                            Modifier.weight(1f).then(if (viewFocus && recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(true) }
                     }
                     // Settings
                     MenuSection("SETTINGS")
@@ -635,14 +638,19 @@ fun HomeMenuPanel(
                         }
                     }
                     Spacer(Modifier.height(2.dp))
-                    MenuRow(MenuIcon.Quit, "Quit", onQuit)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        extras.forEachIndexed { k, m ->
+                            MenuRow(m.icon, m.label, Modifier.weight(1f).then(if (m.selected && selectedItem < 0) Modifier.focusRequester(focus) else Modifier), m.onClick)
+                        }
+                        MenuRow(MenuIcon.Quit, "Quit", Modifier.weight(1f), onQuit)
+                    }
                 }
             }
         }
     }
 }
 
-private fun lerpOpaque(c: Color) = c.copy(alpha = 0.98f)
+private fun lerpOpaque(c: Color) = c.copy(alpha = 1f)
 
 @Composable
 private fun MenuSection(text: String) =
@@ -690,10 +698,10 @@ private fun SettingTile(m: HomeMenuItem, modifier: Modifier) {
 }
 
 @Composable
-private fun MenuRow(icon: MenuIcon, label: String, onClick: () -> Unit) {
+private fun MenuRow(icon: MenuIcon, label: String, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Row(
-        Modifier.fillMaxWidth().height(56.dp).onFocusChanged { focused = it.isFocused }.tile(focused).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        modifier.height(56.dp).onFocusChanged { focused = it.isFocused }.tile(focused).clickable(onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         MenuIconView(icon, 28.dp)
