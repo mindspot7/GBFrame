@@ -33,8 +33,9 @@ fun rememberHasGamepad(): Boolean {
  * Like `setContent`, but the first D-pad press after a touch already moves the focus. Normally Android spends that press
  * leaving "touch mode" (ViewRootImpl consumes it before the app sees it), so after a tap two presses were needed to
  * move. Here D-pad keys that arrive in touch mode are sent straight to the Activity's key handling.
+ * Call it on a ComponentActivity (its setContentView sets up the lifecycle owners Compose needs).
  */
-fun androidx.activity.ComponentActivity.setControllerContent(content: @androidx.compose.runtime.Composable () -> Unit) {
+fun android.app.Activity.setControllerContent(content: @androidx.compose.runtime.Composable () -> Unit) {
     val activity = this
     val compose = androidx.compose.ui.platform.ComposeView(this).apply { setContent(content) }
     val frame = object : android.widget.FrameLayout(this) {
