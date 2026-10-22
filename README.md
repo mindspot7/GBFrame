@@ -20,6 +20,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `PlayTime.kt` | Play time per game (`PlayTime.update(game, counting)`), `formatPlayTime` |
 | `SaveData.kt` | Game-named save folders (`gameFolderName`), Export (saves + save states) / Import |
 | `ResumeGrid.kt` | "Resume" view: the latest save state of each game with its screenshot, newest first (`ResumeEntry`, `ResumeGrid`; `latestPerGame = false` lists them all) |
+| `Home.kt` | Home screen: `HomeTopBar` (icon, label, clock, battery) and `HomeLibrary` in four themes (Showcase, Grid, List, Continue) chosen with `HomeThemeSettings`, remembered by `HomeTheme`; `CoverCard` box art |
 | `LibraryView.kt` | Library layout (all games / recent save states) remembered between sessions (`LibraryView.init(prefs)`, `LibraryView.recent`, `toggle()`) |
 | `DeviceTier.kt` | Device class from CPU core types and the GPU: Entry (little cores only, RK3566), Low (≤2 fast cores or A73-class cores: T618, Snapdragon G1 Gen 2, 662), Mid (modest GPU, T820), High (strong GPU: Snapdragon 865+, Dimensity 8300); picks the recommended preset |
 | `GameProfiles.kt` | Recommended settings per game and device class shipped in `assets/game_profiles.json` (user choice > database > global settings) |

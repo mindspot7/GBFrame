@@ -78,7 +78,7 @@ of these repositories.
 
 - Use this kit (`gb.frame`): `EmuTheme` with the app's palette (GBSat: `EmuPalettes.Violet`; new apps:
   `EmuPalette.fromAccent(color)`), settings blocks, `ConfirmDialog`, `MenuIconView`, `PerfOverlay`, `rememberHasGamepad`, the first-run `SetupWizard`
-  (no preset question: the preset is chosen from `DeviceTier`, and Settings → Performance shows the device class and it), box art (`Covers`, libretro-thumbnails) and RetroAchievements
+  (no preset question: the preset is chosen from `DeviceTier`, and Settings → Performance shows the device class and it), box art (`Covers`, libretro-thumbnails), the home screen (`HomeTopBar`, `HomeLibrary`, `HomeTheme`) and RetroAchievements
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`, offline
   casual unlocks through `RaOffline`), the games folder (`SafGames`), hotkeys (`Hotkeys`), per-game recommended
   settings (`GameProfiles` by `DeviceTier`), play time
@@ -96,7 +96,11 @@ of these repositories.
 - Every dialog and menu must work with the controller from the first press: draw dialogs in the app window, give the
   first item focus, never let the game `SurfaceView` take key focus, and let Android turn hat-axis D-pads into D-pad keys
   while a menu is open.
-- Landscape: settings menu docked on the left; portrait/square: drop-down menu over the screen.
+- Home screen: `HomeTopBar` (app icon, short label, clock, battery icon; a tap opens the menu) and `HomeLibrary` in the
+  theme picked in Extras (`HomeThemeSettings`): **Showcase** (default: selected game large on top over its blurred cover,
+  shelf below), **Grid** (settings as an icon rail, box art grid), **List** (titles + preview with the latest save state)
+  and **Continue** (latest save states first, then all games). The settings menu drops down below the top bar (Grid:
+  the rail).
 - The button help bar is shown only when a physical controller is connected.
 - The game picture is aligned to the top of the screen: when the screen is narrower than the picture (square, 5:4, a
   16:9 mode on 4:3) all the black bars go below it; side bars stay centered.
