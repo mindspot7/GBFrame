@@ -20,7 +20,8 @@ line here whenever a new app teaches something that would have saved time.
 - Pin the emulation thread alone on the fastest core (rank cores by `cpu_capacity`); move threads that inherited its
   affinity (driver threads, recreated render threads) off it.
 - A thread per chip is not free: with only 2 fast cores (T618), a threaded sound chip took the core the background
-  renderer needed (VF2: 30 fps threaded vs 50-60 fps unthreaded). Default threaded audio to the number of fast cores.
+  renderer needed (VF2: 30 fps threaded vs 50-60 fps unthreaded). But other games (Burning Rangers, NiGHTS) need it: tune it per game
+  at runtime (Auto mode: try the other mode when slow, keep the faster, remember per game).
 - CPU profiles don't show waits: log per frame how long the emulation thread waits for each helper thread (sound,
   VDP1, VDP2) together with the active settings; it found what profiles could not.
 - Keep one Android performance hint session, on the emulation thread only; recreating it leaves lasting slowdowns.

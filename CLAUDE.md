@@ -81,8 +81,9 @@ of these repositories.
 ## Performance lessons (from GBSat on the T618)
 
 - Pin the emulation thread alone on the fastest core (rank cores by `cpu_capacity`) and move threads inherited from
-  it off that core. Sound on its own thread only with 3+ fast cores: with 2 (Unisoc T618) the second fast core is
-  worth more to the heaviest render thread. Measure thread waits (performance log) before changing thread layouts.
+  it off that core. Threaded sound depends on the game and the device (on the T618 VF2/Panzer want the second
+  fast core for VDP2, Burning Rangers/NiGHTS for the sound): offer Auto (try both when slow, keep and remember the
+  faster one per game) plus On/Off. Measure thread waits (performance log) before changing thread layouts.
 - Keep the Android performance hint session on the emulation thread only (never recreate it).
 - Present frames zero-copy through AHardwareBuffer; automatic frame skip only when behind.
 - Changing threading options mid-game must not leave lasting slowdowns.
