@@ -117,14 +117,18 @@ of these repositories.
 ## Performance lessons (from GBSat on the T618)
 
 - Pin the emulation thread alone on the fastest core (rank cores by `cpu_capacity`) and move threads inherited from
-  it off that core. Threaded sound depends on the game and the device (on the T618 VF2/Panzer want the second
-  fast core for VDP2, Burning Rangers/NiGHTS for the sound): offer Auto (try both when slow, keep and remember the
-  faster one per game) plus On/Off. Measure thread waits (performance log) before changing thread layouts.
+  it off that core. Threaded sound depends on the game and the device: offer Auto (try both when slow, keep and remember the
+  faster one per game) plus On/Off. The October 2026 performance log on the T618 (threaded VDP on) showed threaded
+  sound faster in every game tested, VF2 included (58.8 vs 53-54 fps); keep threaded VDP always on there (off costs
+  2-5 ms per frame). The SH-2 interpreter is ~65-85% of the emulation thread's frame time. Measure thread waits (performance log) before changing thread layouts.
 - The performance log is the main device-test tool: per-component frame time, CPU per thread (`perf_probe`, sampled
   on a background thread so /proc reads never stall the emulation), core clock, thermal status, device and the options
   in use. Ask the owner for it before guessing at a slowdown.
 - Keep the Android performance hint session on the emulation thread only (never recreate it).
-- Present frames zero-copy through AHardwareBuffer; automatic frame skip only when behind.
+- Present frames zero-copy through AHardwareBuffer; automatic frame skip only when behind, spaced (frames shown
+  between skips adapt every second) so the picture doesn't drop to every other frame near full speed.
+- Audio-driven pacing needs dynamic rate control (play up to 5% slower while the buffer is low): at 59.8 fps the
+  buffer otherwise hovers near empty and every callback that runs short clicks.
 - Changing threading options mid-game must not leave lasting slowdowns.
 
 ## Screenshots
