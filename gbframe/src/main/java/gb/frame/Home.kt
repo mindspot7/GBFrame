@@ -69,18 +69,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Home screen layouts ("themes"): the library and the way to the settings, in four arrangements. The app supplies the
+// Home screen layouts ("themes"): the library and the way to the settings, in three arrangements. The app supplies the
 // games, the save states and the actions; the top bar, the settings menu overlay and the dialogs stay in the app.
 //
 //   Showcase (default) — the selected game large on top (blurred cover behind it, details, Continue / Start fresh /
 //                        Options), the box art shelf below.
 //   Grid               — settings as an icon rail on the left, the box art in a grid, All games / Recent chips.
-//   List               — Games / Recent / Settings tabs, a list of titles and a preview of the selected game with its
-//                        latest save state; the most readable on small screens.
 //   Continue           — the latest save state of each game first ("Continue playing"), then all games.
 // ---------------------------------------------------------------------------------------------------------------------
 
-enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), List("List"), Continue("Continue") }
+enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), Continue("Continue") }
 
 /** Home layout chosen by the user (Settings → Extras → Theme), remembered between sessions. */
 object HomeTheme {
@@ -149,7 +147,6 @@ fun HomeLibrary(
     Box(modifier.fillMaxSize()) {
         when (style) {
             HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, menu, menuFocus, first, coverVersion, empty, onMenuFocus)
-            HomeStyle.List -> ListHome(games, latest, latestByGame, recent, actions, first, coverVersion, empty)
             else -> when {
                 empty != null -> empty()
                 recent -> ResumeGrid(latest, actions.resume)
@@ -162,9 +159,12 @@ fun HomeLibrary(
 
 // ---- Top bar ----------------------------------------------------------------------------------------------------------
 
-/** Home top bar: app icon, [label], clock and battery. Touch only (the controller never moves to it); a tap opens the menu. */
+/**
+ * Home top bar: app icon, [label] with a menu arrow, clock and battery. Touch only (the controller opens the menu with X);
+ * a tap anywhere on it opens the menu ([HomeMenuPanel]).
+ */
 @Composable
-fun HomeTopBar(icon: Painter, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeTopBar(icon: Painter, label: String, onClick: () -> Unit, modifier: Modifier = Modifier, menuOpen: Boolean = false) {
     val ctx = LocalContext.current
     val p = palette
     var time by remember { mutableStateOf("") }
@@ -191,8 +191,10 @@ fun HomeTopBar(icon: Painter, label: String, onClick: () -> Unit, modifier: Modi
         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Image(icon, null, Modifier.size(40.dp).clip(RoundedCornerShape(11.dp)))
             Spacer(Modifier.width(12.dp))
-            Text(label, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = .85f),
+            Text(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Icon(if (menuOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore, "Menu", tint = p.highlight)
+            Spacer(Modifier.weight(1f))
             Text(time, style = MaterialTheme.typography.titleSmall, color = Color.White.copy(alpha = .9f))
             if (battery >= 0) {
                 Spacer(Modifier.width(10.dp))
@@ -219,15 +221,6 @@ fun rememberCover(title: String, version: Int = 0): ImageBitmap? {
     var cover by remember(title, version) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(title, version) { cover = runCatching { Covers.load(title) }.getOrNull() }
     return cover
-}
-
-@Composable
-private fun rememberScreenshot(e: ResumeEntry?): ImageBitmap? {
-    var shot by remember(e?.key, e?.time) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(e?.key, e?.time) {
-        shot = withContext(Dispatchers.IO) { e?.screenshot?.let { runCatching { android.graphics.BitmapFactory.decodeFile(it.path)?.asImageBitmap() }.getOrNull() } }
-    }
-    return shot
 }
 
 private fun Modifier.optionsKey(onOptions: () -> Unit) = onPreviewKeyEvent { e ->
@@ -523,107 +516,6 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
     }
 }
 
-// ---- C: List + preview ------------------------------------------------------------------------------------------------
-
-@Composable
-private fun ListHome(
-    games: List<HomeGame>, latest: List<ResumeEntry>, latestByGame: Map<String, ResumeEntry>, recent: Boolean, actions: HomeActions,
-    first: FocusRequester, version: Int, empty: (@Composable () -> Unit)?,
-) {
-    Column(Modifier.fillMaxSize()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Chip("Games", !recent) { actions.showRecent(false) }
-            Chip("Recent", recent) { actions.showRecent(true) }
-            Chip("Settings", false) { actions.openMenu() }
-        }
-        Spacer(Modifier.height(10.dp))
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            when {
-                empty != null -> empty()
-                recent -> ResumeGrid(latest, actions.resume)
-                else -> {
-                    var selected by remember(games) { mutableStateOf(games.firstOrNull()) }
-                    BoxWithConstraints(Modifier.fillMaxSize()) {
-                        val wide = maxWidth >= 480.dp
-                        val listW = (maxWidth * 0.42f).coerceAtMost(380.dp)
-                        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            LazyColumn(
-                                Modifier.then(if (wide) Modifier.width(listW) else Modifier.fillMaxWidth())
-                                    .fillMaxHeight().clip(RoundedCornerShape(18.dp)).background(palette.panel),
-                                contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
-                                items(games.size, key = { games[it].key }) { i ->
-                                    val g = games[i]
-                                    ListRow(g, latestByGame[g.key] != null, if (i == 0) Modifier.focusRequester(first) else Modifier, actions) { selected = g }
-                                }
-                            }
-                            if (wide) selected?.let { g -> Preview(g, latestByGame[g.key], version, actions, Modifier.weight(1f)) }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ListRow(g: HomeGame, hasState: Boolean, modifier: Modifier, actions: HomeActions, onFocused: () -> Unit) {
-    val p = palette
-    var focused by remember { mutableStateOf(false) }
-    Row(
-        modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(12.dp))
-            .background(if (focused) p.accent.copy(alpha = .22f) else Color.Transparent)
-            .onFocusChanged { focused = it.isFocused; if (it.isFocused) onFocused() }
-            .optionsKey { actions.options(g) }
-            .combinedClickable(onClick = { actions.play(g) }, onLongClick = { actions.options(g) })
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(when { focused -> p.highlight; hasState -> TealSave; else -> Color.White.copy(alpha = .2f) }))
-        Spacer(Modifier.width(12.dp))
-        Text(g.title, Modifier.weight(1f), color = Color.White, style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (focused) FontWeight.Bold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        if (g.playSeconds >= 60) Text(formatPlayTime(g.playSeconds), color = Color.White.copy(alpha = .65f), style = MaterialTheme.typography.labelMedium)
-    }
-}
-
-@Composable
-private fun Preview(g: HomeGame, st: ResumeEntry?, version: Int, actions: HomeActions, modifier: Modifier) {
-    val cover = rememberCover(g.title, version)
-    val shot = rememberScreenshot(st)
-    BoxWithConstraints(modifier.fillMaxHeight()) {
-        val coverH = (maxHeight * 0.48f).coerceIn(120.dp, 260.dp)
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Box(Modifier.height(coverH).aspectRatio(0.72f).clip(RoundedCornerShape(12.dp))) {
-                    if (cover != null) Image(cover, g.title, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    else CoverPlaceholder(g.title, Modifier.fillMaxSize())
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(g.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = Color.White,
-                        maxLines = 3, overflow = TextOverflow.Ellipsis)
-                    GameInfo(g, st != null)
-                    Spacer(Modifier.height(2.dp))
-                    PillButton(if (st != null) "Continue" else "Play", true, Icons.Default.PlayArrow) { if (st != null) actions.resume(st) else actions.play(g) }
-                    if (st != null) PillButton("Start fresh", false) { actions.fresh(g) }
-                }
-            }
-            if (st != null) {
-                SectionLabel("LATEST SAVE STATE")
-                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopStart) {
-                    Box(Modifier.fillMaxHeight().aspectRatio(4f / 3f, matchHeightConstraintsFirst = true).clip(RoundedCornerShape(12.dp))
-                        .background(Color.Black).border(1.dp, Color.White.copy(alpha = .14f), RoundedCornerShape(12.dp))) {
-                        shot?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds) }
-                        Text(st.label, Modifier.align(Alignment.BottomStart).padding(8.dp).background(Color.Black.copy(alpha = .6f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 8.dp, vertical = 2.dp), color = Color.White, style = MaterialTheme.typography.labelMedium)
-                    }
-                }
-            }
-        }
-    }
-}
-
 // ---- D: Continue playing + library ------------------------------------------------------------------------------------
 
 @Composable
@@ -663,10 +555,149 @@ fun HomeThemeSettings() {
             when (style) {
                 HomeStyle.Showcase -> "The selected game large on top, box art below"
                 HomeStyle.Grid -> "Box art in a grid, settings as icons on the left"
-                HomeStyle.List -> "A list of titles with a preview of the selected game; easiest to read on small screens"
                 HomeStyle.Continue -> "Your latest save states first, then all games"
             },
             HomeStyle.entries.map { it.label }, style.ordinal,
         ) { style = HomeStyle.entries[it] }
+    }
+}
+
+// ---- Main menu ---------------------------------------------------------------------------------------------------------
+
+/**
+ * Main menu of the home screen: a panel that slides in from the left over the library (like the in-game menu), opened by
+ * X or a tap on the top bar. From top to bottom: the app and a close button, an optional [header] (e.g. the
+ * RetroAchievements user), the library view (All games / Recent, with counts), the settings as icon tiles and Quit.
+ * The focus starts on the settings entry marked [HomeMenuItem.selected] (the page just closed), else on the current view.
+ */
+@Composable
+fun HomeMenuPanel(
+    open: Boolean, onDismiss: () -> Unit, focus: FocusRequester,
+    appIcon: Painter, appName: String,
+    recent: Boolean, gamesCount: Int, recentCount: Int, onShowRecent: (Boolean) -> Unit,
+    items: List<HomeMenuItem>, onQuit: () -> Unit,
+    header: @Composable () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    val p = palette
+    Box(modifier.fillMaxSize()) {
+        androidx.compose.animation.AnimatedVisibility(open, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .5f))
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss))
+        }
+        androidx.compose.animation.AnimatedVisibility(
+            open,
+            enter = androidx.compose.animation.slideInHorizontally { -it } + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.slideOutHorizontally { -it } + androidx.compose.animation.fadeOut(),
+        ) {
+            Surface(
+                color = lerpOpaque(p.panel), shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, p.border), shadowElevation = 16.dp,
+                modifier = Modifier.fillMaxHeight().widthIn(max = 400.dp).fillMaxWidth(0.88f),
+            ) {
+                Column(
+                    Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    // App and close
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(appIcon, null, Modifier.size(40.dp).clip(RoundedCornerShape(11.dp)))
+                        Spacer(Modifier.width(12.dp))
+                        Text(appName, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                        Box(
+                            Modifier.size(44.dp).clip(CircleShape).focusProperties { canFocus = false }.clickable(onClick = onDismiss),
+                            contentAlignment = Alignment.Center,
+                        ) { Icon(Icons.Default.Close, "Close menu", tint = Color.White.copy(alpha = .8f)) }
+                    }
+                    header()
+                    val selectedItem = items.indexOfFirst { it.selected }
+                    // Library view
+                    MenuSection("LIBRARY")
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ViewTile(Icons.Default.GridView, "All games", if (gamesCount == 1) "1 game" else "$gamesCount games", !recent,
+                            Modifier.weight(1f).then(if (selectedItem < 0 && !recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(false) }
+                        ViewTile(Icons.Default.History, "Recent", if (recentCount == 1) "1 save state" else "$recentCount save states", recent,
+                            Modifier.weight(1f).then(if (selectedItem < 0 && recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(true) }
+                    }
+                    // Settings
+                    MenuSection("SETTINGS")
+                    BoxWithConstraints {
+                        val cols = if (maxWidth < 280.dp) 2 else 3
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            items.withIndex().chunked(cols).forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    row.forEach { (i, m) ->
+                                        SettingTile(m, Modifier.weight(1f).then(if (i == selectedItem) Modifier.focusRequester(focus) else Modifier))
+                                    }
+                                    repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    MenuRow(MenuIcon.Quit, "Quit", onQuit)
+                }
+            }
+        }
+    }
+}
+
+private fun lerpOpaque(c: Color) = c.copy(alpha = 0.98f)
+
+@Composable
+private fun MenuSection(text: String) =
+    Text(text, color = palette.highlight, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+
+/** Focus look shared by the menu tiles: highlight border and a lighter fill. */
+@Composable
+private fun Modifier.tile(focused: Boolean, selected: Boolean = false): Modifier {
+    val p = palette
+    val shape = RoundedCornerShape(18.dp)
+    return clip(shape)
+        .background(when { selected -> p.accent.copy(alpha = if (focused) .42f else .28f); focused -> Color.White.copy(alpha = .16f); else -> Color.White.copy(alpha = .06f) })
+        .border(if (focused) 2.dp else 1.dp, if (focused) p.highlight else if (selected) p.accent.copy(alpha = .6f) else Color.White.copy(alpha = .08f), shape)
+}
+
+@Composable
+private fun ViewTile(icon: ImageVector, label: String, sub: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        modifier.height(68.dp).onFocusChanged { focused = it.isFocused }.tile(focused, selected).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = if (selected) palette.highlight else Color.White.copy(alpha = .85f), modifier = Modifier.size(26.dp))
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(label, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(sub, color = Color.White.copy(alpha = .7f), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun SettingTile(m: HomeMenuItem, modifier: Modifier) {
+    var focused by remember { mutableStateOf(false) }
+    Column(
+        modifier.height(88.dp).onFocusChanged { focused = it.isFocused }.tile(focused).clickable(onClick = m.onClick).padding(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+    ) {
+        MenuIconView(m.icon, 34.dp)
+        Spacer(Modifier.height(6.dp))
+        Text(m.label, color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun MenuRow(icon: MenuIcon, label: String, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        Modifier.fillMaxWidth().height(56.dp).onFocusChanged { focused = it.isFocused }.tile(focused).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MenuIconView(icon, 28.dp)
+        Spacer(Modifier.width(12.dp))
+        Text(label, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
     }
 }
