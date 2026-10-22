@@ -71,3 +71,6 @@ line here whenever a new app teaches something that would have saved time.
 
 - Build only on GitHub Actions; watch every run and fix warnings too (deprecated actions included).
 - Shared submodules (like this kit) must be public, or the app's CI can't clone them.
+- Counting fast cores is not enough to classify a device: chips with equal little cores (RK3566, 4x A55) look like
+  "4 fast cores", and a fast CPU can come with a GPU too weak for GPU emulation (T820 / Mali-G57). `DeviceTier` reads
+  the core type (/proc/cpuinfo) and the GPU name (GL_RENDERER) as well.

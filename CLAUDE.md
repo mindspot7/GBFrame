@@ -20,6 +20,9 @@ of these repositories.
 - Talk to the owner in **Portuguese (pt-BR)**; code, comments, commit messages and CHANGELOG stay in English.
 - The owner tests on real devices: an Adreno 740 handheld (Snapdragon 8 Gen 2) and a Unisoc T618 / Mali-G52 device with
   a 720x720 square screen. Keep both in mind (performance, small screens).
+- Most users are expected on handhelds with a **Unisoc T820** (Mali-G57), a **Rockchip RK3566** (4x Cortex-A55,
+  Mali-G52, often 640x480) and a **Snapdragon 865** (Adreno 650). Recommended settings go by `DeviceTier` (Entry /
+  Low / Mid / High), not by brand; check new layouts at 640x480 and on 3:4 portrait screens too.
 - APKs are built by GitHub Actions, never locally. After every push, watch the run until it finishes, read the check
   annotations, and **fix build errors and warnings automatically** (including deprecated actions) before reporting.
 - Report results briefly: what changed, the build name (e.g. `GBSat-v1.3.1-build141`), and what still needs a device test.
@@ -68,7 +71,7 @@ of these repositories.
   (always ending with a `PresetPicker` step), box art (`Covers`, libretro-thumbnails) and RetroAchievements
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`, offline
   casual unlocks through `RaOffline`), the games folder (`SafGames`), hotkeys (`Hotkeys`), per-game recommended
-  settings (`GameProfiles`), play time
+  settings (`GameProfiles` by `DeviceTier`), play time
   (`PlayTime`), game-named save folders with Export/Import (`SaveData`), the "Resume" view of save states with
   screenshots (`ResumeGrid`, only the latest save state of each game) and button mapping on a drawing of the console's controller (`PadDiagram` + `PadLayout`).
 - Save states: **Auto save** writes the auto slot when the game is exited (in-game Exit, quitting the app) **and when

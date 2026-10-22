@@ -57,7 +57,9 @@ void BuildMask() {
         rank.emplace_back(cap > 0 ? cap * 10'000'000L + freq / 1000 : freq, i);
     }
     std::sort(rank.begin(), rank.end(), [](auto &a, auto &b) { return a.first > b.first || (a.first == b.first && a.second > b.second); });
-    if (rank[0].first == rank.back().first) return; // all cores equal: leave scheduling to Android
+    // All cores equal (e.g. 4x Cortex-A55 on the Rockchip RK3566): with 4+ cores the emulation thread still gets one
+    // to itself and the helper threads share the others; with fewer, leave scheduling to Android
+    if (rank[0].first == rank.back().first && n < 4) return;
     const long top = rank[0].second, second = rank[1].second;
     CPU_ZERO(&mainMask);
     CPU_SET(top, &mainMask);
