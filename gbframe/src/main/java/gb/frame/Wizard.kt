@@ -91,6 +91,7 @@ fun WizardStatus(text: String) {
 class PresetOption(val label: String, val description: String)
 
 /** List of selectable preset cards with radio buttons; [selected] is the index of the current one (or -1 for custom). */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun PresetPicker(options: List<PresetOption>, selected: Int, onSelect: (Int) -> Unit) {
     options.forEachIndexed { i, p ->
