@@ -35,7 +35,9 @@ of these repositories.
   | Retroid Pocket Nova | Snapdragon 8 Gen 2 / Adreno 740 | 1280x960 4.5" 4:3 | High (Native 4x) |
 - APKs are built by GitHub Actions, never locally. After every push, watch the run until it finishes, read the check
   annotations, and **fix build errors and warnings automatically** (including deprecated actions) before reporting.
-- Report results briefly: what changed, the build name (e.g. `GBSat-v1.3.1-build141`), and what still needs a device test.
+- Report results briefly: what changed and the build name (e.g. `GBSat-v1.3.1-build141`). Mention CI only when something
+  went wrong, and don't say that a build wasn't tested on a device (the owner knows); say what to test only when it's
+  not obvious.
 
 ## Releases
 
