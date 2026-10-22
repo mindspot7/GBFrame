@@ -80,8 +80,9 @@ of these repositories.
 
 ## Performance lessons (from GBSat on the T618)
 
-- Run sound (SCSP-like chips) on its own thread; pin the emulation thread alone on the fastest core (rank cores by
-  `cpu_capacity`), and move threads inherited from it off that core.
+- Pin the emulation thread alone on the fastest core (rank cores by `cpu_capacity`) and move threads inherited from
+  it off that core. Sound on its own thread only with 3+ fast cores: with 2 (Unisoc T618) the second fast core is
+  worth more to the heaviest render thread. Measure thread waits (performance log) before changing thread layouts.
 - Keep the Android performance hint session on the emulation thread only (never recreate it).
 - Present frames zero-copy through AHardwareBuffer; automatic frame skip only when behind.
 - Changing threading options mid-game must not leave lasting slowdowns.
