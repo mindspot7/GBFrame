@@ -9,6 +9,12 @@ of these repositories.
 - Every app has its own README.md written from [docs/APP_README_TEMPLATE.md](docs/APP_README_TEMPLATE.md); keep it
   up to date with user-visible changes.
 
+## What belongs in the kit
+
+- Anything not specific to one console: UI, settings behavior, storage (SAF), hotkeys, save data, native helpers
+  (presenter, CPU tuning, PGO), device-test tools and their docs. Console-specific code (core, JNI bridge, controller
+  layouts, widescreen hacks, cheat formats) stays in the app. When an app gains something generic, move it here.
+
 ## Working with the owner
 
 - Talk to the owner in **Portuguese (pt-BR)**; code, comments, commit messages and CHANGELOG stay in English.

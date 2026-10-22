@@ -24,6 +24,15 @@ menus and controller behavior in every app, with a different color identity per 
 | `PadDiagram.kt` | Controller diagram for button mapping (`PadLayout`, `PadButton`, `PadDiagram`) |
 | `AchievementsUi.kt` | Unlock notifications, achievement list, `RetroAchievementsSettings`, `RaUserHeader` |
 
+Also shared beyond Kotlin:
+
+| Path | Contents |
+| --- | --- |
+| `uikit/.../Hotkeys.kt` | Hotkeys (quick save/load, fast forward, menu) with button combinations, `keyName` |
+| `uikit/.../SafGames.kt` | Games folder through the Storage Access Framework: scan, open discs with their track files (CUE, GDI, MDS) as `/proc/self/fd` symlinks for path-based cores |
+| `native/` | C++ for the app's JNI library (`gb_native.cmake`): OpenGL ES presenter (`gl_renderer`, zero-copy AHardwareBuffer, filters, shaders), CPU placement + performance hints (`cpu_tuning`, thread roles by name), PGO training support (`pgo`) |
+| `tools/` | Windows scripts for device tests over USB: `profile.bat` (simpleperf), `perf-log.bat` (performance log), `pgo-pull.bat` (PGO training data); set `APP`/`NAME` at the top |
+
 ## Using it in an app
 
 Add this repository as a git submodule and include the module:
