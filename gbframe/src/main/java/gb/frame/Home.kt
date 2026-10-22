@@ -370,7 +370,9 @@ private fun SectionLabel(text: String, color: Color = palette.highlight) =
 @Composable
 private fun Shelf(
     games: List<HomeGame>, version: Int, cardW: Dp, cardH: Dp, firstFocus: FocusRequester?, reflection: Boolean, focusScale: Float,
-    actions: HomeActions, startPad: Dp, topRoom: Dp = cardH * (focusScale - 1f) * 0.6f, onSelected: (HomeGame, ImageBitmap?) -> Unit,
+    actions: HomeActions, startPad: Dp, topRoom: Dp = cardH * (focusScale - 1f) * 0.6f,
+    /** Aligns the first and last covers with content [edge] from the sides (the zoomed cover when a controller selects it). */
+    edge: Dp? = null, onSelected: (HomeGame, ImageBitmap?) -> Unit,
 ) {
     val rowState = rememberLazyListState()
     var focusIndex by remember { mutableIntStateOf(-1) }
@@ -381,8 +383,10 @@ private fun Shelf(
     LazyRow(
         state = rowState,
         // Side padding leaves room for the enlarged (focused) first and last covers, top padding for its growth
-        contentPadding = PaddingValues(start = startPad + cardW * (focusScale - 1f), end = 20.dp + cardW * (focusScale - 1f),
-            top = topRoom, bottom = 4.dp),
+        contentPadding = edge?.let { e ->
+            val side = e + if (rememberHasGamepad()) cardW * (focusScale - 1f) / 2 else 0.dp // the zoom grows from the center
+            PaddingValues(start = side, end = side, top = topRoom, bottom = 4.dp)
+        } ?: PaddingValues(start = startPad + cardW * (focusScale - 1f), end = 20.dp + cardW * (focusScale - 1f), top = topRoom, bottom = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().steadyKeys(pace),
     ) {
         items(games.size, key = { games[it].key }) { i ->
@@ -462,7 +466,7 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
                 val cardH = (room / k).coerceIn(64.dp, 260.dp)
                 val boxH = cardH * 0.72f / 0.66f
                 Shelf(games, version, cardH * 0.72f, cardH, first, reflection = withRefl, focusScale = s, actions = actions, startPad = 20.dp,
-                    topRoom = boxH * (s - 1f) + 12.dp) { g, _ -> selected = g }
+                    topRoom = boxH * (s - 1f) + 12.dp, edge = 24.dp) { g, _ -> selected = g } // lined up with the title
             }
             Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
         }
@@ -533,9 +537,11 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
             val gap = 18.dp
             val slotPx = with(LocalDensity.current) { (shotW + gap).roundToPx() }
             LaunchedEffect(focusIndex) { if (focusIndex >= 0) pace.scroll(rowState, focusIndex, -slotPx) }
+            // Lined up with the title (the zoomed screenshot when a controller selects it; the zoom grows from the center)
+            val side = 24.dp + if (rememberHasGamepad()) shotW * 0.05f else 0.dp
             LazyRow(
                 state = rowState,
-                contentPadding = PaddingValues(start = 20.dp + shotW * 0.08f, end = 20.dp + shotW * 0.08f, top = shotH * 0.1f + 10.dp, bottom = 4.dp),
+                contentPadding = PaddingValues(start = side, end = side, top = shotH * 0.1f + 10.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.fillMaxWidth().steadyKeys(pace),
             ) {
                 items(latest.size, key = { latest[it].key }) { i ->
