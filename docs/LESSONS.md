@@ -79,3 +79,4 @@ line here whenever a new app teaches something that would have saved time.
   controller that feels like a dead first press. Route D-pad keys in touch mode from `dispatchKeyEventPreIme`
   (`setControllerContent`).
 - Compose will not focus clickable items while Android is in touch mode, and a key consumed before the view tree (as `setControllerContent` does) never leaves it: call `requestFocusFromTouch()` first, or the programmatic focus after a tap silently fails.
+- Before a JIT, measure idle loops: on Saturn games the SH-2s spent 60-100% of their interpreted cycles in loops of at most 5 instructions that only poll memory. Skipping such a loop to the end of the CPU's time slice is exact (nothing else runs during the slice) and much cheaper than a recompiler; exclude memory with read side effects (FIFO data ports) and loops that carry a register between iterations.
