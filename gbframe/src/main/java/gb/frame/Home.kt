@@ -392,7 +392,8 @@ private fun Shelf(
 private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int) {
     val p = palette
     var selected by remember(games) { mutableStateOf(games.firstOrNull()) }
-    var backdrop by remember { mutableStateOf<ImageBitmap?>(null) }
+    // Loaded for the selected game itself, so it also shows with touch (no focus) and before the first key press
+    val backdrop = rememberCover(selected?.title ?: "", version).takeIf { selected != null }
     val bg = p.background.last()
     BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
         // Short screens (e.g. 640x480 at hdpi): smaller title, no buttons (tap or A plays, long press or Y opens the options)
@@ -419,9 +420,7 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
                 }
             }
             Spacer(Modifier.weight(1f))
-            Shelf(games, version, cardW, cardH, first, reflection = !compact, focusScale = 1.15f, actions = actions, startPad = 20.dp) { g, cover ->
-                selected = g; backdrop = cover
-            }
+            Shelf(games, version, cardW, cardH, first, reflection = !compact, focusScale = 1.15f, actions = actions, startPad = 20.dp) { g, _ -> selected = g }
             Spacer(Modifier.height(if (compact) 4.dp else 10.dp))
         }
     }
@@ -457,14 +456,18 @@ private fun GridHome(
                 when {
                     empty != null -> empty()
                     recent -> ResumeGrid(latest, actions.resume)
-                    else -> LazyVerticalGrid(
-                        columns = GridCells.Adaptive(112.dp), contentPadding = PaddingValues(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        items(games.size, key = { games[it].key }) { i ->
-                            val g = games[i]
-                            GridCard(g, latestByGame[g.key] != null, version, if (i == 0) Modifier.focusRequester(first) else Modifier, actions)
+                    else -> BoxWithConstraints(Modifier.fillMaxSize()) {
+                        // At least 3 columns, so small and square screens don't get two huge covers per row
+                        val cols = (maxWidth / 124.dp).toInt().coerceAtLeast(3)
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(cols), contentPadding = PaddingValues(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            items(games.size, key = { games[it].key }) { i ->
+                                val g = games[i]
+                                GridCard(g, latestByGame[g.key] != null, version, if (i == 0) Modifier.focusRequester(first) else Modifier, actions)
+                            }
                         }
                     }
                 }
@@ -495,15 +498,21 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.06f else 1f, label = "scale")
     Column(Modifier.graphicsLayer { scaleX = scale; scaleY = scale }.zIndex(if (focused) 1f else 0f)) {
+        // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(
-            modifier.fillMaxWidth().aspectRatio(0.72f).clip(RoundedCornerShape(12.dp))
-                .border(if (focused) 3.dp else 1.dp, if (focused) p.highlight else Color.White.copy(alpha = .16f), RoundedCornerShape(12.dp))
+            modifier.fillMaxWidth().aspectRatio(0.72f)
                 .onFocusChanged { focused = it.isFocused }
                 .optionsKey { actions.options(g) }
-                .combinedClickable(onClick = { actions.play(g) }, onLongClick = { actions.options(g) }),
+                .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
+                    onClick = { actions.play(g) }, onLongClick = { actions.options(g) }),
+            contentAlignment = Alignment.BottomCenter,
         ) {
-            if (cover != null) Image(cover, g.title, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            else CoverPlaceholder(g.title, Modifier.fillMaxSize())
+            val shape = RoundedCornerShape(10.dp)
+            val frame = Modifier.border(if (focused) 3.dp else 1.dp, if (focused) p.highlight else Color.White.copy(alpha = .16f), shape)
+            if (cover != null) {
+                val ratio = (cover.width.toFloat() / cover.height).coerceIn(0.66f, 1.25f)
+                Image(cover, g.title, Modifier.fillMaxWidth().aspectRatio(ratio).clip(shape).then(frame), contentScale = ContentScale.FillBounds)
+            } else CoverPlaceholder(g.title, Modifier.fillMaxSize().then(frame))
             if (hasState) Text("SAVED", Modifier.align(Alignment.BottomEnd).padding(6.dp)
                 .background(Color.Black.copy(alpha = .65f), RoundedCornerShape(8.dp)).padding(horizontal = 7.dp, vertical = 2.dp),
                 color = TealSave, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
@@ -623,7 +632,9 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
         val hasStates = latest.isNotEmpty()
         val thumbW = ((maxHeight * 0.34f) * (4f / 3f)).coerceIn(140.dp, 320.dp)
         val cardH = (maxHeight * if (hasStates) 0.30f else 0.50f).coerceIn(90.dp, 240.dp)
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Without save states the shelf alone is centered vertically
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            verticalArrangement = if (hasStates) Arrangement.spacedBy(8.dp) else Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
             if (hasStates) {
                 SectionLabel("CONTINUE PLAYING")
                 LazyRow(contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
