@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -340,21 +341,6 @@ private fun PillButton(text: String, primary: Boolean, icon: ImageVector? = null
     }
 }
 
-/** Touch-only tab/chip. */
-@Composable
-private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
-    val p = palette
-    Box(
-        Modifier.height(36.dp).clip(RoundedCornerShape(50))
-            .then(if (selected) Modifier.background(p.accent) else Modifier.border(1.dp, Color.White.copy(alpha = .22f), RoundedCornerShape(50)))
-            .focusProperties { canFocus = false }.clickable(onClick = onClick).padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, color = if (selected) p.onAccent else Color.White, style = MaterialTheme.typography.labelLarge,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
-    }
-}
-
 @Composable
 private fun SectionLabel(text: String, color: Color = palette.highlight) =
     Text(text, color = color, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
@@ -396,9 +382,18 @@ private class RowPace {
     var lastMove = 0L
     var lastFocus = 0L
     fun focused() { lastFocus = android.os.SystemClock.uptimeMillis() }
+    /**
+     * Brings item [index] to [offset] px from the row's start. While the key is held each step glides linearly for exactly
+     * one step's time, so consecutive steps join into one continuous movement; a single press eases in and out.
+     */
     suspend fun scroll(state: androidx.compose.foundation.lazy.LazyListState, index: Int, offset: Int) {
-        val fast = android.os.SystemClock.uptimeMillis() - lastMove < 2 * STEP_MS && lastMove != 0L
-        if (fast) state.scrollToItem(index, offset) else state.animateScrollToItem(index, offset)
+        val held = lastMove != 0L && android.os.SystemClock.uptimeMillis() - lastMove < 2 * STEP_MS
+        val item = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+        if (item == null) { state.scrollToItem(index, offset); return }
+        val delta = (item.offset + offset).toFloat() // where the item is now vs. where it should be
+        if (delta == 0f) return
+        state.animateScrollBy(delta, if (held) androidx.compose.animation.core.tween(STEP_MS.toInt(), easing = androidx.compose.animation.core.LinearEasing)
+            else androidx.compose.animation.core.tween(260, easing = androidx.compose.animation.core.FastOutSlowInEasing))
     }
     companion object { const val STEP_MS = 120L }
 }
@@ -577,13 +572,9 @@ private fun GridHome(
     games: List<HomeGame>, latest: List<ResumeEntry>, latestByGame: Map<String, ResumeEntry>, recent: Boolean, actions: HomeActions,
     first: FocusRequester, version: Int, empty: (@Composable () -> Unit)?,
 ) {
+    // All games / Recent is switched from the main menu (or Select)
     Row(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).fillMaxHeight()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Chip(if (games.isEmpty()) "All games" else "All games · ${games.size}", !recent) { actions.showRecent(false) }
-                Chip("Recent", recent) { actions.showRecent(true) }
-            }
-            Spacer(Modifier.height(10.dp))
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when {
                     empty != null -> empty()
@@ -592,8 +583,9 @@ private fun GridHome(
                         // At least 3 columns, so small and square screens don't get two huge covers per row
                         val cols = (maxWidth / 124.dp).toInt().coerceAtLeast(3)
                         LazyVerticalGrid(
-                            columns = GridCells.Fixed(cols), contentPadding = PaddingValues(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp),
+                            // Room around and between the covers for the enlarged (focused) one, and off the top/bottom bars
+                            columns = GridCells.Fixed(cols), contentPadding = PaddingValues(horizontal = 14.dp, vertical = 18.dp),
+                            horizontalArrangement = Arrangement.spacedBy(20.dp), verticalArrangement = Arrangement.spacedBy(26.dp),
                             modifier = Modifier.fillMaxSize(),
                         ) {
                             items(games.size, key = { games[it].key }) { i ->
@@ -611,11 +603,11 @@ private fun GridHome(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Modifier, actions: HomeActions) {
-    val p = palette
     val cover = rememberCover(g.title, version)
     var focused by remember { mutableStateOf(false) }
-    // No zoom here: in a grid the enlarged cover was cut by its neighbours and the grid edges; the frame marks the selection
-    Column {
+    // The selected cover grows (over its neighbours: zIndex), no frame; the spacing of the grid leaves room for it
+    val scale by animateFloatAsState(if (focused) 1.08f else 1f, label = "scale")
+    Column(Modifier.zIndex(if (focused) 1f else 0f).graphicsLayer { scaleX = scale; scaleY = scale }) {
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(
             modifier.fillMaxWidth().aspectRatio(0.72f)
@@ -626,7 +618,7 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
             contentAlignment = Alignment.BottomCenter,
         ) {
             val shape = RoundedCornerShape(10.dp)
-            val frame = Modifier.border(if (focused) 3.dp else 1.dp, if (focused) p.highlight else Color.White.copy(alpha = .16f), shape)
+            val frame = Modifier.border(1.dp, Color.White.copy(alpha = .16f), shape)
             if (cover != null) {
                 val ratio = (cover.width.toFloat() / cover.height).coerceIn(0.66f, 1.25f)
                 Image(cover, g.title, Modifier.fillMaxWidth().aspectRatio(ratio).clip(shape).then(frame), contentScale = ContentScale.FillBounds)
@@ -690,7 +682,7 @@ fun HomeThemeSettings() {
  * Main menu of the home screen: a panel that slides in from the left over the library (like the in-game menu), opened by
  * X or a tap on the top bar. From top to bottom: the app and a close button, an optional [header] (e.g. the
  * RetroAchievements user), the library view (All games / Recent, with counts), the settings as icon tiles and Quit.
- * The focus starts on the settings entry marked [HomeMenuItem.selected] (the page just closed), else on the current view.
+ * The focus starts on the settings entry marked [HomeMenuItem.selected] (the page just closed), else on the first one.
  */
 @Composable
 fun HomeMenuPanel(
@@ -737,7 +729,9 @@ fun HomeMenuPanel(
                     }
                     header()
                     val selectedItem = items.indexOfFirst { it.selected }
-                    val viewFocus = selectedItem < 0 && extras.none { it.selected } // no settings page to return to
+                    // Focus: the settings page just closed, else the first settings entry
+                    val viewFocus = items.isEmpty() && extras.none { it.selected }
+                    val itemFocus = if (selectedItem >= 0) selectedItem else if (extras.none { it.selected }) 0 else -1
                     // Library view
                     MenuSection("LIBRARY")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -754,7 +748,7 @@ fun HomeMenuPanel(
                             items.withIndex().chunked(cols).forEach { row ->
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     row.forEach { (i, m) ->
-                                        SettingTile(m, Modifier.weight(1f).then(if (i == selectedItem) Modifier.focusRequester(focus) else Modifier))
+                                        SettingTile(m, Modifier.weight(1f).then(if (i == itemFocus) Modifier.focusRequester(focus) else Modifier))
                                     }
                                     repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
                                 }

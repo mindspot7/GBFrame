@@ -43,7 +43,8 @@ of these repositories.
   `apps/android/VERSION` changes, so never bump `VERSION` otherwise.
 - Release notes come from the matching `## x.y.z` section of `CHANGELOG.md`; keep an `## Unreleased` section on top and
   add a line for every user-visible change.
-- The release has the **APK only**; the App Bundle (`.aab`, for Google Play) stays in the build artifacts.
+- The release has the **APK only**; the App Bundle (`.aab`, for Google Play) is built only for a release (VERSION
+  without a GitHub release yet) or a manual run with `bundle: true`, and stays in that run's artifacts.
 - `versionCode` = CI run number (always increasing); `versionName` = `VERSION (build N)`.
 - Never create tags by hand. Commit/push only to the app's working branch (GBSat: `android-port`); no pushes upstream.
 - This session type cannot edit or delete releases: tell the owner how to do it in the GitHub UI.
@@ -102,6 +103,8 @@ of these repositories.
   in the same layout), **Grid** (box art grid) and **All in One** (latest save states first, then all games). The main menu is `HomeMenuPanel`: it slides in from the left (X, or a tap on the
   top bar) with the library view (All games / Recent, with counts), the settings as icon tiles and Quit; it stays open
   while a settings page is shown, so Back returns to it on the same entry.
+- Focus is moved programmatically only while the controller is in use (a focus request after a tap makes the next tap
+  only take the focus); after a touch, the first controller key puts the focus in place.
 - X (menu) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys
   while something is focused; `HomeLibrary(refocus = …)` puts the focus back on the library.
 - The button help bar is shown only when a physical controller is connected.
