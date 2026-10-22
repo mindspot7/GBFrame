@@ -78,7 +78,7 @@ of these repositories.
 
 - Use this kit (`gb.frame`): `EmuTheme` with the app's palette (GBSat: `EmuPalettes.Violet`; new apps:
   `EmuPalette.fromAccent(color)`), settings blocks, `ConfirmDialog`, `MenuIconView`, `PerfOverlay`, `rememberHasGamepad`, the first-run `SetupWizard`
-  (always ending with a `PresetPicker` step), box art (`Covers`, libretro-thumbnails) and RetroAchievements
+  (no preset question: the preset is chosen from `DeviceTier`, and Settings → Performance shows the device class and it), box art (`Covers`, libretro-thumbnails) and RetroAchievements
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`, offline
   casual unlocks through `RaOffline`), the games folder (`SafGames`), hotkeys (`Hotkeys`), per-game recommended
   settings (`GameProfiles` by `DeviceTier`), play time
@@ -98,6 +98,7 @@ of these repositories.
   while a menu is open.
 - Landscape: settings menu docked on the left; portrait/square: drop-down menu over the screen.
 - The button help bar is shown only when a physical controller is connected.
+- Touch controls are hidden automatically while a physical controller is connected (handhelds' built-in controls count).
 
 ## Performance lessons (from GBSat on the T618)
 
