@@ -73,4 +73,5 @@ line here whenever a new app teaches something that would have saved time.
 - Shared submodules (like this kit) must be public, or the app's CI can't clone them.
 - Counting fast cores is not enough to classify a device: chips with equal little cores (RK3566, 4x A55) look like
   "4 fast cores", and a fast CPU can come with a GPU too weak for GPU emulation (T820 / Mali-G57). `DeviceTier` reads
-  the core type (/proc/cpuinfo) and the GPU name (GL_RENDERER) as well.
+  the core type (/proc/cpuinfo) and the GPU name (GL_RENDERER) as well. Old big cores (A73, e.g. Snapdragon 662) are
+  slower per core than a T618; Mali strength depends on the core count in the name ("Mali-G615 MC6").

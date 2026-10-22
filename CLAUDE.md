@@ -20,9 +20,19 @@ of these repositories.
 - Talk to the owner in **Portuguese (pt-BR)**; code, comments, commit messages and CHANGELOG stay in English.
 - The owner tests on real devices: an Adreno 740 handheld (Snapdragon 8 Gen 2) and a Unisoc T618 / Mali-G52 device with
   a 720x720 square screen. Keep both in mind (performance, small screens).
-- Most users are expected on handhelds with a **Unisoc T820** (Mali-G57), a **Rockchip RK3566** (4x Cortex-A55,
-  Mali-G52, often 640x480) and a **Snapdragon 865** (Adreno 650). Recommended settings go by `DeviceTier` (Entry /
-  Low / Mid / High), not by brand; check new layouts at 640x480 and on 3:4 portrait screens too.
+- Devices most users are expected to have (recommended settings go by `DeviceTier`, not by brand; check new layouts on
+  these screens, `DeviceScreens` renders them):
+
+  | Device | Chip / GPU | Screen | Tier |
+  |---|---|---|---|
+  | Anbernic RG DS | Rockchip RK3568 (4x A55) / Mali-G52 2EE | 640x480 4.0" 4:3 | Entry |
+  | Anbernic RG Rotate | Unisoc T618 / Mali-G52 | 720x720 3.5" 1:1 | Low |
+  | Retroid Pocket Classic | Snapdragon G1 Gen 2 (2 fast cores) / Adreno A12 | 1240x1080 3.92" 5:4 | Low |
+  | Mangmi Air X | Snapdragon 662 (4x A73) / Adreno 610 | 1920x1080 5.5" 16:9 | Low |
+  | Anbernic RG Cube | Unisoc T820 / Mali-G57 | 720x720 3.95" 1:1 | Mid |
+  | Anbernic RG476H | Unisoc T820 / Mali-G57 | 1280x960 4.7" 4:3 | Mid |
+  | Anbernic RG477V | Dimensity 8300 / Mali-G615 MC6 | 1280x960 4.7" 4:3 | High (Native 2x) |
+  | Retroid Pocket Nova | Snapdragon 8 Gen 2 / Adreno 740 | 1280x960 4.5" 4:3 | High (Native 4x) |
 - APKs are built by GitHub Actions, never locally. After every push, watch the run until it finishes, read the check
   annotations, and **fix build errors and warnings automatically** (including deprecated actions) before reporting.
 - Report results briefly: what changed, the build name (e.g. `GBSat-v1.3.1-build141`), and what still needs a device test.

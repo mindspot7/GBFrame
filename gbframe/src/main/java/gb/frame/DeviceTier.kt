@@ -9,9 +9,10 @@ import java.io.File
  *
  * - **Entry**: only in-order "little" cores (Cortex-A53/A55, e.g. Rockchip RK3566). Every core is slow, but they are
  *   equal, so helper threads (sound, video) each get a core of their own.
- * - **Low**: 2 fast cores or fewer (e.g. Unisoc T618, MediaTek Helio G99): the second fast core is precious.
+ * - **Low**: 2 fast cores or fewer (e.g. Unisoc T618, Snapdragon G1 Gen 2): the second fast core is precious; or big cores
+ *   of the Cortex-A73 generation or older (e.g. Snapdragon 662), slower per core than a T618.
  * - **Mid**: 3+ fast cores but a GPU that isn't strong enough for GPU emulation (e.g. Unisoc T820 / Mali-G57).
- * - **High**: 3+ fast cores and a strong GPU (e.g. Snapdragon 865 / Adreno 650 and newer).
+ * - **High**: 3+ fast cores and a strong GPU (e.g. Snapdragon 865 / Adreno 650 and newer, Dimensity 8300 / Mali-G615 MC6).
  *
  * The GPU name comes from a throwaway OpenGL ES context, so call [detect] once at startup (any thread); the result is
  * cached.
@@ -45,11 +46,12 @@ object DeviceTier {
         val fastCores = if (fast > 0) fast else Runtime.getRuntime().availableProcessors()
         val top = cores.maxByOrNull { it.score }
         val littleOnly = top?.part?.let { it in LITTLE_PARTS } ?: false
+        val oldBig = top?.part?.let { it in OLD_BIG_PARTS } ?: false
         val gpuMaxScale = gpuMaxScale(gpu)
         val tier = when {
             littleOnly -> Tier.Entry
-            fastCores <= 2 -> Tier.Low
-            gpuMaxScale >= 3 -> Tier.High
+            fastCores <= 2 || oldBig -> Tier.Low
+            gpuMaxScale >= 2 -> Tier.High
             else -> Tier.Mid
         }
         return Info(tier, fastCores, littleOnly, gpu, gpuMaxScale)
@@ -67,6 +69,14 @@ object DeviceTier {
         0x51 shl 12 or 0x801, // Kryo 2xx Silver
         0x51 shl 12 or 0x803, // Kryo 3xx Silver
         0x51 shl 12 or 0x805, // Kryo 4xx Silver
+    )
+
+    /** Big cores of the Cortex-A73 generation or older. */
+    private val OLD_BIG_PARTS = setOf(
+        0x41 shl 12 or 0xd07, // Cortex-A57
+        0x41 shl 12 or 0xd08, // Cortex-A72
+        0x41 shl 12 or 0xd09, // Cortex-A73
+        0x51 shl 12 or 0x800, // Kryo 2xx Gold (A73 class: Snapdragon 662/665/835)
     )
 
     private fun readLong(path: String) = runCatching { File(path).readText().trim().toLong() }.getOrNull()
@@ -100,20 +110,30 @@ object DeviceTier {
     }
 
     /**
-     * Strong GPUs for GPU emulation (compute shaders): Adreno 640 and newer, Mali-G710 and newer / Immortalis, Xclipse.
-     * Mali-G5x/G7x (G52, G57, G76, G77, G78) were GPU-bound already at 1x on mid-range chips.
+     * Highest internal resolution worth suggesting for GPU emulation (compute shaders); 2+ makes a High device.
+     * - Adreno: 730+ 4x, 640-729 3x (710-719: 2x), older 1x.
+     * - Mali: 5th generation and newer (G610/G615, G710+, G925, G1-*) by core count: MC10+ 3x, MC6+ 2x (unknown count:
+     *   2x for G710+), else 1x. Mali-G5x/G7x (G52, G57, G76, G77, G78) were GPU-bound already at 1x on mid-range chips.
+     * - Xclipse 3x. Anything else (PowerVR, unknown names) 1x.
      */
     fun gpuMaxScale(gpu: String): Int {
         val g = gpu.lowercase()
         Regex("adreno[^0-9]*(\\d{3})").find(g)?.let { m ->
             val n = m.groupValues[1].toInt()
-            return when { n >= 730 -> 4; n >= 640 -> 3; else -> 1 }
+            return when { n >= 730 -> 4; n in 700..719 -> 2; n >= 640 -> 3; else -> 1 }
         }
-        Regex("mali-g(\\d+)").find(g)?.let { m ->
-            val n = m.groupValues[1].toInt()
-            return if (n >= 710) 3 else 1
+        if ("mali" in g) {
+            val mc = Regex("\\b(?:mc|mp)(\\d+)").find(g)?.groupValues?.get(1)?.toIntOrNull()
+            val n = Regex("mali-g(\\d+)").find(g)?.groupValues?.get(1)?.toIntOrNull()
+            val modern = n != null && (n in 610..699 || n >= 710 || n == 1) // "Mali-G1-Ultra" parses as 1
+            if (!modern) return 1
+            return when {
+                mc == null -> if (n!! >= 710 || "ultra" in g || "immortalis" in g) 2 else 1
+                mc >= 10 -> 3
+                mc >= 6 -> 2
+                else -> 1
+            }
         }
-        if ("immortalis" in g) return 4
         if ("xclipse" in g) return 3
         return 1
     }
