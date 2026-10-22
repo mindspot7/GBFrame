@@ -120,6 +120,9 @@ of these repositories.
   it off that core. Threaded sound depends on the game and the device (on the T618 VF2/Panzer want the second
   fast core for VDP2, Burning Rangers/NiGHTS for the sound): offer Auto (try both when slow, keep and remember the
   faster one per game) plus On/Off. Measure thread waits (performance log) before changing thread layouts.
+- The performance log is the main device-test tool: per-component frame time, CPU per thread (`perf_probe`, sampled
+  on a background thread so /proc reads never stall the emulation), core clock, thermal status, device and the options
+  in use. Ask the owner for it before guessing at a slowdown.
 - Keep the Android performance hint session on the emulation thread only (never recreate it).
 - Present frames zero-copy through AHardwareBuffer; automatic frame skip only when behind.
 - Changing threading options mid-game must not leave lasting slowdowns.
