@@ -1,4 +1,4 @@
-name: Build UI kit
+name: Build GBFrame
 
 on:
   push:
