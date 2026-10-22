@@ -536,9 +536,10 @@ private fun ListHome(
                     var selected by remember(games) { mutableStateOf(games.firstOrNull()) }
                     BoxWithConstraints(Modifier.fillMaxSize()) {
                         val wide = maxWidth >= 480.dp
+                        val listW = (maxWidth * 0.42f).coerceAtMost(380.dp)
                         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             LazyColumn(
-                                Modifier.then(if (wide) Modifier.width((maxWidth * 0.42f).coerceAtMost(380.dp)) else Modifier.fillMaxWidth())
+                                Modifier.then(if (wide) Modifier.width(listW) else Modifier.fillMaxWidth())
                                     .fillMaxHeight().clip(RoundedCornerShape(18.dp)).background(palette.panel),
                                 contentPadding = PaddingValues(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
