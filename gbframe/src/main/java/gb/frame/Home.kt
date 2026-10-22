@@ -165,8 +165,10 @@ fun HomeLibrary(
     val latest = remember(states) { states.sortedByDescending { it.time }.distinctBy { it.game } }
     val latestByGame = remember(latest) { latest.associateBy { it.game } }
     val first = remember { FocusRequester() }
-    LaunchedEffect(style, recent, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus) {
-        if (empty == null) { delay(60); runCatching { first.requestFocus() } }
+    // The selection only exists with a physical controller (handhelds' built-in controls count)
+    val hasPad = rememberHasGamepad()
+    LaunchedEffect(style, recent, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad) {
+        if (empty == null && hasPad) { delay(60); runCatching { first.requestFocus() } }
     }
     Box(modifier.fillMaxSize()) {
         when (style) {

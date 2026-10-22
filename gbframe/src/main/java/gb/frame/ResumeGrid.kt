@@ -52,7 +52,8 @@ fun ResumeGrid(
     val entries = remember(all, latestPerGame) {
         all.sortedByDescending { it.time }.let { if (latestPerGame) it.distinctBy { e -> e.game } else it }
     }
-    LaunchedEffect(entries.firstOrNull()) { runCatching { first.requestFocus() } }
+    val hasPad = rememberHasGamepad()
+    LaunchedEffect(entries.firstOrNull(), hasPad) { if (hasPad) runCatching { first.requestFocus() } }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(220.dp), contentPadding = PaddingValues(6.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp),
