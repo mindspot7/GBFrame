@@ -99,12 +99,12 @@ of these repositories.
   while a menu is open.
 - Home screen: `HomeTopBar` (app icon, app name with a menu arrow, clock, battery icon; a tap opens the menu) and
   `HomeLibrary` in the layout picked in Extras → Layout (`HomeThemeSettings`): **Showcase** (default: selected game large
-  on top over its blurred cover, one-line title that scrolls when long, shelf below; Recent shows save-state screenshots
-  in the same layout), **Grid** (box art grid) and **All in One** (latest save states first, then all games). The main menu is `HomeMenuPanel`: it slides in from the left (X, or a tap on the
+  on top, one-line title that scrolls when long, shelf below; Recent shows save-state screenshots
+  in the same layout), **Grid** (grid of 3D boxes drawn from the 2D covers: `BoxArt3D`) and **All in One** (latest save states first, then all games). The main menu is `HomeMenuPanel`: it slides in from the left (X, or a tap on the
   top bar) with the library view (All games / Recent, with counts), the settings as icon tiles and Quit; it stays open
   while a settings page is shown, so Back returns to it on the same entry.
-- Focus is moved programmatically only while the controller is in use (a focus request after a tap makes the next tap
-  only take the focus); after a touch, the first controller key puts the focus in place.
+- Use `setControllerContent` instead of `setContent`: after a touch, Android spends the first D-pad press leaving touch
+  mode, so moving needed two presses; it sends D-pad keys in touch mode straight to the Activity.
 - X (menu) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys
   while something is focused; `HomeLibrary(refocus = …)` puts the focus back on the library.
 - The button help bar is shown only when a physical controller is connected.

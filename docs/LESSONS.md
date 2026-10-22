@@ -75,3 +75,6 @@ line here whenever a new app teaches something that would have saved time.
   "4 fast cores", and a fast CPU can come with a GPU too weak for GPU emulation (T820 / Mali-G57). `DeviceTier` reads
   the core type (/proc/cpuinfo) and the GPU name (GL_RENDERER) as well. Old big cores (A73, e.g. Snapdragon 662) are
   slower per core than a T618; Mali strength depends on the core count in the name ("Mali-G615 MC6").
+- After a touch, Android consumes the first D-pad press to leave touch mode (before the Activity sees it): with a
+  controller that feels like a dead first press. Route D-pad keys in touch mode from `dispatchKeyEventPreIme`
+  (`setControllerContent`).

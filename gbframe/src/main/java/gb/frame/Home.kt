@@ -49,6 +49,8 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -75,7 +77,7 @@ import kotlinx.coroutines.withContext
 // Home screen layouts ("themes"): the library and the way to the settings, in three arrangements. The app supplies the
 // games, the save states and the actions; the top bar, the settings menu overlay and the dialogs stay in the app.
 //
-//   Showcase (default) — the selected game large on top (blurred cover behind it, details, Continue / Start fresh /
+//   Showcase (default) — the selected game large on top (details, Continue / Start fresh /
 //                        Options), the box art shelf below.
 //   Grid               — the box art in a grid, All games / Recent chips.
 //   Continue ("All in One") — the latest save state of each game first ("Continue playing"), then all games.
@@ -413,19 +415,10 @@ private fun Modifier.steadyKeys(pace: RowPace) = onPreviewKeyEvent { e ->
 private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int) {
     val p = palette
     var selected by remember(games) { mutableStateOf(games.firstOrNull()) }
-    // Loaded for the selected game itself (so it also shows with touch), a moment after the selection settles: holding
-    // the D-pad doesn't decode and blur a cover for every game passed
-    var backdropTitle by remember(games) { mutableStateOf(games.firstOrNull()?.title) }
-    LaunchedEffect(selected) { delay(220); backdropTitle = selected?.title }
-    val backdrop = rememberCover(backdropTitle ?: "", version).takeIf { backdropTitle != null }
     val bg = p.background.last()
     BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
         // Short screens (e.g. 640x480 at hdpi): smaller title, no buttons (tap or A plays, long press or Y opens the options)
         val compact = maxHeight < 300.dp
-        // Backdrop: the selected game's cover, blurred (Android 12+) and darkened towards the text and the shelf
-        backdrop?.let { Image(it, null, Modifier.fillMaxSize().blur(30.dp).graphicsLayer { alpha = .55f }, contentScale = ContentScale.Crop) }
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to bg.copy(alpha = .92f), 0.6f to bg.copy(alpha = .55f), 1f to bg.copy(alpha = .2f))))
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.4f to Color.Transparent, 1f to bg.copy(alpha = .9f))))
         Column(Modifier.fillMaxSize()) {
             selected?.let { g ->
                 val st = latestByGame[g.key]
@@ -481,16 +474,12 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
     val p = palette
     val byKey = remember(games) { games.associateBy { it.key } }
     var selected by remember(latest) { mutableStateOf(latest.firstOrNull()) }
-    val backdrop = rememberScreenshot(selected)
     val bg = p.background.last()
     BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
         val compact = maxHeight < 300.dp
         // Screenshots are 4:3, wider than box art: a little lower, so the hero keeps its room
         val shotH = (maxHeight * if (compact) 0.42f else 0.36f).coerceIn(80.dp, 220.dp)
         val shotW = shotH * (4f / 3f)
-        backdrop?.let { Image(it, null, Modifier.fillMaxSize().blur(24.dp).graphicsLayer { alpha = .55f }, contentScale = ContentScale.Crop) }
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to bg.copy(alpha = .92f), 0.6f to bg.copy(alpha = .55f), 1f to bg.copy(alpha = .2f))))
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.4f to Color.Transparent, 1f to bg.copy(alpha = .9f))))
         Column(Modifier.fillMaxSize()) {
             selected?.let { e ->
                 val g = byKey[e.game]
@@ -605,7 +594,7 @@ private fun GridHome(
 private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Modifier, actions: HomeActions) {
     val cover = rememberCover(g.title, version)
     var focused by remember { mutableStateOf(false) }
-    // The selected cover grows (over its neighbours: zIndex), no frame; the spacing of the grid leaves room for it
+    // 3D box (cover + spine). The selected one grows (over its neighbours: zIndex); the grid's spacing leaves room for it
     val scale by animateFloatAsState(if (focused) 1.08f else 1f, label = "scale")
     Column(Modifier.zIndex(if (focused) 1f else 0f).graphicsLayer { scaleX = scale; scaleY = scale }) {
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
@@ -617,12 +606,8 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
                     onClick = { actions.play(g) }, onLongClick = { actions.options(g) }),
             contentAlignment = Alignment.BottomCenter,
         ) {
-            val shape = RoundedCornerShape(10.dp)
-            val frame = Modifier.border(1.dp, Color.White.copy(alpha = .16f), shape)
-            if (cover != null) {
-                val ratio = (cover.width.toFloat() / cover.height).coerceIn(0.66f, 1.25f)
-                Image(cover, g.title, Modifier.fillMaxWidth().aspectRatio(ratio).clip(shape).then(frame), contentScale = ContentScale.FillBounds)
-            } else CoverPlaceholder(g.title, Modifier.fillMaxSize().then(frame))
+            if (cover != null) BoxArt3D(cover, Modifier.fillMaxSize())
+            else CoverPlaceholder(g.title, Modifier.fillMaxSize().border(1.dp, Color.White.copy(alpha = .16f), RoundedCornerShape(10.dp)))
             if (hasState) Text("SAVED", Modifier.align(Alignment.BottomEnd).padding(6.dp)
                 .background(Color.Black.copy(alpha = .65f), RoundedCornerShape(8.dp)).padding(horizontal = 7.dp, vertical = 2.dp),
                 color = TealSave, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
@@ -825,5 +810,55 @@ private fun MenuRow(icon: MenuIcon, label: String, modifier: Modifier, onClick: 
         MenuIconView(icon, 28.dp)
         Spacer(Modifier.width(12.dp))
         Text(label, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+// ---- 3D box art -------------------------------------------------------------------------------------------------------
+
+/**
+ * A 2D cover drawn as a 3D game box: the front turned slightly to the right in perspective, the spine on the left (made
+ * from the cover's left edge, darker), a light gloss and a soft shadow. Sits on the bottom of [modifier]'s area and keeps
+ * the cover's proportions. Real 3D box renders aren't needed: any cover works.
+ */
+@Composable
+fun BoxArt3D(cover: ImageBitmap, modifier: Modifier = Modifier) {
+    val bmp = remember(cover) { cover.asAndroidBitmap() }
+    androidx.compose.foundation.Canvas(modifier) {
+        val W = size.width; val H = size.height
+        val ratio = (bmp.width.toFloat() / bmp.height).coerceIn(0.6f, 1.3f)
+        val depth = W * 0.11f                    // visible spine width
+        val faceW = W - depth
+        val faceH = (faceW / ratio).coerceAtMost(H * 0.97f)
+        val shrink = faceH * 0.055f              // far (right) edge is shorter: perspective
+        val top = H - faceH - H * 0.02f
+        val bottom = top + faceH
+        val nat = drawContext.canvas.nativeCanvas
+        // Shadow
+        drawOval(Color.Black.copy(alpha = .35f), topLeft = androidx.compose.ui.geometry.Offset(W * 0.02f, bottom - faceH * 0.02f),
+            size = androidx.compose.ui.geometry.Size(W * 0.98f, faceH * 0.06f))
+        fun quad(src: android.graphics.RectF, dst: FloatArray, paint: android.graphics.Paint) {
+            val m = android.graphics.Matrix()
+            val s = floatArrayOf(src.left, src.top, src.right, src.top, src.right, src.bottom, src.left, src.bottom)
+            m.setPolyToPoly(s, 0, dst, 0, 4)
+            nat.save(); nat.concat(m)
+            nat.drawBitmap(bmp, android.graphics.Rect(src.left.toInt(), src.top.toInt(), src.right.toInt(), src.bottom.toInt()), src, paint)
+            nat.restore()
+        }
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG)
+        // Spine: the cover's left 7%, darkened, slanting away to the left
+        val spineSrc = android.graphics.RectF(0f, 0f, bmp.width * 0.07f, bmp.height.toFloat())
+        val spinePaint = android.graphics.Paint(paint).apply { colorFilter = android.graphics.LightingColorFilter(0xFF8A8A8A.toInt(), 0) }
+        quad(spineSrc, floatArrayOf(0f, top + shrink * 0.8f, depth, top, depth, bottom, 0f, bottom - shrink * 0.8f), spinePaint)
+        // Front
+        val faceSrc = android.graphics.RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat())
+        val face = floatArrayOf(depth, top, W, top + shrink, W, bottom - shrink, depth, bottom)
+        quad(faceSrc, face, paint)
+        // Gloss on the front and an edge line between spine and front
+        val path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(depth, top); lineTo(W, top + shrink); lineTo(W, bottom - shrink); lineTo(depth, bottom); close()
+        }
+        drawPath(path, Brush.linearGradient(listOf(Color.White.copy(alpha = .22f), Color.Transparent, Color.Transparent, Color.Black.copy(alpha = .12f)),
+            start = androidx.compose.ui.geometry.Offset(depth, top), end = androidx.compose.ui.geometry.Offset(W, bottom)))
+        drawLine(Color.White.copy(alpha = .35f), androidx.compose.ui.geometry.Offset(depth, top), androidx.compose.ui.geometry.Offset(depth, bottom), strokeWidth = 1.5f)
     }
 }

@@ -28,3 +28,29 @@ fun rememberHasGamepad(): Boolean {
     }
     return has
 }
+
+/**
+ * Like `setContent`, but the first D-pad press after a touch already moves the focus. Normally Android spends that press
+ * leaving "touch mode" (ViewRootImpl consumes it before the app sees it), so after a tap two presses were needed to
+ * move. Here D-pad keys that arrive in touch mode are sent straight to the Activity's key handling.
+ */
+fun androidx.activity.ComponentActivity.setControllerContent(content: @androidx.compose.runtime.Composable () -> Unit) {
+    val activity = this
+    val compose = androidx.compose.ui.platform.ComposeView(this).apply { setContent(content) }
+    val frame = object : android.widget.FrameLayout(this) {
+        override fun dispatchKeyEventPreIme(event: android.view.KeyEvent): Boolean {
+            if (isInTouchMode && event.keyCode in TouchModeNavKeys) {
+                activity.dispatchKeyEvent(event)
+                return true
+            }
+            return super.dispatchKeyEventPreIme(event)
+        }
+    }
+    frame.addView(compose, android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT))
+    setContentView(frame)
+}
+
+private val TouchModeNavKeys = setOf(
+    android.view.KeyEvent.KEYCODE_DPAD_UP, android.view.KeyEvent.KEYCODE_DPAD_DOWN, android.view.KeyEvent.KEYCODE_DPAD_LEFT,
+    android.view.KeyEvent.KEYCODE_DPAD_RIGHT, android.view.KeyEvent.KEYCODE_DPAD_CENTER, android.view.KeyEvent.KEYCODE_ENTER,
+)
