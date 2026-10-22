@@ -98,6 +98,8 @@ of these repositories.
   while a menu is open.
 - Landscape: settings menu docked on the left; portrait/square: drop-down menu over the screen.
 - The button help bar is shown only when a physical controller is connected.
+- The game picture is aligned to the top of the screen: when the screen is narrower than the picture (square, 5:4, a
+  16:9 mode on 4:3) all the black bars go below it; side bars stay centered.
 - Touch controls are hidden automatically while a physical controller is connected (handhelds' built-in controls count).
 
 ## Performance lessons (from GBSat on the T618)
