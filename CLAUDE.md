@@ -127,4 +127,5 @@ of these repositories.
 ## Screenshots
 
 - README/store screenshots are rendered from code with Robolectric/Roborazzi (sample covers, no commercial art), by a
-  workflow that commits them to `docs/screenshots`.
+  workflow that commits them to `docs/screenshots`. It runs when `VERSION` changes (a release) or by hand
+  (`workflow_dispatch`), not on every push.
