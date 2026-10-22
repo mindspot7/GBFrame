@@ -78,3 +78,4 @@ line here whenever a new app teaches something that would have saved time.
 - After a touch, Android consumes the first D-pad press to leave touch mode (before the Activity sees it): with a
   controller that feels like a dead first press. Route D-pad keys in touch mode from `dispatchKeyEventPreIme`
   (`setControllerContent`).
+- Compose will not focus clickable items while Android is in touch mode, and a key consumed before the view tree (as `setControllerContent` does) never leaves it: call `requestFocusFromTouch()` first, or the programmatic focus after a tap silently fails.

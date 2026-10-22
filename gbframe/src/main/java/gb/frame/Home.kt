@@ -103,8 +103,25 @@ object HomeTheme {
         override fun component2(): (HomeStyle) -> Unit = { value = it }
     }
 
+    private const val HELP_KEY = "gbframe.buttonHelp"
+
+    /** Shows the controller button help bar at the bottom of the home screen (when a controller is connected). */
+    val buttonHelp = object : MutableState<Boolean> {
+        private val state = mutableStateOf(true)
+        override var value: Boolean
+            get() = state.value
+            set(v) {
+                if (state.value == v) return
+                state.value = v
+                prefs?.edit()?.putBoolean(HELP_KEY, v)?.apply()
+            }
+        override fun component1() = value
+        override fun component2(): (Boolean) -> Unit = { value = it }
+    }
+
     fun init(prefs: SharedPreferences) {
         this.prefs = prefs
+        buttonHelp.value = prefs.getBoolean(HELP_KEY, true)
         style.value = HomeStyle.entries.firstOrNull { it.name == prefs.getString(KEY, null) } ?: HomeStyle.Showcase
     }
 }
@@ -646,8 +663,9 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
 
 /** "Layout" settings block (e.g. in Extras): picks the home screen layout. */
 @Composable
-fun HomeThemeSettings() {
+fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
     var style by HomeTheme.style
+    var help by HomeTheme.buttonHelp
     SettingsGroup("Layout", Icons.Default.Palette) {
         ChoiceRow(
             "Home screen",
@@ -657,7 +675,8 @@ fun HomeThemeSettings() {
                 HomeStyle.Continue -> "Your latest save states first, then all games"
             },
             HomeStyle.entries.map { it.label }, style.ordinal,
-        ) { style = HomeStyle.entries[it] }
+        ) { style = HomeStyle.entries[it]; onLayoutChanged() }
+        ToggleRow(Icons.Default.SportsEsports, "Button help", "The bar with the controller buttons at the bottom of the home screen", help) { help = it }
     }
 }
 

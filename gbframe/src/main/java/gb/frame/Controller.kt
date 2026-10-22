@@ -41,6 +41,9 @@ fun android.app.Activity.setControllerContent(content: @androidx.compose.runtime
     val frame = object : android.widget.FrameLayout(this) {
         override fun dispatchKeyEventPreIme(event: android.view.KeyEvent): Boolean {
             if (isInTouchMode && event.keyCode in TouchModeNavKeys) {
+                // Leave touch mode ourselves: the key is consumed here, so Android never does it, and in touch mode Compose
+                // refuses to focus clickable items (the menu's first entry stayed unselected after a tap).
+                if (event.action == android.view.KeyEvent.ACTION_DOWN) compose.requestFocusFromTouch()
                 activity.dispatchKeyEvent(event)
                 return true
             }

@@ -107,7 +107,8 @@ of these repositories.
   mode, so moving needed two presses; it sends D-pad keys in touch mode straight to the Activity.
 - X (menu) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys
   while something is focused; `HomeLibrary(refocus = …)` puts the focus back on the library.
-- The button help bar is shown only when a physical controller is connected.
+- The button help bar is shown only when a physical controller is connected and `HomeTheme.buttonHelp` (Extras → Layout → Button help) is on.
+- Changing the home layout (`HomeThemeSettings(onLayoutChanged)`) closes settings and the menu and shows the library.
 - The game picture is aligned to the top of the screen: when the screen is narrower than the picture (square, 5:4, a
   16:9 mode on 4:3) all the black bars go below it; side bars stay centered.
 - Touch controls are hidden automatically while a physical controller is connected (handhelds' built-in controls count).
