@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -269,16 +270,19 @@ fun CoverCard(
         if (reflection) {
             if (cover != null) {
                 val ratio = (cover.width.toFloat() / cover.height).coerceIn(0.66f, 1.25f)
-                Box(
+                // Mirror of the cover's bottom part, fading out: drawn directly (flipped around the top edge), so it always
+                // starts right at the cover's bottom edge whatever the cover's proportions
+                androidx.compose.foundation.Canvas(
                     Modifier.fillMaxWidth().height(reflH).clipToBounds()
-                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                        .drawWithContent {
-                            drawContent()
-                            drawRect(Brush.verticalGradient(listOf(Color.Black.copy(alpha = .30f), Color.Transparent)), blendMode = BlendMode.DstIn)
-                        },
+                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
                 ) {
-                    Image(cover, null, Modifier.fillMaxWidth().aspectRatio(ratio).wrapContentHeight(Alignment.Top, unbounded = true)
-                        .graphicsLayer { scaleY = -1f }.clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.FillBounds)
+                    val w = size.width
+                    val ih = w / ratio
+                    scale(1f, -1f, pivot = androidx.compose.ui.geometry.Offset(w / 2f, 0f)) {
+                        drawImage(cover, dstOffset = androidx.compose.ui.unit.IntOffset(0, -ih.toInt()),
+                            dstSize = androidx.compose.ui.unit.IntSize(w.toInt(), ih.toInt()), alpha = 0.32f)
+                    }
+                    drawRect(Brush.verticalGradient(listOf(Color.Black, Color.Transparent), endY = size.height), blendMode = BlendMode.DstIn)
                 }
             } else Spacer(Modifier.height(reflH))
         }
@@ -359,28 +363,53 @@ private fun SectionLabel(text: String, color: Color = palette.highlight) =
 @Composable
 private fun Shelf(
     games: List<HomeGame>, version: Int, cardW: Dp, cardH: Dp, firstFocus: FocusRequester?, reflection: Boolean, focusScale: Float,
-    actions: HomeActions, startPad: Dp, onSelected: (HomeGame, ImageBitmap?) -> Unit,
+    actions: HomeActions, startPad: Dp, topRoom: Dp = cardH * (focusScale - 1f) * 0.6f, onSelected: (HomeGame, ImageBitmap?) -> Unit,
 ) {
     val rowState = rememberLazyListState()
     var focusIndex by remember { mutableIntStateOf(-1) }
+    val pace = remember { RowPace() }
     val gap = 18.dp
     val slotPx = with(LocalDensity.current) { (cardW + gap).roundToPx() }
-    LaunchedEffect(focusIndex) { if (focusIndex >= 0) rowState.animateScrollToItem(focusIndex, -slotPx) }
+    LaunchedEffect(focusIndex) { if (focusIndex >= 0) pace.scroll(rowState, focusIndex, -slotPx) }
     LazyRow(
         state = rowState,
-        // Side padding leaves room for the enlarged (focused) first and last covers
+        // Side padding leaves room for the enlarged (focused) first and last covers, top padding for its growth
         contentPadding = PaddingValues(start = startPad + cardW * (focusScale - 1f), end = 20.dp + cardW * (focusScale - 1f),
-            top = cardH * (focusScale - 1f) * 0.6f, bottom = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth(),
+            top = topRoom, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().steadyKeys(pace),
     ) {
         items(games.size, key = { games[it].key }) { i ->
             val g = games[i]
             CoverCard(g.title, version, cardW, cardH, if (i == 0 && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier,
                 reflection = reflection, focusScale = focusScale,
                 onClick = { actions.play(g) }, onOptions = { actions.options(g) },
-                onFocused = { cover -> onSelected(g, cover); focusIndex = i })
+                onFocused = { cover -> onSelected(g, cover); pace.focused(); focusIndex = i })
         }
     }
+}
+
+/**
+ * Holding left/right on a shelf: focus moves at a steady pace (one cover every [STEP_MS]) instead of at the raw key-repeat
+ * rate, and the row jumps instead of animating while it moves fast, so the selection never lags behind the key.
+ */
+private class RowPace {
+    var lastMove = 0L
+    var lastFocus = 0L
+    fun focused() { lastFocus = android.os.SystemClock.uptimeMillis() }
+    suspend fun scroll(state: androidx.compose.foundation.lazy.LazyListState, index: Int, offset: Int) {
+        val fast = android.os.SystemClock.uptimeMillis() - lastMove < 2 * STEP_MS && lastMove != 0L
+        if (fast) state.scrollToItem(index, offset) else state.animateScrollToItem(index, offset)
+    }
+    companion object { const val STEP_MS = 120L }
+}
+
+private fun Modifier.steadyKeys(pace: RowPace) = onPreviewKeyEvent { e ->
+    if (e.type != KeyEventType.KeyDown || (e.key != Key.DirectionLeft && e.key != Key.DirectionRight)) return@onPreviewKeyEvent false
+    val now = android.os.SystemClock.uptimeMillis()
+    val repeat = e.nativeKeyEvent.repeatCount > 0
+    if (repeat && now - pace.lastMove < RowPace.STEP_MS) return@onPreviewKeyEvent true // held: wait for the next step
+    pace.lastMove = if (repeat) now else 0L
+    false // the normal focus move happens
 }
 
 // ---- A: Showcase ------------------------------------------------------------------------------------------------------
@@ -389,14 +418,15 @@ private fun Shelf(
 private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int) {
     val p = palette
     var selected by remember(games) { mutableStateOf(games.firstOrNull()) }
-    // Loaded for the selected game itself, so it also shows with touch (no focus) and before the first key press
-    val backdrop = rememberCover(selected?.title ?: "", version).takeIf { selected != null }
+    // Loaded for the selected game itself (so it also shows with touch), a moment after the selection settles: holding
+    // the D-pad doesn't decode and blur a cover for every game passed
+    var backdropTitle by remember(games) { mutableStateOf(games.firstOrNull()?.title) }
+    LaunchedEffect(selected) { delay(220); backdropTitle = selected?.title }
+    val backdrop = rememberCover(backdropTitle ?: "", version).takeIf { backdropTitle != null }
     val bg = p.background.last()
     BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
         // Short screens (e.g. 640x480 at hdpi): smaller title, no buttons (tap or A plays, long press or Y opens the options)
         val compact = maxHeight < 300.dp
-        val cardH = (maxHeight * if (compact) 0.50f else 0.44f).coerceIn(96.dp, 260.dp)
-        val cardW = cardH * 0.72f
         // Backdrop: the selected game's cover, blurred (Android 12+) and darkened towards the text and the shelf
         backdrop?.let { Image(it, null, Modifier.fillMaxSize().blur(30.dp).graphicsLayer { alpha = .55f }, contentScale = ContentScale.Crop) }
         Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to bg.copy(alpha = .92f), 0.6f to bg.copy(alpha = .55f), 1f to bg.copy(alpha = .2f))))
@@ -415,9 +445,19 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
                     }
                 }
             }
-            Spacer(Modifier.weight(1f))
-            Shelf(games, version, cardW, cardH, first, reflection = !compact, focusScale = 1.15f, actions = actions, startPad = 20.dp) { g, _ -> selected = g }
-            Spacer(Modifier.height(if (compact) 4.dp else 10.dp))
+            // The shelf gets the room left under the hero: covers are sized so that the focused (enlarged) one never
+            // reaches the buttons, with the reflection only when there is room for it
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomStart) {
+                val s = 1.15f
+                val room = maxHeight - 12.dp - 4.dp
+                val withRefl = !compact && room / 1.44f >= 110.dp
+                val k = if (withRefl) 1.44f else 1.26f // (growth + cover box + reflection) per dp of card height
+                val cardH = (room / k).coerceIn(64.dp, 260.dp)
+                val boxH = cardH * 0.72f / 0.66f
+                Shelf(games, version, cardH * 0.72f, cardH, first, reflection = withRefl, focusScale = s, actions = actions, startPad = 20.dp,
+                    topRoom = boxH * (s - 1f) + 12.dp) { g, _ -> selected = g }
+            }
+            Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
         }
     }
 }
@@ -486,18 +526,19 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
             Spacer(Modifier.weight(1f))
             val rowState = rememberLazyListState()
             var focusIndex by remember { mutableIntStateOf(-1) }
+            val pace = remember { RowPace() }
             val gap = 18.dp
             val slotPx = with(LocalDensity.current) { (shotW + gap).roundToPx() }
-            LaunchedEffect(focusIndex) { if (focusIndex >= 0) rowState.animateScrollToItem(focusIndex, -slotPx) }
+            LaunchedEffect(focusIndex) { if (focusIndex >= 0) pace.scroll(rowState, focusIndex, -slotPx) }
             LazyRow(
                 state = rowState,
-                contentPadding = PaddingValues(start = 20.dp + shotW * 0.08f, end = 20.dp + shotW * 0.08f, top = shotH * 0.08f, bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(start = 20.dp + shotW * 0.08f, end = 20.dp + shotW * 0.08f, top = shotH * 0.1f + 10.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.fillMaxWidth().steadyKeys(pace),
             ) {
                 items(latest.size, key = { latest[it].key }) { i ->
                     val e = latest[i]
                     ShotCard(e, shotW, shotH, if (i == 0) Modifier.focusRequester(first) else Modifier,
-                        onClick = { actions.resume(e) }, onOptions = { byKey[e.game]?.let(actions.options) }) { selected = e; focusIndex = i }
+                        onClick = { actions.resume(e) }, onOptions = { byKey[e.game]?.let(actions.options) }) { selected = e; pace.focused(); focusIndex = i }
                 }
             }
             Spacer(Modifier.height(if (compact) 6.dp else 14.dp))
@@ -573,8 +614,8 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
     val p = palette
     val cover = rememberCover(g.title, version)
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (focused) 1.06f else 1f, label = "scale")
-    Column(Modifier.graphicsLayer { scaleX = scale; scaleY = scale }.zIndex(if (focused) 1f else 0f)) {
+    // No zoom here: in a grid the enlarged cover was cut by its neighbours and the grid edges; the frame marks the selection
+    Column {
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(
             modifier.fillMaxWidth().aspectRatio(0.72f)
@@ -594,9 +635,6 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
                 .background(Color.Black.copy(alpha = .65f), RoundedCornerShape(8.dp)).padding(horizontal = 7.dp, vertical = 2.dp),
                 color = TealSave, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.height(6.dp))
-        Text(g.title, color = if (focused) p.highlight else Color.White.copy(alpha = .85f), style = MaterialTheme.typography.labelLarge,
-            maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -663,6 +701,8 @@ fun HomeMenuPanel(
     header: @Composable () -> Unit = {},
     /** Smaller entries shown as compact tiles next to Quit (e.g. About). */
     extras: List<HomeMenuItem> = emptyList(),
+    /** Whether something inside the panel has the focus (the app gives it back when a key comes while it hasn't). */
+    onFocusChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val p = palette
@@ -679,7 +719,7 @@ fun HomeMenuPanel(
             Surface(
                 color = lerpOpaque(p.panel), shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, p.border), shadowElevation = 16.dp,
-                modifier = Modifier.fillMaxHeight().widthIn(max = 400.dp).fillMaxWidth(0.88f),
+                modifier = Modifier.fillMaxHeight().widthIn(max = 400.dp).fillMaxWidth(0.88f).onFocusChanged { onFocusChanged(it.hasFocus) },
             ) {
                 Column(
                     Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
