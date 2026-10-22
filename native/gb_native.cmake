@@ -1,5 +1,5 @@
 # Shared native helpers for the GB emulator family. Include from the app's CMakeLists.txt:
-#   include(${UI_GB_DIR}/native/gb_native.cmake)
+#   include(${GBFrame_DIR}/native/gb_native.cmake)
 #   gb_native_add(myapp_jni APP_ID "app.example.emu")
 # Adds to the target: the OpenGL ES presenter (gl_renderer: zero-copy AHardwareBuffer frames, filters, shaders),
 # CPU placement + performance hints (cpu_tuning) and PGO training support (pgo, active with GB_PGO_GEN).

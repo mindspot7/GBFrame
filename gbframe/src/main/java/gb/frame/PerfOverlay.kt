@@ -1,4 +1,4 @@
-package gb.ui
+package gb.frame
 
 import android.os.Build
 import androidx.compose.foundation.layout.Column

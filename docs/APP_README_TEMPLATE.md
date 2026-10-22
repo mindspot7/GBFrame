@@ -59,7 +59,7 @@ with the same key, so updates install over each other.
 | --- | --- |
 | `apps/android` | Android app: Kotlin/Compose UI and the JNI bridge |
 | `<core path>` | Emulator core |
-| `libs/ui_gb` | Shared UI kit ([UI_GB](https://github.com/mindspot7/UI_GB), git submodule) |
+| `libs/gbframe` | Shared framework ([GBFrame](https://github.com/mindspot7/GBFrame), git submodule) |
 | `.github/workflows` | APK build, profiling and PGO training builds, screenshots |
 
 <Local build requirements: SDK 36, NDK version, CMake version, extra tools.>

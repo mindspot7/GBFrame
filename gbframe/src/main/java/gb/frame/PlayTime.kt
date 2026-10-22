@@ -1,4 +1,4 @@
-package gb.ui
+package gb.frame
 
 import android.content.SharedPreferences
 import androidx.compose.runtime.mutableStateMapOf

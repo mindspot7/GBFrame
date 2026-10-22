@@ -1,4 +1,4 @@
-package gb.ui
+package gb.frame
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image

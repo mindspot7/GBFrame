@@ -22,7 +22,7 @@ jobs:
       - name: Build
         run: |
           set +e
-          gradle --no-daemon :uikit:assembleRelease > build.log 2>&1; rc=$?
+          gradle --no-daemon :gbframe:assembleRelease > build.log 2>&1; rc=$?
           if [ $rc -ne 0 ]; then
             msg=$( (grep -E "^e: " build.log; grep -E "What went wrong" -A4 build.log) | head -40 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')
             echo "::error title=Build errors::$msg"

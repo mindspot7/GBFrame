@@ -1,4 +1,4 @@
-package gb.ui
+package gb.frame
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

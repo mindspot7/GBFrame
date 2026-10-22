@@ -1,4 +1,4 @@
-package gb.ui
+package gb.frame
 
 import android.content.Context
 import android.hardware.input.InputManager

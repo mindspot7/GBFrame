@@ -1,6 +1,6 @@
 # Project conventions (GB emulator family)
 
-These rules apply to every app built on this UI kit (GBSat and the next emulators). Read them before working on any
+These rules apply to every app built on GBFrame, the shared framework (GBSat and the next emulators). Read them before working on any
 of these repositories.
 
 ## Documentation
@@ -63,7 +63,7 @@ of these repositories.
 
 ## Interface and controller behavior
 
-- Use this kit (`gb.ui`): `EmuTheme` with the app's palette (GBSat: `EmuPalettes.Violet`; new apps:
+- Use this kit (`gb.frame`): `EmuTheme` with the app's palette (GBSat: `EmuPalettes.Violet`; new apps:
   `EmuPalette.fromAccent(color)`), settings blocks, `ConfirmDialog`, `MenuIconView`, `PerfOverlay`, `rememberHasGamepad`, the first-run `SetupWizard`
   (always ending with a `PresetPicker` step), box art (`Covers`, libretro-thumbnails) and RetroAchievements
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`), play time

@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "gb.ui"
+    namespace = "gb.frame"
     compileSdk = 36
     defaultConfig { minSdk = 28 }
     compileOptions {
