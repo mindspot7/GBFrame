@@ -45,11 +45,13 @@ data class ResumeEntry(val key: String, val title: String, val label: String, va
  * tap) resumes.
  */
 @Composable
-fun ResumeGrid(all: List<ResumeEntry>, onResume: (ResumeEntry) -> Unit, modifier: Modifier = Modifier, latestPerGame: Boolean = true) {
+fun ResumeGrid(
+    all: List<ResumeEntry>, onResume: (ResumeEntry) -> Unit, modifier: Modifier = Modifier, latestPerGame: Boolean = true,
+    first: FocusRequester = remember { FocusRequester() },
+) {
     val entries = remember(all, latestPerGame) {
         all.sortedByDescending { it.time }.let { if (latestPerGame) it.distinctBy { e -> e.game } else it }
     }
-    val first = remember { FocusRequester() }
     LaunchedEffect(entries.firstOrNull()) { runCatching { first.requestFocus() } }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(220.dp), contentPadding = PaddingValues(6.dp),

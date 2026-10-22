@@ -97,11 +97,13 @@ of these repositories.
   first item focus, never let the game `SurfaceView` take key focus, and let Android turn hat-axis D-pads into D-pad keys
   while a menu is open.
 - Home screen: `HomeTopBar` (app icon, app name with a menu arrow, clock, battery icon; a tap opens the menu) and
-  `HomeLibrary` in the theme picked in Extras (`HomeThemeSettings`): **Showcase** (default: selected game large on top
-  over its blurred cover, shelf below), **Grid** (box art grid, settings also as an icon rail) and **Continue** (latest
-  save states first, then all games). The main menu is `HomeMenuPanel`: it slides in from the left (X, or a tap on the
+  `HomeLibrary` in the layout picked in Extras → Layout (`HomeThemeSettings`): **Showcase** (default: selected game large
+  on top over its blurred cover, one-line title that scrolls when long, shelf below; Recent shows save-state screenshots
+  in the same layout), **Grid** (box art grid) and **All in One** (latest save states first, then all games). The main menu is `HomeMenuPanel`: it slides in from the left (X, or a tap on the
   top bar) with the library view (All games / Recent, with counts), the settings as icon tiles and Quit; it stays open
   while a settings page is shown, so Back returns to it on the same entry.
+- X (menu) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys
+  while something is focused; `HomeLibrary(refocus = …)` puts the focus back on the library.
 - The button help bar is shown only when a physical controller is connected.
 - The game picture is aligned to the top of the screen: when the screen is narrower than the picture (square, 5:4, a
   16:9 mode on 4:3) all the black bars go below it; side bars stay centered.

@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.os.BatteryManager
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -74,13 +75,13 @@ import kotlinx.coroutines.withContext
 //
 //   Showcase (default) — the selected game large on top (blurred cover behind it, details, Continue / Start fresh /
 //                        Options), the box art shelf below.
-//   Grid               — settings as an icon rail on the left, the box art in a grid, All games / Recent chips.
-//   Continue           — the latest save state of each game first ("Continue playing"), then all games.
+//   Grid               — the box art in a grid, All games / Recent chips.
+//   Continue ("All in One") — the latest save state of each game first ("Continue playing"), then all games.
 // ---------------------------------------------------------------------------------------------------------------------
 
-enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), Continue("Continue") }
+enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), Continue("All in One") }
 
-/** Home layout chosen by the user (Settings → Extras → Theme), remembered between sessions. */
+/** Home layout chosen by the user (Settings → Extras → Layout), remembered between sessions. */
 object HomeTheme {
     private const val KEY = "gbframe.homeStyle"
     private var prefs: SharedPreferences? = null
@@ -107,7 +108,7 @@ object HomeTheme {
 /** A game on the home screen. [key] identifies it (e.g. its path); [title] also picks its cover ([Covers]). */
 data class HomeGame(val key: String, val title: String, val playSeconds: Long = 0, val hasAchievements: Boolean = false)
 
-/** A settings entry of the Grid theme's icon rail. [selected] gets the menu focus (e.g. the page just closed). */
+/** A settings entry of the main menu ([HomeMenuPanel]). [selected] gets the menu focus (e.g. the page just closed). */
 data class HomeMenuItem(val icon: MenuIcon, val label: String, val selected: Boolean = false, val onClick: () -> Unit)
 
 /** What the home screen can do; every layout uses the same actions. */
@@ -135,21 +136,24 @@ class HomeActions(
 @Composable
 fun HomeLibrary(
     style: HomeStyle, games: List<HomeGame>, states: List<ResumeEntry>, recent: Boolean, actions: HomeActions,
-    menu: List<HomeMenuItem>, menuFocus: FocusRequester, coverVersion: Int = 0,
-    empty: (@Composable () -> Unit)? = null, onMenuFocus: (Boolean) -> Unit = {}, modifier: Modifier = Modifier,
+    coverVersion: Int = 0, empty: (@Composable () -> Unit)? = null,
+    /** Change it to put the focus back on the first game (e.g. after the menu closed or a touch cleared the focus). */
+    refocus: Int = 0,
+    modifier: Modifier = Modifier,
 ) {
     val latest = remember(states) { states.sortedByDescending { it.time }.distinctBy { it.game } }
     val latestByGame = remember(latest) { latest.associateBy { it.game } }
     val first = remember { FocusRequester() }
-    LaunchedEffect(style, recent, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null) {
-        if (!recent && empty == null) { delay(60); runCatching { first.requestFocus() } }
+    LaunchedEffect(style, recent, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus) {
+        if (empty == null) { delay(60); runCatching { first.requestFocus() } }
     }
     Box(modifier.fillMaxSize()) {
         when (style) {
-            HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, menu, menuFocus, first, coverVersion, empty, onMenuFocus)
+            HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, first, coverVersion, empty)
             else -> when {
                 empty != null -> empty()
-                recent -> ResumeGrid(latest, actions.resume)
+                recent && style == HomeStyle.Showcase -> ShowcaseRecent(games, latest, actions, first)
+                recent -> ResumeGrid(latest, actions.resume, first = first)
                 style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion)
                 else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion)
             }
@@ -402,8 +406,7 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
                 val st = latestByGame[g.key]
                 Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = if (compact) 10.dp else 20.dp),
                     verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp)) {
-                    Text(g.title, style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Black, color = Color.White, maxLines = if (compact) 1 else 2, overflow = TextOverflow.Ellipsis)
+                    HeroTitle(g.title, compact)
                     GameInfo(g, st != null)
                     if (!compact) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         PillButton(if (st != null) "Continue" else "Play", true, Icons.Default.PlayArrow) { if (st != null) actions.resume(st) else actions.play(g) }
@@ -419,26 +422,121 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
     }
 }
 
+/** Big hero title on one line: a long name scrolls slowly instead of wrapping and pushing the layout down. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun HeroTitle(title: String, compact: Boolean) {
+    Text(title, Modifier.fillMaxWidth().basicMarquee(iterations = Int.MAX_VALUE, initialDelayMillis = 1500, repeatDelayMillis = 2500),
+        style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.displaySmall,
+        fontWeight = FontWeight.Black, color = Color.White, maxLines = 1, softWrap = false)
+}
+
+@Composable
+private fun rememberScreenshot(e: ResumeEntry?): ImageBitmap? {
+    var shot by remember(e?.key, e?.time) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(e?.key, e?.time) {
+        shot = withContext(Dispatchers.IO) { e?.screenshot?.let { runCatching { android.graphics.BitmapFactory.decodeFile(it.path)?.asImageBitmap() }.getOrNull() } }
+    }
+    return shot
+}
+
+/** Showcase in Recent mode: the same hero, with save-state screenshots in the shelf instead of box art. */
+@Composable
+private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester) {
+    val p = palette
+    val byKey = remember(games) { games.associateBy { it.key } }
+    var selected by remember(latest) { mutableStateOf(latest.firstOrNull()) }
+    val backdrop = rememberScreenshot(selected)
+    val bg = p.background.last()
+    BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
+        val compact = maxHeight < 300.dp
+        // Screenshots are 4:3, wider than box art: a little lower, so the hero keeps its room
+        val shotH = (maxHeight * if (compact) 0.42f else 0.36f).coerceIn(80.dp, 220.dp)
+        val shotW = shotH * (4f / 3f)
+        backdrop?.let { Image(it, null, Modifier.fillMaxSize().blur(24.dp).graphicsLayer { alpha = .55f }, contentScale = ContentScale.Crop) }
+        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to bg.copy(alpha = .92f), 0.6f to bg.copy(alpha = .55f), 1f to bg.copy(alpha = .2f))))
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.4f to Color.Transparent, 1f to bg.copy(alpha = .9f))))
+        Column(Modifier.fillMaxSize()) {
+            selected?.let { e ->
+                val g = byKey[e.game]
+                val date = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(e.time))
+                Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = if (compact) 10.dp else 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp)) {
+                    HeroTitle(g?.title ?: e.title, compact)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Save, null, tint = TealSave, modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("${e.label} · $date", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
+                        if (g != null && g.playSeconds >= 60) {
+                            Spacer(Modifier.width(14.dp))
+                            Icon(Icons.Default.Schedule, null, tint = Color.White.copy(alpha = .7f), modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(formatPlayTime(g.playSeconds), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
+                        }
+                    }
+                    if (!compact) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        PillButton("Continue", true, Icons.Default.PlayArrow) { actions.resume(e) }
+                        if (g != null) {
+                            PillButton("Start fresh", false) { actions.fresh(g) }
+                            PillButton("Options", false) { actions.options(g) }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            val rowState = rememberLazyListState()
+            var focusIndex by remember { mutableIntStateOf(-1) }
+            val gap = 18.dp
+            val slotPx = with(LocalDensity.current) { (shotW + gap).roundToPx() }
+            LaunchedEffect(focusIndex) { if (focusIndex >= 0) rowState.animateScrollToItem(focusIndex, -slotPx) }
+            LazyRow(
+                state = rowState,
+                contentPadding = PaddingValues(start = 20.dp + shotW * 0.08f, end = 20.dp + shotW * 0.08f, top = shotH * 0.08f, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.fillMaxWidth(),
+            ) {
+                items(latest.size, key = { latest[it].key }) { i ->
+                    val e = latest[i]
+                    ShotCard(e, shotW, shotH, if (i == 0) Modifier.focusRequester(first) else Modifier,
+                        onClick = { actions.resume(e) }, onOptions = { byKey[e.game]?.let(actions.options) }) { selected = e; focusIndex = i }
+                }
+            }
+            Spacer(Modifier.height(if (compact) 6.dp else 14.dp))
+        }
+    }
+}
+
+/** A save-state screenshot in the Showcase shelf: grows when focused, slot label in the corner. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ShotCard(e: ResumeEntry, w: Dp, h: Dp, modifier: Modifier, onClick: () -> Unit, onOptions: () -> Unit, onFocused: () -> Unit) {
+    val p = palette
+    val shot = rememberScreenshot(e)
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (focused) 1.1f else 1f, label = "scale")
+    Box(
+        modifier.size(w, h).zIndex(if (focused) 1f else 0f)
+            .graphicsLayer { scaleX = scale; scaleY = scale; transformOrigin = TransformOrigin(0.5f, 1f) }
+            .clip(RoundedCornerShape(12.dp)).background(Color.Black)
+            .border(if (focused) 3.dp else 1.dp, if (focused) p.highlight else Color.White.copy(alpha = .18f), RoundedCornerShape(12.dp))
+            .onFocusChanged { focused = it.isFocused; if (it.isFocused) onFocused() }
+            .optionsKey(onOptions)
+            .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick, onLongClick = onOptions),
+    ) {
+        shot?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds) }
+            ?: Icon(Icons.Default.Image, null, Modifier.align(Alignment.Center).size(36.dp), tint = Color.White.copy(alpha = .4f))
+        Text(e.label, Modifier.align(Alignment.BottomStart).padding(6.dp).background(Color.Black.copy(alpha = .6f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 2.dp), color = Color.White, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
 // ---- B: Grid ----------------------------------------------------------------------------------------------------------
 
 @Composable
 private fun GridHome(
     games: List<HomeGame>, latest: List<ResumeEntry>, latestByGame: Map<String, ResumeEntry>, recent: Boolean, actions: HomeActions,
-    menu: List<HomeMenuItem>, menuFocus: FocusRequester, first: FocusRequester, version: Int, empty: (@Composable () -> Unit)?,
-    onMenuFocus: (Boolean) -> Unit,
+    first: FocusRequester, version: Int, empty: (@Composable () -> Unit)?,
 ) {
-    val p = palette
     Row(Modifier.fillMaxSize()) {
-        // Settings as an icon rail; the controller reaches it with left (or X)
-        Column(
-            Modifier.width(68.dp).fillMaxHeight().clip(RoundedCornerShape(20.dp)).background(p.panel)
-                .onFocusChanged { onMenuFocus(it.hasFocus) }.verticalScroll(rememberScrollState()).padding(vertical = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            val focusIdx = menu.indexOfFirst { it.selected }.coerceAtLeast(0)
-            menu.forEachIndexed { i, m -> RailButton(m, if (i == focusIdx) Modifier.focusRequester(menuFocus) else Modifier) }
-        }
-        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f).fillMaxHeight()) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Chip(if (games.isEmpty()) "All games" else "All games · ${games.size}", !recent) { actions.showRecent(false) }
@@ -448,7 +546,7 @@ private fun GridHome(
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when {
                     empty != null -> empty()
-                    recent -> ResumeGrid(latest, actions.resume)
+                    recent -> ResumeGrid(latest, actions.resume, first = first)
                     else -> BoxWithConstraints(Modifier.fillMaxSize()) {
                         // At least 3 columns, so small and square screens don't get two huge covers per row
                         val cols = (maxWidth / 124.dp).toInt().coerceAtLeast(3)
@@ -467,20 +565,6 @@ private fun GridHome(
             }
         }
     }
-}
-
-@Composable
-private fun RailButton(m: HomeMenuItem, modifier: Modifier) {
-    var focused by remember { mutableStateOf(false) }
-    Box(
-        modifier.size(52.dp).clip(RoundedCornerShape(16.dp))
-            .background(if (focused) Color.White.copy(alpha = .18f) else Color.Transparent)
-            .border(if (focused) 2.dp else 0.dp, if (focused) palette.highlight else Color.Transparent, RoundedCornerShape(16.dp))
-            .onFocusChanged { focused = it.isFocused }
-            .semantics { contentDescription = m.label }
-            .clickable(onClick = m.onClick),
-        contentAlignment = Alignment.Center,
-    ) { MenuIconView(m.icon, 30.dp) }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -545,16 +629,16 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
 
 // ---- Settings ----------------------------------------------------------------------------------------------------------
 
-/** "Theme" settings block (e.g. in Extras): picks the home screen layout. */
+/** "Layout" settings block (e.g. in Extras): picks the home screen layout. */
 @Composable
 fun HomeThemeSettings() {
     var style by HomeTheme.style
-    SettingsGroup("Theme", Icons.Default.Palette) {
+    SettingsGroup("Layout", Icons.Default.Palette) {
         ChoiceRow(
             "Home screen",
             when (style) {
                 HomeStyle.Showcase -> "The selected game large on top, box art below"
-                HomeStyle.Grid -> "Box art in a grid, settings as icons on the left"
+                HomeStyle.Grid -> "Box art in a grid"
                 HomeStyle.Continue -> "Your latest save states first, then all games"
             },
             HomeStyle.entries.map { it.label }, style.ordinal,
