@@ -89,6 +89,8 @@ of these repositories.
   the app goes to the background** during a game (Home, recent apps: Android may close it there). **Auto load**
   continues from the game's **latest save state in any slot** (auto, quick or numbered), so it also works with Auto
   save off; the Resume view and the "Open" game option (without auto load) still start where the user chooses.
+- Every performance option goes both in Settings → Performance and in the in-game quick menu → Performance (so it can
+  be compared while playing), and into the performance log's `settings` column.
 - Settings the user changes through the interface are remembered between sessions, including UI state such as the
   library layout (all games / recent save states: `LibraryView`), so the app reopens the way it was left.
 - Controller: **A** confirms, **B** goes back (Exit dialog in the library), **X** opens the settings menu, **Y** opens the
