@@ -1,5 +1,9 @@
 package gb.frame
 
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -33,14 +37,18 @@ class WizardStep(
 @Composable
 fun SetupWizard(steps: List<WizardStep>, onFinish: () -> Unit, message: String? = null, onStepChange: () -> Unit = {}) {
     var step by remember { mutableIntStateOf(0) }
-    Column(Modifier.fillMaxSize().background(palette.backgroundBrush).safeDrawingPadding().padding(24.dp)) {
+    // Short screens (e.g. 640x480 handhelds): smaller badge and spacing so the step's content stays visible
+    val compact = LocalConfiguration.current.screenHeightDp < 560
+    val pad = if (compact) 12.dp else 24.dp
+    Column(Modifier.fillMaxSize().background(palette.backgroundBrush).safeDrawingPadding().padding(horizontal = 24.dp, vertical = pad)) {
         LinearProgressIndicator(progress = { (step + 1f) / steps.size }, modifier = Modifier.fillMaxWidth())
         Column(
-            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = pad),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 16.dp, Alignment.CenterVertically),
         ) {
             val s = steps[step]
-            WizardPage(s.icon, s.title, s.colors, s.body)
+            WizardPage(s.icon, s.title, s.colors, s.body, compact)
             s.content(this)
             message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center) }
         }
@@ -55,15 +63,18 @@ fun SetupWizard(steps: List<WizardStep>, onFinish: () -> Unit, message: String? 
 
 /** Rounded gradient badge with a soft glow, title and text. */
 @Composable
-fun WizardPage(icon: ImageVector, title: String, colors: List<Color>, body: String) {
+fun WizardPage(icon: ImageVector, title: String, colors: List<Color>, body: String, compact: Boolean = false) {
+    val k = if (compact) 0.55f else 1f
     Box(contentAlignment = Alignment.Center) {
-        Box(Modifier.size(132.dp).background(Brush.radialGradient(listOf(colors[0].copy(alpha = .35f), Color.Transparent)), CircleShape))
-        Box(Modifier.size(96.dp).background(Brush.linearGradient(colors), RoundedCornerShape(30.dp)), contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(52.dp), tint = Color.White)
+        Box(Modifier.size(132.dp * k).background(Brush.radialGradient(listOf(colors[0].copy(alpha = .35f), Color.Transparent)), CircleShape))
+        Box(Modifier.size(96.dp * k).background(Brush.linearGradient(colors), RoundedCornerShape(30.dp * k)), contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(52.dp * k), tint = Color.White)
         }
     }
-    Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, color = Color.White, fontWeight = FontWeight.Bold)
-    Text(body, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = Color.White.copy(alpha = .75f))
+    Text(title, style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
+        textAlign = TextAlign.Center, color = Color.White, fontWeight = FontWeight.Bold)
+    Text(body, style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+        textAlign = TextAlign.Center, color = Color.White.copy(alpha = .75f))
 }
 
 /** "Done" line under a wizard step (e.g. the chosen folder). */
@@ -84,7 +95,10 @@ class PresetOption(val label: String, val description: String)
 fun PresetPicker(options: List<PresetOption>, selected: Int, onSelect: (Int) -> Unit) {
     options.forEachIndexed { i, p ->
         val sel = i == selected
-        OutlinedCard(onClick = { onSelect(i) }, modifier = Modifier.fillMaxWidth(),
+        // The selected (recommended) preset is scrolled into view on short screens
+        val bring = remember { BringIntoViewRequester() }
+        LaunchedEffect(sel) { if (sel) { kotlinx.coroutines.delay(100); bring.bringIntoView() } }
+        OutlinedCard(onClick = { onSelect(i) }, modifier = Modifier.fillMaxWidth().bringIntoViewRequester(bring),
             border = BorderStroke(if (sel) 2.dp else 1.dp, if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)) {
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = sel, onClick = { onSelect(i) })
