@@ -34,6 +34,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
@@ -295,7 +296,9 @@ fun CoverCard(
                 // visible cover (to fade with DstIn) was redrawn on every frame of a scroll, a large part of the Mali-G52's
                 // frame time.
                 val bmp = remember(cover) { cover.asAndroidBitmap() }
-                androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(reflH).clipToBounds()) {
+                // The shaders are built once per cover and size (drawWithCache), not on every frame: creating them while
+                // scrolling made the draw commands slow (dumpsys gfxinfo: 16% janky frames instead of 2%)
+                Spacer(Modifier.fillMaxWidth().height(reflH).clipToBounds().drawWithCache {
                     val w = size.width
                     val ih = w / ratio
                     val image = android.graphics.BitmapShader(bmp, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
@@ -311,8 +314,9 @@ fun CoverCard(
                     val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG).apply {
                         shader = android.graphics.ComposeShader(image, fade, android.graphics.PorterDuff.Mode.DST_IN)
                     }
-                    drawContext.canvas.nativeCanvas.drawRect(0f, 0f, w, size.height, paint)
-                }
+                    val h = size.height
+                    onDrawBehind { drawContext.canvas.nativeCanvas.drawRect(0f, 0f, w, h, paint) }
+                })
             } else Spacer(Modifier.height(reflH))
         }
     }
