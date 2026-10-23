@@ -24,7 +24,19 @@ import java.io.File
 
 private val LabelBlue = Color(0xFF3FA9FF)
 private val ValueGreen = Color(0xFF4CE07A)
+private val ValueYellow = Color(0xFFFFD54A)
+private val ValueRed = Color(0xFFFF6464)
 private val ValueWhite = Color(0xFFF2F2F2)
+
+/**
+ * Speed colour: green at full speed (95% and up: DuckStation and AetherSX2/PCSX2 also treat below 95% as slow), yellow
+ * when slightly slow (80-95%, a few dropped frames per second), red when clearly slow (below 80%).
+ */
+fun speedColor(percent: Float): Color = when {
+    percent >= 95f -> ValueGreen
+    percent >= 80f -> ValueYellow
+    else -> ValueRed
+}
 
 /** Commercial names of common chips (Build.SOC_MODEL gives the part number). */
 private val socNames = mapOf(
@@ -83,11 +95,13 @@ data class PerfOptions(
  * @param targetFps full speed (60 NTSC / 50 PAL), for the speed percentage
  * @param gpuName GPU name reported by the app's renderer (read once, off the main thread)
  * @param frameMs emulation time per frame
+ * @param gpuLoad the app's own GPU usage in percent since the last call (e.g. from GPU timestamp queries), called once a
+ *   second; null or a negative value when it isn't measured (the driver's sysfs load is shown instead, when readable)
  */
 @Composable
 fun PerfOverlay(
     options: PerfOptions, appName: String, fps: Float, targetFps: Float, renderer: String, width: Int, height: Int,
-    frameMs: Float, gpuName: () -> String, modifier: Modifier = Modifier,
+    frameMs: Float, gpuName: () -> String, modifier: Modifier = Modifier, gpuLoad: (() -> Float?)? = null,
 ) {
     if (!options.any) return
     val ctx = LocalContext.current
@@ -108,7 +122,10 @@ fun PerfOverlay(
                 val t = cpuTicks(); val now = System.nanoTime()
                 if (t != null && lastTicks != null) cpu = ((t - lastTicks!!) / 100f) / ((now - lastT) / 1e9f) / cores * 100f
                 lastTicks = t; lastT = now
-                if (options.gpu) gpu = gpuBusy()
+                if (options.gpu) {
+                    val own = gpuLoad?.let { runCatching(it).getOrNull() }?.takeIf { it >= 0f }
+                    gpu = own ?: gpuBusy()
+                }
             }
         }
     }
@@ -127,12 +144,15 @@ fun PerfOverlay(
             val parts = mutableListOf<Pair<String, Color>>()
             if (options.fps) { parts += "FPS:" to LabelBlue; parts += "%.1f".format(fps) to ValueGreen }
             if (options.fps && options.speed) parts += "|" to ValueWhite
-            if (options.speed) { parts += "Speed:" to LabelBlue; parts += "%.1f%%".format(fps / targetFps * 100f) to ValueGreen }
+            if (options.speed) {
+                val speed = fps / targetFps * 100f
+                parts += "Speed:" to LabelBlue; parts += "%.1f%%".format(speed) to speedColor(speed)
+            }
             line(*parts.toTypedArray())
         }
         if (options.cpu) line("CPU:" to LabelBlue, soc to ValueWhite, "|" to ValueWhite, (cpu?.let { "%.1f%%".format(it) } ?: "--") to ValueWhite)
-        if (options.gpu) line("GPU:" to LabelBlue, gpuLabel.ifBlank { "GPU" } to ValueWhite,
-            *(gpu?.let { arrayOf("|" to ValueWhite, "%.1f%%".format(it) to ValueWhite) } ?: emptyArray()))
+        if (options.gpu) line("GPU:" to LabelBlue, gpuLabel.ifBlank { "GPU" } to ValueWhite, "|" to ValueWhite,
+            (gpu?.let { "%.1f%%".format(it) } ?: "--") to ValueWhite) // like the CPU line
         if (options.renderer) line(renderer to LabelBlue)
         if (options.resolution) line("Res:" to LabelBlue, "${width}x$height" to ValueWhite)
         if (options.frameTime) line("Frame:" to LabelBlue, "%.1fms".format(frameMs) to ValueWhite)

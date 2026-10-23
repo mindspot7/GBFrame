@@ -20,6 +20,10 @@ void Shutdown();
 
 // GPU name reported by the GL driver (empty until the presenter started)
 std::string GpuName();
+// GPU time measurement of the presenter's draws (GL_EXT_disjoint_timer_query): available, and the GPU nanoseconds
+// measured since the last call
+bool GpuTimed();
+uint64_t TakeGpuNs();
 // OpenGL ES could not start (EGL setup failed): the app falls back to the plain window output
 bool Failed();
 } // namespace glr

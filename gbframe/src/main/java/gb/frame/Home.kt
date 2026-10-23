@@ -15,10 +15,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -389,7 +389,10 @@ private fun Shelf(
 ) {
     // Opens on the game selected last (kept in the second slot like any selection)
     val start = remember(games) { LibraryView.gameIndex(games) }
-    val rowState = rememberLazyListState(initialFirstVisibleItemIndex = (start - 1).coerceAtLeast(0))
+    // The app loads the games after the library appears (e.g. when a game closes): a scroll state created while the list
+    // was still empty stayed on the first cover, the selected one was off screen and couldn't take the focus. A new state
+    // once the games are there starts on it.
+    val rowState = remember(games.isEmpty()) { LazyListState((start - 1).coerceAtLeast(0)) }
     var focusIndex by remember { mutableIntStateOf(-1) }
     val pace = remember { RowPace() }
     val gap = 18.dp
@@ -547,7 +550,7 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
                 }
             }
             Spacer(Modifier.weight(1f))
-            val rowState = rememberLazyListState(initialFirstVisibleItemIndex = (start - 1).coerceAtLeast(0))
+            val rowState = remember(latest.isEmpty()) { LazyListState((start - 1).coerceAtLeast(0)) } // see Shelf
             var focusIndex by remember { mutableIntStateOf(-1) }
             val pace = remember { RowPace() }
             val gap = 18.dp
@@ -616,7 +619,8 @@ private fun GridHome(
                         val cols = (maxWidth / 124.dp).toInt().coerceAtLeast(3)
                         val start = remember(games) { LibraryView.gameIndex(games) }
                         LazyVerticalGrid(
-                            state = androidx.compose.foundation.lazy.grid.rememberLazyGridState(initialFirstVisibleItemIndex = start),
+                            // A new state once the games are loaded starts on the selected one (see Shelf)
+                            state = remember(games.isEmpty()) { androidx.compose.foundation.lazy.grid.LazyGridState(start) },
                             // Room around and between the covers for the enlarged (focused) one, and off the top/bottom bars
                             columns = GridCells.Fixed(cols), contentPadding = PaddingValues(horizontal = 14.dp, vertical = 18.dp),
                             horizontalArrangement = Arrangement.spacedBy(20.dp), verticalArrangement = Arrangement.spacedBy(26.dp),

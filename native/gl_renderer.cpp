@@ -136,6 +136,9 @@ State S;
 std::mutex gpuNameMutex;
 std::string gpuName;
 std::atomic<bool> failed{false};
+// GPU time of the presenter's draws (GL_EXT_disjoint_timer_query), for the overlay's GPU usage
+std::atomic<uint64_t> gpuNs{0};
+std::atomic<bool> gpuTimed{false};
 
 GLuint Compile(GLenum type, const char *src) {
     GLuint s = glCreateShader(type);
@@ -191,6 +194,27 @@ void Loop() {
     GLuint drawTex = 0; // texture sampled this frame
     uint32_t drawW = 0, drawH = 0;
 
+    // GPU timing: a few GL_TIME_ELAPSED queries in flight, read when the GPU has finished them (never waits)
+    constexpr int kQueries = 4;
+    GLuint queries[kQueries] = {};
+    bool queryPending[kQueries] = {};
+    int queryNext = 0;
+    PFNGLGETQUERYOBJECTUI64VEXTPROC getQueryU64 = nullptr;
+    auto collectQueries = [&] {
+        GLint disjoint = 0;
+        glGetIntegerv(GL_GPU_DISJOINT_EXT, &disjoint); // clock change, power state...: results not meaningful
+        for (int i = 0; i < kQueries; ++i) {
+            if (!queryPending[i]) continue;
+            GLuint avail = 0;
+            glGetQueryObjectuiv(queries[i], GL_QUERY_RESULT_AVAILABLE, &avail);
+            if (!avail) continue;
+            GLuint64 ns = 0;
+            getQueryU64(queries[i], GL_QUERY_RESULT_EXT, &ns);
+            queryPending[i] = false;
+            if (!disjoint) gpuNs.fetch_add(ns, std::memory_order_relaxed);
+        }
+    };
+
     for (;;) {
         bool newFrame = false;
         {
@@ -230,6 +254,14 @@ void Loop() {
                             if (const char *r = (const char *)glGetString(GL_RENDERER)) {
                                 std::lock_guard nl(gpuNameMutex);
                                 gpuName = r;
+                            }
+                            const char *exts = (const char *)glGetString(GL_EXTENSIONS);
+                            if (exts && strstr(exts, "GL_EXT_disjoint_timer_query")) {
+                                getQueryU64 = (PFNGLGETQUERYOBJECTUI64VEXTPROC)eglGetProcAddress("glGetQueryObjectui64vEXT");
+                                if (getQueryU64) {
+                                    glGenQueries(kQueries, queries);
+                                    gpuTimed = true;
+                                }
                             }
                             glGenVertexArrays(1, &vao);
                             glGenTextures(1, &tex);
@@ -311,6 +343,16 @@ void Loop() {
             drawH = texH;
         }
 
+        GLuint query = 0;
+        if (getQueryU64) {
+            collectQueries();
+            if (!queryPending[queryNext]) { // else the GPU is behind: this draw isn't timed
+                query = queries[queryNext];
+                queryPending[queryNext] = true;
+                queryNext = (queryNext + 1) % kQueries;
+                glBeginQuery(GL_TIME_ELAPSED_EXT, query);
+            }
+        }
         EGLint sw = 0, sh = 0;
         eglQuerySurface(dpy, surf, EGL_WIDTH, &sw);
         eglQuerySurface(dpy, surf, EGL_HEIGHT, &sh);
@@ -335,6 +377,7 @@ void Loop() {
         glUniform1i(uFilter, S.filter.load());
         glUniform1i(uShader, S.shader.load());
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        if (query) glEndQuery(GL_TIME_ELAPSED_EXT);
         eglSwapBuffers(dpy, surf);
     }
 
@@ -449,6 +492,14 @@ bool Failed() {
 std::string GpuName() {
     std::lock_guard lk(gpuNameMutex);
     return gpuName;
+}
+
+bool GpuTimed() {
+    return gpuTimed.load();
+}
+
+uint64_t TakeGpuNs() {
+    return gpuNs.exchange(0, std::memory_order_relaxed);
 }
 
 void SetOptions(int filter, int shader) {
