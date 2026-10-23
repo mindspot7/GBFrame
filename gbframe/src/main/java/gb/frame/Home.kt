@@ -37,15 +37,12 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
@@ -293,19 +290,28 @@ fun CoverCard(
         if (reflection) {
             if (cover != null) {
                 val ratio = (cover.width.toFloat() / cover.height).coerceIn(0.66f, 1.25f)
-                // Mirror of the cover's bottom part, fading out: drawn directly (flipped around the top edge), so it always
-                // starts right at the cover's bottom edge whatever the cover's proportions
-                androidx.compose.foundation.Canvas(
-                    Modifier.fillMaxWidth().height(reflH).clipToBounds()
-                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-                ) {
+                // Mirror of the cover's bottom part, fading out, so it always starts right at the cover's bottom edge whatever
+                // the cover's proportions. One draw with the cover and the fade combined in a shader: an offscreen layer per
+                // visible cover (to fade with DstIn) was redrawn on every frame of a scroll, a large part of the Mali-G52's
+                // frame time.
+                val bmp = remember(cover) { cover.asAndroidBitmap() }
+                androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(reflH).clipToBounds()) {
                     val w = size.width
                     val ih = w / ratio
-                    scale(1f, -1f, pivot = androidx.compose.ui.geometry.Offset(w / 2f, 0f)) {
-                        drawImage(cover, dstOffset = androidx.compose.ui.unit.IntOffset(0, -ih.toInt()),
-                            dstSize = androidx.compose.ui.unit.IntSize(w.toInt(), ih.toInt()), alpha = 0.32f)
+                    val image = android.graphics.BitmapShader(bmp, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
+                        .apply {
+                            // Flipped around the reflection's top edge: the cover's bottom row is drawn first
+                            setLocalMatrix(android.graphics.Matrix().apply {
+                                setScale(w / bmp.width, -ih / bmp.height)
+                                postTranslate(0f, ih)
+                            })
+                        }
+                    val fade = android.graphics.LinearGradient(0f, 0f, 0f, size.height,
+                        android.graphics.Color.argb(82, 255, 255, 255), android.graphics.Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP)
+                    val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG).apply {
+                        shader = android.graphics.ComposeShader(image, fade, android.graphics.PorterDuff.Mode.DST_IN)
                     }
-                    drawRect(Brush.verticalGradient(listOf(Color.Black, Color.Transparent), endY = size.height), blendMode = BlendMode.DstIn)
+                    drawContext.canvas.nativeCanvas.drawRect(0f, 0f, w, size.height, paint)
                 }
             } else Spacer(Modifier.height(reflH))
         }
