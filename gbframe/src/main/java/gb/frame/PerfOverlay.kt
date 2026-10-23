@@ -29,7 +29,7 @@ private val ValueRed = Color(0xFFFF6464)
 private val ValueWhite = Color(0xFFF2F2F2)
 
 /**
- * Speed colour: green at full speed (95% and up: DuckStation and AetherSX2/PCSX2 also treat below 95% as slow), yellow
+ * FPS/speed colour: green at full speed (95% and up: DuckStation and AetherSX2/PCSX2 also treat below 95% as slow), yellow
  * when slightly slow (80-95%, a few dropped frames per second), red when clearly slow (below 80%).
  */
 fun speedColor(percent: Float): Color = when {
@@ -142,7 +142,8 @@ fun PerfOverlay(
         if (options.all) line("$appName-$version" to LabelBlue, "|" to ValueWhite, "Android ${Build.VERSION.RELEASE}" to ValueWhite)
         if (options.fps || options.speed) {
             val parts = mutableListOf<Pair<String, Color>>()
-            if (options.fps) { parts += "FPS:" to LabelBlue; parts += "%.1f".format(fps) to ValueGreen }
+            // FPS and speed use the same colours (green at full speed, yellow slightly slow, red clearly slow)
+            if (options.fps) { parts += "FPS:" to LabelBlue; parts += "%.1f".format(fps) to speedColor(fps / targetFps * 100f) }
             if (options.fps && options.speed) parts += "|" to ValueWhite
             if (options.speed) {
                 val speed = fps / targetFps * 100f

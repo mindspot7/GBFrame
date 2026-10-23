@@ -163,12 +163,23 @@ fun HomeLibrary(
     val latest = remember(states) { states.sortedByDescending { it.time }.distinctBy { it.game } }
     val latestByGame = remember(latest) { latest.associateBy { it.game } }
     val first = remember { FocusRequester() }
+    var libraryFocused by remember { mutableStateOf(false) } // something in the library has the focus
     // The selection only exists with a physical controller (handhelds' built-in controls count)
     val hasPad = rememberHasGamepad()
     LaunchedEffect(style, recent, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad) {
-        if (empty == null && hasPad) { delay(60); runCatching { first.requestFocus() } }
+        if (empty == null && hasPad) {
+            // The selected cover may not be laid out yet (games loaded just now, a game screen closing): requestFocus throws
+            // until its requester is attached. One try after 60 ms often missed it, nothing kept the focus and the first
+            // D-pad press then picked the first visible cover (the one before the selected game). Retry for up to ~2 s.
+            delay(60)
+            repeat(40) {
+                // Done once the request went through (the requester was attached) and the focus is in the library
+                if (runCatching { first.requestFocus() }.isSuccess && libraryFocused) return@LaunchedEffect
+                delay(50)
+            }
+        }
     }
-    Box(modifier.fillMaxSize()) {
+    Box(modifier.fillMaxSize().onFocusChanged { libraryFocused = it.hasFocus }) {
         when (style) {
             HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, first, coverVersion, empty)
             else -> when {
