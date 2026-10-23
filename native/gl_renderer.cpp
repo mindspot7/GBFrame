@@ -39,6 +39,8 @@ uniform vec2 uOutSize;
 uniform vec2 uSrcSize; // native (1x) size of the frame: patterns follow the original pixels at any internal resolution
 uniform int uFilter;
 uniform int uShader;
+uniform vec2 uFrameSize; // native size of the frame (hi-res kept): GTU's horizontal signal filter
+uniform int uRamp;       // 1: bsnes gamma ramp colour correction on the source colours
 
 const float PI = 3.14159265;
 
@@ -65,9 +67,63 @@ vec2 filterUv(vec2 uv) {
 // a wide halation glow from the blurred picture; an aperture grille phosphor mask (3-px RGB triads on wide screens,
 // 2-px magenta/green on narrow ones) with its brightness compensated; and a soft shoulder instead of a hard clip.
 // Interlaced frames use the low-res line grid (uSrcSize), so both fields blend like crt-royale's bob pass.
+// bsnes gamma ramp (byuu's SNES colour correction, the "bsnes-gamma-ramp" LUT preset): per channel, darker dark and mid
+// tones, linear above half. The Saturn has the same 5-bit colour channels.
+const float kRamp[32] = float[32](0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 36.0, 45.0, 55.0, 66.0, 78.0, 91.0, 105.0,
+    120.0, 136.0, 144.0, 152.0, 160.0, 168.0, 176.0, 184.0, 192.0, 200.0, 208.0, 216.0, 224.0, 232.0, 240.0, 248.0, 255.0);
+float rampCh(float v) {
+    float x = clamp(v, 0.0, 1.0) * 31.0;
+    int i = min(int(floor(x)), 30);
+    return mix(kRamp[i], kRamp[i + 1], x - float(i)) / 255.0;
+}
+vec3 src(vec2 uv) {
+    vec3 c = texture(uTex, uv).rgb;
+    if (uRamp == 1) c = vec3(rampCh(c.r), rampCh(c.g), rampCh(c.b));
+    return c;
+}
+
+// GTU (aliaspider's GTU v0.50, RGB mode, in one pass): a TV without a phosphor mask. Horizontally the signal is
+// band-limited to 256 samples per line (a TV's bandwidth: soft, sinc-like integral weights); vertically each scanline is
+// a gaussian beam (250 TV lines) integrated over the output pixel; black level 0.07 and contrast 1.0 as the preset.
+float gtuStu(float x, float b) {
+    float a = abs(x);
+    float d = PI * b * min(a + 0.5, 1.0 / b);
+    float e = PI * b * min(max(a - 0.5, -1.0 / b), 1.0 / b);
+    return (d + sin(d) - e - sin(e)) / (2.0 * PI);
+}
+float gtuGaussInt(float x) {
+    float t = 1.0 / (1.0 + 0.33267 * abs(x));
+    float g = exp(-x * x * 0.5) / sqrt(2.0 * PI);
+    return (0.5 - g * (t * (0.4361836 + t * (-0.1201676 + 0.9372980 * t)))) * sign(x);
+}
+vec3 gtu(vec2 uv) {
+    float w = uFrameSize.x;
+    float h = uSrcSize.y; // interlaced pictures: one beam per line pair, both fields blended
+    float sx = uv.x * w - 0.5;
+    float sy = uv.y * h - 0.5;
+    float x0 = floor(sx), fx = sx - x0;
+    float y0 = floor(sy), fy = sy - y0;
+    float bx = 256.0 / w;
+    int rx = min(int(ceil(0.5 + w / 256.0)), 4);
+    float temp = sqrt(2.0 * PI) * (250.0 / h);
+    float rrr = 0.5 * (h / uOutSize.y);
+    vec3 col = vec3(0.0);
+    for (int j = -1; j <= 2; ++j) {
+        float v = (y0 + float(j) + 0.5) / h;
+        vec3 hc = vec3(0.0);
+        for (int i = -rx; i <= rx + 1; ++i) {
+            hc += src(vec2((x0 + float(i) + 0.5) / w, v)) * gtuStu(fx - float(i), bx);
+        }
+        hc = clamp(hc, 0.0, 1.0);
+        float y = fy - float(j);
+        col += hc * (gtuGaussInt((y + rrr) * temp) - gtuGaussInt((y - rrr) * temp)) * (uOutSize.y / h);
+    }
+    return clamp((col - 0.07) / (1.0 - 0.07), 0.0, 1.0);
+}
+
 vec3 royaleLine(float u, float row) {
     // Horizontally at the texture's own resolution (hi-res 704-wide pictures keep their detail)
-    vec3 c = texture(uTex, vec2(u, (row + 0.5) / uSrcSize.y)).rgb;
+    vec3 c = src(vec2(u, (row + 0.5) / uSrcSize.y));
     return pow(c, vec3(2.4));
 }
 
@@ -84,11 +140,11 @@ vec3 crtRoyale(vec2 uv) {
         col += c * exp(-0.5 * d * d) / sigma * 0.3989;
     }
     vec2 px = 1.0 / uSrcSize;
-    vec3 halo = pow(texture(uTex, uv).rgb, vec3(2.4));
-    halo += pow(texture(uTex, uv + vec2(1.5 * px.x, 0.0)).rgb, vec3(2.4));
-    halo += pow(texture(uTex, uv - vec2(1.5 * px.x, 0.0)).rgb, vec3(2.4));
-    halo += pow(texture(uTex, uv + vec2(0.0, 1.5 * px.y)).rgb, vec3(2.4));
-    halo += pow(texture(uTex, uv - vec2(0.0, 1.5 * px.y)).rgb, vec3(2.4));
+    vec3 halo = pow(src(uv), vec3(2.4));
+    halo += pow(src(uv + vec2(1.5 * px.x, 0.0)), vec3(2.4));
+    halo += pow(src(uv - vec2(1.5 * px.x, 0.0)), vec3(2.4));
+    halo += pow(src(uv + vec2(0.0, 1.5 * px.y)), vec3(2.4));
+    halo += pow(src(uv - vec2(0.0, 1.5 * px.y)), vec3(2.4));
     col = mix(col, halo * 0.2, 0.10);
     const float dark = 0.30;
     vec3 mask;
@@ -114,6 +170,10 @@ void main() {
         outColor = vec4(crtRoyale(uv), 1.0);
         return;
     }
+    if (uShader == 6) {
+        outColor = vec4(gtu(uv), 1.0);
+        return;
+    }
 
     if (uShader == 2) {
         // CRT: barrel distortion
@@ -126,7 +186,7 @@ void main() {
         }
     }
 
-    vec3 col = texture(uTex, filterUv(uv)).rgb;
+    vec3 col = src(filterUv(uv));
     float line = fract(uv.y * uSrcSize.y);
 
     if (uShader == 1) {
@@ -177,6 +237,7 @@ struct State {
 
     std::atomic<int> filter{1};
     std::atomic<int> shader{0};
+    std::atomic<int> colorRamp{0}; // 1: bsnes gamma ramp
     bool dirty = false;
 };
 
@@ -224,6 +285,7 @@ void Loop() {
     ANativeWindow *win = nullptr;
     GLuint prog = 0, tex = 0, vao = 0;
     GLint uSrcSize = -1;
+    GLint uFrameSize = -1, uRamp = -1;
     GLint uTexSize = -1, uOutSize = -1, uFilter = -1, uShader = -1;
     uint32_t texW = 0, texH = 0;
     float texScale = 1.0f;
@@ -296,6 +358,8 @@ void Loop() {
                             glLinkProgram(prog);
                             uTexSize = glGetUniformLocation(prog, "uTexSize");
                             uSrcSize = glGetUniformLocation(prog, "uSrcSize");
+                            uFrameSize = glGetUniformLocation(prog, "uFrameSize");
+                            uRamp = glGetUniformLocation(prog, "uRamp");
                             uOutSize = glGetUniformLocation(prog, "uOutSize");
                             uFilter = glGetUniformLocation(prog, "uFilter");
                             uShader = glGetUniformLocation(prog, "uShader");
@@ -420,10 +484,12 @@ void Loop() {
             if (nw >= 560.0f) nw *= 0.5f;
             if (nh >= 400.0f) nh *= 0.5f;
             glUniform2f(uSrcSize, nw, nh);
+            glUniform2f(uFrameSize, (float)drawW / texScale, (float)drawH / texScale);
         }
         glUniform2f(uOutSize, (float)sw, (float)sh);
         glUniform1i(uFilter, S.filter.load());
         glUniform1i(uShader, S.shader.load());
+        glUniform1i(uRamp, S.colorRamp.load());
         glDrawArrays(GL_TRIANGLES, 0, 3);
         if (query) glEndQuery(GL_TIME_ELAPSED_EXT);
         eglSwapBuffers(dpy, surf);
@@ -548,6 +614,13 @@ bool GpuTimed() {
 
 uint64_t TakeGpuNs() {
     return gpuNs.exchange(0, std::memory_order_relaxed);
+}
+
+void SetColorCorrection(int mode) {
+    S.colorRamp = mode;
+    std::lock_guard lk(S.m);
+    S.dirty = true;
+    S.cv.notify_all();
 }
 
 void SetOptions(int filter, int shader) {
