@@ -14,7 +14,7 @@ void SetWindow(ANativeWindow *window);
 // Latest-frame-wins; copies the pixels (RGBA8888).
 void Submit(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t scale = 1);
 // filter: 0 nearest, 1 bilinear.
-// shader: 0 none, 1 scanlines, 2 CRT, 3 LCD3x, 4 dot matrix.
+// shader: 0 none, 1 scanlines, 2 CRT, 3 LCD3x, 5 CRT Royale (4, dot matrix, was removed: shows none).
 void SetOptions(int filter, int shader);
 void Shutdown();
 

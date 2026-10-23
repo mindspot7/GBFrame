@@ -59,8 +59,61 @@ vec2 filterUv(vec2 uv) {
     return uv;
 }
 
+// CRT Royale (single pass): an approximation of RetroArch's crt-royale in one pass for mobile GPUs. In linear light
+// (CRT gamma 2.4 in, 2.2 out): each output pixel gathers the 4 nearest scanlines, each a gaussian beam whose width grows
+// with brightness (bright phosphors bloom into the gap, dark lines stay thin), sampled with a horizontal linear filter;
+// a wide halation glow from the blurred picture; an aperture grille phosphor mask (3-px RGB triads on wide screens,
+// 2-px magenta/green on narrow ones) with its brightness compensated; and a soft shoulder instead of a hard clip.
+// Interlaced frames use the low-res line grid (uSrcSize), so both fields blend like crt-royale's bob pass.
+vec3 royaleLine(float u, float row) {
+    // Horizontally at the texture's own resolution (hi-res 704-wide pictures keep their detail)
+    vec3 c = texture(uTex, vec2(u, (row + 0.5) / uSrcSize.y)).rgb;
+    return pow(c, vec3(2.4));
+}
+
+vec3 crtRoyale(vec2 uv) {
+    float sy = uv.y * uSrcSize.y - 0.5;
+    float y0 = floor(sy);
+    float fy = sy - y0;
+    vec3 col = vec3(0.0);
+    for (int k = -1; k <= 2; ++k) {
+        float fk = float(k);
+        vec3 c = royaleLine(uv.x, y0 + fk);
+        vec3 sigma = mix(vec3(0.28), vec3(0.46), sqrt(c));
+        vec3 d = vec3(fy - fk) / sigma;
+        col += c * exp(-0.5 * d * d) / sigma * 0.3989;
+    }
+    vec2 px = 1.0 / uSrcSize;
+    vec3 halo = pow(texture(uTex, uv).rgb, vec3(2.4));
+    halo += pow(texture(uTex, uv + vec2(1.5 * px.x, 0.0)).rgb, vec3(2.4));
+    halo += pow(texture(uTex, uv - vec2(1.5 * px.x, 0.0)).rgb, vec3(2.4));
+    halo += pow(texture(uTex, uv + vec2(0.0, 1.5 * px.y)).rgb, vec3(2.4));
+    halo += pow(texture(uTex, uv - vec2(0.0, 1.5 * px.y)).rgb, vec3(2.4));
+    col = mix(col, halo * 0.2, 0.10);
+    const float dark = 0.30;
+    vec3 mask;
+    float avg;
+    if (uOutSize.x >= 960.0) {
+        int m = int(mod(gl_FragCoord.x, 3.0));
+        mask = vec3(m == 0 ? 1.0 : dark, m == 1 ? 1.0 : dark, m == 2 ? 1.0 : dark);
+        avg = (1.0 + 2.0 * dark) / 3.0;
+    } else {
+        bool mg = mod(gl_FragCoord.x, 2.0) < 1.0;
+        mask = mg ? vec3(1.0, dark, 1.0) : vec3(dark, 1.0, dark);
+        avg = (1.0 + dark) / 2.0;
+    }
+    col *= mask / avg;
+    col /= 1.0 + max(col - 0.8, 0.0) * 0.6;
+    return pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+}
+
 void main() {
     vec2 uv = vUv;
+
+    if (uShader == 5) {
+        outColor = vec4(crtRoyale(uv), 1.0);
+        return;
+    }
 
     if (uShader == 2) {
         // CRT: barrel distortion
@@ -92,11 +145,6 @@ void main() {
         vec3 mask = vec3(sub == 0 ? 1.0 : 0.35, sub == 1 ? 1.0 : 0.35, sub == 2 ? 1.0 : 0.35);
         float gap = g.y < 1.0 ? 0.55 : 1.0;
         col *= mask * gap * 1.5;
-    } else if (uShader == 4) {
-        // Dot matrix: round dot per source pixel
-        vec2 c = fract(uv * uSrcSize) - 0.5;
-        col *= smoothstep(0.62, 0.30, length(c));
-        col *= 1.25;
     }
     outColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }
