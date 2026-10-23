@@ -39,29 +39,13 @@ object Covers {
     private fun cached(title: String) = File(dir, "${safe(title)}.png")
     private fun miss(title: String) = File(dir, "${safe(title)}.miss3")
 
-    /**
-     * Widest cover worth keeping: half the screen's short side (the focused cover in the shelf or grid is smaller), so
-     * covers aren't kept on the GPU at full size and shrunk on every frame (88 covers took ~33 MB of textures and most of
-     * the Mali-G52's frame time while scrolling). 720x720 -> 360 px, 1280x960 -> 480 px.
-     */
-    private val maxWidth: Int by lazy {
-        val m = android.content.res.Resources.getSystem().displayMetrics
-        (minOf(m.widthPixels, m.heightPixels) / 2).coerceIn(256, 600)
-    }
-
     private fun decode(f: File): ImageBitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(f.path, bounds)
         if (bounds.outWidth <= 0) return null
         var sample = 1
-        while (bounds.outWidth / (sample * 2) >= maxWidth) sample *= 2
-        val bmp = BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
-        if (bmp.width <= maxWidth) return bmp.asImageBitmap()
-        // Filtered once here (background thread) instead of by the GPU on every frame
-        val h = (bmp.height.toLong() * maxWidth / bmp.width).toInt().coerceAtLeast(1)
-        val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, maxWidth, h, true)
-        if (scaled !== bmp) bmp.recycle()
-        return scaled.asImageBitmap()
+        while (bounds.outWidth / sample > 600) sample *= 2
+        return BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
     }
 
     private fun download(name: String, to: File): Boolean = runCatching {
