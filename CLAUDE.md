@@ -124,7 +124,7 @@ of these repositories.
 - Pin the emulation thread alone on the fastest core (rank cores by `cpu_capacity`) and move threads inherited from
   it off that core. Threaded sound depends on the game and the device: offer Auto (try both when slow, keep and remember the
   faster one per game) plus On/Off. The October 2026 performance log on the T618 (threaded VDP on) showed threaded
-  sound faster in every game tested, VF2 included (58.8 vs 53-54 fps); Auto starts with threaded sound on with 2+ fast cores; keep threaded VDP always on there (off costs
+  sound faster in every game tested, VF2 included (58.8 vs 53-54 fps); Auto starts with threaded sound on (every device); keep threaded VDP always on there (off costs
   2-5 ms per frame). The SH-2 interpreter is ~65-85% of the emulation thread's frame time. Measure thread waits (performance log) before changing thread layouts.
 - The performance log is the main device-test tool: per-component frame time, CPU per thread (`perf_probe`, sampled
   on a background thread so /proc reads never stall the emulation), core clock, thermal status, device and the options
