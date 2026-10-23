@@ -37,15 +37,12 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
@@ -293,25 +290,40 @@ fun CoverCard(
         if (reflection) {
             if (cover != null) {
                 val ratio = (cover.width.toFloat() / cover.height).coerceIn(0.66f, 1.25f)
-                // Mirror of the cover's bottom part, fading out: drawn directly (flipped around the top edge), so it always
-                // starts right at the cover's bottom edge whatever the cover's proportions
-                androidx.compose.foundation.Canvas(
-                    Modifier.fillMaxWidth().height(reflH).clipToBounds()
-                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-                ) {
-                    val w = size.width
-                    val ih = w / ratio
-                    scale(1f, -1f, pivot = androidx.compose.ui.geometry.Offset(w / 2f, 0f)) {
-                        drawImage(cover, dstOffset = androidx.compose.ui.unit.IntOffset(0, -ih.toInt()),
-                            dstSize = androidx.compose.ui.unit.IntSize(w.toInt(), ih.toInt()), alpha = 0.32f)
-                    }
-                    drawRect(Brush.verticalGradient(listOf(Color.Black, Color.Transparent), endY = size.height), blendMode = BlendMode.DstIn)
-                }
+                // Mirror of the cover's bottom part, fading out, baked once into a small bitmap when the cover loads and drawn
+                // as a plain image. Drawing it live was slow on the Mali-G52 while scrolling: an offscreen layer per cover (to
+                // fade with DstIn) cost GPU time on every frame, and a combined bitmap+gradient shader made the draw commands
+                // slow (dumpsys gfxinfo: 53% janky frames)
+                val refl = remember(cover, ratio, width, height) { reflectionOf(cover, (height.value * 0.16f) / (width.value / ratio)) }
+                Image(refl, null, Modifier.fillMaxWidth().height(reflH), contentScale = ContentScale.FillBounds)
             } else Spacer(Modifier.height(reflH))
         }
     }
     // Keep the backdrop in sync when the cover finishes loading while selected
     LaunchedEffect(cover) { if (focused) onFocused(cover) }
+}
+
+/**
+ * The reflection under a cover: its bottom [fraction] of the height (reflection height / cover height on screen), flipped
+ * so the cover's bottom row comes first, fading from 32% to nothing.
+ */
+private fun reflectionOf(cover: ImageBitmap, fraction: Float): ImageBitmap {
+    val src = cover.asAndroidBitmap()
+    val rows = (src.height * fraction).toInt().coerceIn(1, src.height)
+    val out = android.graphics.Bitmap.createBitmap(src.width, rows, android.graphics.Bitmap.Config.ARGB_8888)
+    val c = android.graphics.Canvas(out)
+    c.save()
+    c.scale(1f, -1f, 0f, rows / 2f)
+    c.drawBitmap(src, android.graphics.Rect(0, src.height - rows, src.width, src.height),
+        android.graphics.RectF(0f, 0f, src.width.toFloat(), rows.toFloat()), android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
+    c.restore()
+    val fade = android.graphics.Paint().apply {
+        shader = android.graphics.LinearGradient(0f, 0f, 0f, rows.toFloat(),
+            android.graphics.Color.argb(82, 0, 0, 0), android.graphics.Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP)
+        xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN)
+    }
+    c.drawRect(0f, 0f, src.width.toFloat(), rows.toFloat(), fade)
+    return out.asImageBitmap()
 }
 
 @Composable
