@@ -152,13 +152,14 @@ class HomeActions(
  * Home screen content below the top bar, in the chosen [style]. [states] are the save states (the latest of each game is
  * used); [recent] shows them instead of the games ([ResumeGrid]). [empty] replaces the games while there are none to show
  * (no BIOS, no folder...). [menu] and [menuFocus] are for the Grid theme's icon rail ([onMenuFocus] tells when it has the focus). The first game (or save state in
- * Continue) takes the focus so the controller works at once; Y on a game opens its options.
+ * Continue) takes the focus so the controller works at once; Y on a game opens its options. The library opens on the game
+ * (or save state) selected last ([LibraryView.lastGame]), not on the first one.
  */
 @Composable
 fun HomeLibrary(
     style: HomeStyle, games: List<HomeGame>, states: List<ResumeEntry>, recent: Boolean, actions: HomeActions,
     coverVersion: Int = 0, empty: (@Composable () -> Unit)? = null,
-    /** Change it to put the focus back on the first game (e.g. after the menu closed or a touch cleared the focus). */
+    /** Change it to put the focus back on the selected game (e.g. after the menu closed or a touch cleared the focus). */
     refocus: Int = 0,
     modifier: Modifier = Modifier,
 ) {
@@ -374,7 +375,9 @@ private fun Shelf(
     /** Aligns the first and last covers with content [edge] from the sides (the zoomed cover when a controller selects it). */
     edge: Dp? = null, onSelected: (HomeGame, ImageBitmap?) -> Unit,
 ) {
-    val rowState = rememberLazyListState()
+    // Opens on the game selected last (kept in the second slot like any selection)
+    val start = remember(games) { LibraryView.gameIndex(games) }
+    val rowState = rememberLazyListState(initialFirstVisibleItemIndex = (start - 1).coerceAtLeast(0))
     var focusIndex by remember { mutableIntStateOf(-1) }
     val pace = remember { RowPace() }
     val gap = 18.dp
@@ -391,10 +394,10 @@ private fun Shelf(
     ) {
         items(games.size, key = { games[it].key }) { i ->
             val g = games[i]
-            CoverCard(g.title, version, cardW, cardH, if (i == 0 && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier,
+            CoverCard(g.title, version, cardW, cardH, if (i == start && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier,
                 reflection = reflection, focusScale = focusScale,
-                onClick = { actions.play(g) }, onOptions = { actions.options(g) },
-                onFocused = { cover -> onSelected(g, cover); pace.focused(); focusIndex = i })
+                onClick = { LibraryView.lastGame = g.key; actions.play(g) }, onOptions = { actions.options(g) },
+                onFocused = { cover -> LibraryView.lastGame = g.key; onSelected(g, cover); pace.focused(); focusIndex = i })
         }
     }
 }
@@ -437,7 +440,7 @@ private fun Modifier.steadyKeys(pace: RowPace) = onPreviewKeyEvent { e ->
 @Composable
 private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int) {
     val p = palette
-    var selected by remember(games) { mutableStateOf(games.firstOrNull()) }
+    var selected by remember(games) { mutableStateOf(games.getOrNull(LibraryView.gameIndex(games))) }
     val bg = p.background.last()
     BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
         // Short screens (e.g. 640x480 at hdpi): smaller title, no buttons (tap or A plays, long press or Y opens the options)
@@ -496,7 +499,8 @@ private fun rememberScreenshot(e: ResumeEntry?): ImageBitmap? {
 private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester) {
     val p = palette
     val byKey = remember(games) { games.associateBy { it.key } }
-    var selected by remember(latest) { mutableStateOf(latest.firstOrNull()) }
+    val start = remember(latest) { LibraryView.stateIndex(latest) }
+    var selected by remember(latest) { mutableStateOf(latest.getOrNull(start)) }
     val bg = p.background.last()
     BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
         val compact = maxHeight < 300.dp
@@ -531,7 +535,7 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
                 }
             }
             Spacer(Modifier.weight(1f))
-            val rowState = rememberLazyListState()
+            val rowState = rememberLazyListState(initialFirstVisibleItemIndex = (start - 1).coerceAtLeast(0))
             var focusIndex by remember { mutableIntStateOf(-1) }
             val pace = remember { RowPace() }
             val gap = 18.dp
@@ -546,8 +550,10 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
             ) {
                 items(latest.size, key = { latest[it].key }) { i ->
                     val e = latest[i]
-                    ShotCard(e, shotW, shotH, if (i == 0) Modifier.focusRequester(first) else Modifier,
-                        onClick = { actions.resume(e) }, onOptions = { byKey[e.game]?.let(actions.options) }) { selected = e; pace.focused(); focusIndex = i }
+                    ShotCard(e, shotW, shotH, if (i == start) Modifier.focusRequester(first) else Modifier,
+                        onClick = { LibraryView.lastState = e.key; actions.resume(e) }, onOptions = { byKey[e.game]?.let(actions.options) }) {
+                        LibraryView.lastState = e.key; selected = e; pace.focused(); focusIndex = i
+                    }
                 }
             }
             Spacer(Modifier.height(if (compact) 6.dp else 14.dp))
@@ -596,7 +602,9 @@ private fun GridHome(
                     else -> BoxWithConstraints(Modifier.fillMaxSize()) {
                         // At least 3 columns, so small and square screens don't get two huge covers per row
                         val cols = (maxWidth / 124.dp).toInt().coerceAtLeast(3)
+                        val start = remember(games) { LibraryView.gameIndex(games) }
                         LazyVerticalGrid(
+                            state = androidx.compose.foundation.lazy.grid.rememberLazyGridState(initialFirstVisibleItemIndex = start),
                             // Room around and between the covers for the enlarged (focused) one, and off the top/bottom bars
                             columns = GridCells.Fixed(cols), contentPadding = PaddingValues(horizontal = 14.dp, vertical = 18.dp),
                             horizontalArrangement = Arrangement.spacedBy(20.dp), verticalArrangement = Arrangement.spacedBy(26.dp),
@@ -604,7 +612,7 @@ private fun GridHome(
                         ) {
                             items(games.size, key = { games[it].key }) { i ->
                                 val g = games[i]
-                                GridCard(g, latestByGame[g.key] != null, version, if (i == 0) Modifier.focusRequester(first) else Modifier, actions)
+                                GridCard(g, latestByGame[g.key] != null, version, if (i == start) Modifier.focusRequester(first) else Modifier, actions)
                             }
                         }
                     }
@@ -625,10 +633,10 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(
             modifier.fillMaxWidth().aspectRatio(0.72f)
-                .onFocusChanged { focused = it.isFocused }
+                .onFocusChanged { focused = it.isFocused; if (it.isFocused) LibraryView.lastGame = g.key }
                 .optionsKey { actions.options(g) }
                 .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
-                    onClick = { actions.play(g) }, onLongClick = { actions.options(g) }),
+                    onClick = { LibraryView.lastGame = g.key; actions.play(g) }, onLongClick = { actions.options(g) }),
             contentAlignment = Alignment.BottomCenter,
         ) {
             if (cover != null) BoxArt3D(cover, Modifier.fillMaxSize())
