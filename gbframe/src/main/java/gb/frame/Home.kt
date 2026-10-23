@@ -34,7 +34,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
@@ -291,37 +290,40 @@ fun CoverCard(
         if (reflection) {
             if (cover != null) {
                 val ratio = (cover.width.toFloat() / cover.height).coerceIn(0.66f, 1.25f)
-                // Mirror of the cover's bottom part, fading out, so it always starts right at the cover's bottom edge whatever
-                // the cover's proportions. One draw with the cover and the fade combined in a shader: an offscreen layer per
-                // visible cover (to fade with DstIn) was redrawn on every frame of a scroll, a large part of the Mali-G52's
-                // frame time.
-                val bmp = remember(cover) { cover.asAndroidBitmap() }
-                // The shaders are built once per cover and size (drawWithCache), not on every frame: creating them while
-                // scrolling made the draw commands slow (dumpsys gfxinfo: 16% janky frames instead of 2%)
-                Spacer(Modifier.fillMaxWidth().height(reflH).clipToBounds().drawWithCache {
-                    val w = size.width
-                    val ih = w / ratio
-                    val image = android.graphics.BitmapShader(bmp, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
-                        .apply {
-                            // Flipped around the reflection's top edge: the cover's bottom row is drawn first
-                            setLocalMatrix(android.graphics.Matrix().apply {
-                                setScale(w / bmp.width, -ih / bmp.height)
-                                postTranslate(0f, ih)
-                            })
-                        }
-                    val fade = android.graphics.LinearGradient(0f, 0f, 0f, size.height,
-                        android.graphics.Color.argb(82, 255, 255, 255), android.graphics.Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP)
-                    val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG).apply {
-                        shader = android.graphics.ComposeShader(image, fade, android.graphics.PorterDuff.Mode.DST_IN)
-                    }
-                    val h = size.height
-                    onDrawBehind { drawContext.canvas.nativeCanvas.drawRect(0f, 0f, w, h, paint) }
-                })
+                // Mirror of the cover's bottom part, fading out, baked once into a small bitmap when the cover loads and drawn
+                // as a plain image. Drawing it live was slow on the Mali-G52 while scrolling: an offscreen layer per cover (to
+                // fade with DstIn) cost GPU time on every frame, and a combined bitmap+gradient shader made the draw commands
+                // slow (dumpsys gfxinfo: 53% janky frames)
+                val refl = remember(cover, ratio, width, height) { reflectionOf(cover, (height.value * 0.16f) / (width.value / ratio)) }
+                Image(refl, null, Modifier.fillMaxWidth().height(reflH), contentScale = ContentScale.FillBounds)
             } else Spacer(Modifier.height(reflH))
         }
     }
     // Keep the backdrop in sync when the cover finishes loading while selected
     LaunchedEffect(cover) { if (focused) onFocused(cover) }
+}
+
+/**
+ * The reflection under a cover: its bottom [fraction] of the height (reflection height / cover height on screen), flipped
+ * so the cover's bottom row comes first, fading from 32% to nothing.
+ */
+private fun reflectionOf(cover: ImageBitmap, fraction: Float): ImageBitmap {
+    val src = cover.asAndroidBitmap()
+    val rows = (src.height * fraction).toInt().coerceIn(1, src.height)
+    val out = android.graphics.Bitmap.createBitmap(src.width, rows, android.graphics.Bitmap.Config.ARGB_8888)
+    val c = android.graphics.Canvas(out)
+    c.save()
+    c.scale(1f, -1f, 0f, rows / 2f)
+    c.drawBitmap(src, android.graphics.Rect(0, src.height - rows, src.width, src.height),
+        android.graphics.RectF(0f, 0f, src.width.toFloat(), rows.toFloat()), android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
+    c.restore()
+    val fade = android.graphics.Paint().apply {
+        shader = android.graphics.LinearGradient(0f, 0f, 0f, rows.toFloat(),
+            android.graphics.Color.argb(82, 0, 0, 0), android.graphics.Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP)
+        xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN)
+    }
+    c.drawRect(0f, 0f, src.width.toFloat(), rows.toFloat(), fade)
+    return out.asImageBitmap()
 }
 
 @Composable
