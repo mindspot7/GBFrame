@@ -158,6 +158,30 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         if (ext == "mds") siblings.filter { it.name.endsWith(".mdf", true) }.forEach { wanted += it.name.lowercase() }
 
         val stage = File(appContext.cacheDir, "disc").apply { deleteRecursively(); mkdirs() }
+
+        // libchdr needs a regular, seekable file. Some Android document providers expose CHDs through
+        // proxy/pipe file descriptors; a /proc/self/fd symlink then fails inside CHD's file opener with
+        // "Failed to open file: file not found". Stage CHDs as a real file, while keeping the descriptor
+        // symlink path for formats that can use provider-backed files.
+        if (ext == "chd") {
+            val source = DocumentsContract.buildDocumentUriUsingTree(tree, main.docId)
+            val target = File(stage, main.name)
+            return try {
+                appContext.contentResolver.openInputStream(source)?.use { input ->
+                    target.outputStream().buffered().use { output -> input.copyTo(output, 1024 * 1024) }
+                } ?: return null
+                if (!target.isFile || target.length() == 0L) {
+                    target.delete()
+                    null
+                } else {
+                    OpenDisc(target.path, emptyList())
+                }
+            } catch (_: Exception) {
+                target.delete()
+                null
+            }
+        }
+
         val fds = mutableListOf<ParcelFileDescriptor>()
         for (c in siblings) {
             if (c.isDir || c.name.lowercase() !in wanted) continue
