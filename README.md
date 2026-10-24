@@ -19,9 +19,9 @@ menus and controller behavior in every app, with a different color identity per 
 | `RaOffline.kt` | Offline achievements (casual only): caches login/game/session answers while online, queues offline unlocks and syncs them later with the real unlock time |
 | `PlayTime.kt` | Play time per game (`PlayTime.update(game, counting)`), `formatPlayTime` |
 | `SaveData.kt` | Game-named save folders (`gameFolderName`), Export (saves + save states) / Import |
-| `ResumeGrid.kt` | "Resume" view: the latest save state of each game with its screenshot, newest first (`ResumeEntry`, `ResumeGrid`; `latestPerGame = false` lists them all) |
-| `Home.kt` | Home screen: `HomeTopBar` (icon, label, clock, battery) and `HomeLibrary` in three layouts (Showcase, Grid, All in One). Theme cycling, fullscreen, and the All games/Recent view are controlled by the main menu's LIBRARY tiles; `HomeThemeSettings` remains as an empty compatibility entry point. `HomeMenuPanel` main menu (library view, settings tiles, quit); `HomeTheme` remembers the selected theme; `CoverCard` box art |
-| `LibraryView.kt` | Library layout (all games / recent save states) remembered between sessions (`LibraryView.init(prefs)`, `LibraryView.recent`, `toggle()`) |
+| `ResumeEntry.kt` | Save-state entry model (`ResumeEntry`) used by the All in One layout; there is no separate Recent library mode |
+| `Home.kt` | Home screen: `HomeTopBar` (icon, label, clock, battery) and `HomeLibrary` in three layouts (Showcase, Grid, All in One). The main menu's LIBRARY tiles cycle Theme (Showcase/Grid/All in One) and toggle Fullscreen; there is no separate All games/Recent mode. `HomeThemeSettings` remains as an empty compatibility entry point. `HomeMenuPanel` main menu (library view, settings tiles, quit); `HomeTheme` remembers the selected theme; `CoverCard` box art |
+| `LibraryView.kt` | Last selected game/save state remembered between sessions (`LibraryView.init(prefs)`, `lastGame`, `lastState`) |
 | `DeviceTier.kt` | Device class from CPU core types and the GPU: Entry (little cores only, RK3566), Low (≤2 fast cores or A73-class cores: T618, Snapdragon G1 Gen 2, 662), Mid (modest GPU, T820), High (strong GPU: Snapdragon 865+, Dimensity 8300); picks the recommended preset |
 | `GameProfiles.kt` | Recommended settings per game and device class shipped in `assets/game_profiles.json` (user choice > database > global settings) |
 | `PadDiagram.kt` | Controller diagram for button mapping (`PadLayout`, `PadButton`, `PadDiagram`) |

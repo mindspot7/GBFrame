@@ -110,7 +110,7 @@ of these repositories.
   casual unlocks through `RaOffline`), the games folder (`SafGames`), hotkeys (`Hotkeys`), per-game recommended
   settings (`GameProfiles` by `DeviceTier`), play time
   (`PlayTime`), game-named save folders with Export/Import (`SaveData`), the "Resume" view of save states with
-  screenshots (`ResumeGrid`, only the latest save state of each game) and button mapping on a drawing of the console's controller (`PadDiagram` + `PadLayout`).
+  save-state screenshots within All in One and button mapping on a drawing of the console's controller (`PadDiagram` + `PadLayout`).
 - Save states: **Auto save** writes the auto slot when the game is exited (in-game Exit, quitting the app) **and when
   the app goes to the background** during a game (Home, recent apps: Android may close it there). **Auto load**
   continues from the game's **latest save state in any slot** (auto, quick or numbered), so it also works with Auto
@@ -118,16 +118,16 @@ of these repositories.
 - Every performance option goes both in Settings → Performance and in the in-game quick menu → Performance (so it can
   be compared while playing), and into the performance log's `settings` column.
 - Settings the user changes through the interface are remembered between sessions, including UI state such as the
-  library layout (all games / recent save states: `LibraryView`) and the game or save state selected last (the library
+  selected game (`LibraryView`) and the game selected last (the library
   opens on it again after a game, a menu or a settings page, and at the next start), so the app reopens the way it was left.
 - Controller: **A** confirms, **B** goes back (Exit dialog in the library), **X** opens the settings menu, **Y** opens the
   game options, **Select** toggles library fullscreen (handled in the Activity so it works without focus), and the menu's
-  **Library** tile switches between All games and Recent save states. **Start** does nothing in the library. The top bar is touch-only.
+  menu's **Theme** tile cycles Showcase/Grid/All in One and **Fullscreen** toggles the library display (also available via Select). There is no separate Recent mode. **Start** does nothing in the library. The top bar is touch-only.
 - Every dialog and menu must work with the controller from the first press: draw dialogs in the app window, give the
   first item focus, never let the game `SurfaceView` take key focus, and let Android turn hat-axis D-pads into D-pad keys
   while a menu is open.
 - Home screen: `HomeTopBar` (app icon, app name with a menu arrow, clock, battery icon; a tap opens the menu) and
-  `HomeLibrary` in one of three layouts: **Showcase** (default: selected game large on top, one-line title that scrolls when long, shelf below; Recent shows save-state screenshots in the same layout), **Grid** (grid of 3D boxes drawn from the 2D covers: `BoxArt3D`) and **All in One** (latest save states first, then all games). Theme cycling, library fullscreen, and All games/Recent switching are exclusively in the `HomeMenuPanel` LIBRARY tiles; they are not settings pages. The main menu slides in from the left (X, or a tap on the top bar) with the library view (All games / Recent, with counts), settings as icon tiles and Quit; it stays open while a settings page is shown, so Back returns to it on the same entry.
+  `HomeLibrary` has three layouts: **Showcase** (default: selected game large on top, one-line title that scrolls when long, shelf below), **Grid** (grid of 3D boxes drawn from the 2D covers: `BoxArt3D`) and **All in One** (latest save states first, then all games). Theme cycling and library fullscreen are exclusively in the `HomeMenuPanel` LIBRARY tiles; they are not settings pages. The main menu slides in from the left (X, or a tap on the top bar), with settings as icon tiles and Quit; it stays open while a settings page is shown, so Back returns to it on the same entry.
 - Use `setControllerContent` instead of `setContent`: after a touch, Android spends the first D-pad press leaving touch
   mode, so moving needed two presses; it sends D-pad keys in touch mode straight to the Activity.
 - X (menu) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys
