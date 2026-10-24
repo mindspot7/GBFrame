@@ -193,9 +193,8 @@ fun HomeLibrary(
     Box(modifier.fillMaxSize().onFocusChanged { libraryFocused = it.hasFocus }) {
         when {
             empty != null -> empty()
-            style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, first, coverVersion, empty, compact = fullscreen)
-            recent && style == HomeStyle.Showcase -> ShowcaseRecent(games, latest, actions, first)
             recent -> ResumeGrid(latest, actions.resume, first = first)
+            style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, actions, first, coverVersion, compact = fullscreen)
             style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion, fullscreen = fullscreen)
             else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen = fullscreen)
         }
