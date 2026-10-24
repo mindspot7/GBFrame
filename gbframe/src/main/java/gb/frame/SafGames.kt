@@ -7,7 +7,6 @@ import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.system.Os
 import java.io.File
-import java.security.MessageDigest
 
 /**
  * Game files read through the Storage Access Framework (no broad storage permission, Google Play compliant).
@@ -167,46 +166,20 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         }
         if (ext == "mds") siblings.filter { it.name.endsWith(".mdf", true) }.forEach { wanted += it.name.lowercase() }
 
-        // libchdr needs a regular, seekable file. Some Android document providers expose CHDs through
-        // proxy/pipe file descriptors, so cache a real seekable copy and reuse it on subsequent launches.
-        // The cache key includes provider identity, document ID, size and modification time when available.
-        if (ext == "chd") {
+        // Single-file images can be opened directly through the SAF file descriptor.
+        // /proc/self/fd keeps the descriptor owned by OpenDisc alive for native path-based loaders;
+        // unlike the old CHD cache, this does not copy the image into app storage.
+        // This requires the document provider to expose a seekable descriptor (as internal storage does).
+        if (ext == "chd" || ext == "iso") {
             val source = DocumentsContract.buildDocumentUriUsingTree(tree, main.docId)
-            val identity = "${tree}\n${main.docId}\n${main.size}\n${main.lastModified}"
-            val key = MessageDigest.getInstance("SHA-256")
-                .digest(identity.toByteArray(Charsets.UTF_8))
-                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
-            val cache = File(appContext.cacheDir, "disc-chd-cache").apply { mkdirs() }
-            val target = File(cache, "$key.chd")
-            val valid = target.isFile && target.length() > 0L &&
-                (main.size <= 0L || target.length() == main.size)
-            if (!valid) {
-                val temp = File(cache, "$key.tmp")
-                temp.delete()
-                try {
-                    appContext.contentResolver.openInputStream(source)?.use { input ->
-                        temp.outputStream().buffered().use { output -> input.copyTo(output, 1024 * 1024) }
-                    } ?: return null
-                    if (!temp.isFile || temp.length() == 0L ||
-                        (main.size > 0L && temp.length() != main.size)) {
-                        temp.delete()
-                        return null
-                    }
-                    target.delete()
-                    if (!temp.renameTo(target)) {
-                        temp.delete()
-                        return null
-                    }
-                } catch (_: Exception) {
-                    temp.delete()
-                    return null
-                }
+            val pfd = runCatching {
+                appContext.contentResolver.openFileDescriptor(source, "r")
+            }.getOrNull() ?: return null
+            if (pfd.statSize == 0L || (main.size > 0L && pfd.statSize > 0L && pfd.statSize != main.size)) {
+                pfd.close()
+                return null
             }
-            // Keep the current CHD plus the two most recently used cached discs to bound storage growth.
-            cache.listFiles()?.filter { it.extension == "chd" && it.name != target.name }
-                ?.sortedByDescending { it.lastModified() }?.drop(2)?.forEach { it.delete() }
-            target.setLastModified(System.currentTimeMillis())
-            return OpenDisc(target.path, emptyList())
+            return OpenDisc("/proc/self/fd/${pfd.fd}", listOf(pfd))
         }
 
         val stage = File(appContext.cacheDir, "disc").apply { deleteRecursively(); mkdirs() }
