@@ -47,7 +47,7 @@ object Covers {
     private fun safe(title: String) = title.replace(Regex("[&*/:`<>?\\\\|\"]"), "_")
     private fun custom(title: String) = File(dir, "custom/${safe(title)}.img")
     private fun cached(title: String) = File(dir, "${safe(title)}.png")
-    private fun miss(title: String) = File(dir, "${safe(title)}.miss4")
+    private fun miss(title: String) = File(dir, "${safe(title)}.miss5")
 
     /**
      * Widest cover worth keeping: half the screen's short side (the focused cover in the shelf or grid is smaller), so
@@ -73,18 +73,32 @@ object Covers {
         val largestSide = maxOf(bounds.outWidth, bounds.outHeight)
         var sample = 1
         while (largestSide / (sample * 2) >= maxDimension) sample *= 2
-        val bmp = BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply {
+        val decoded = BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply {
             inSampleSize = sample
         }) ?: return null
-        val largestDecodedSide = maxOf(bmp.width, bmp.height)
-        if (largestDecodedSide <= maxDimension) return bmp.asImageBitmap()
-        // Resize once on the IO dispatcher; cap both axes, including very tall portrait covers.
-        val scale = maxDimension.toFloat() / largestDecodedSide
-        val w = (bmp.width * scale).toInt().coerceAtLeast(1)
-        val h = (bmp.height * scale).toInt().coerceAtLeast(1)
-        val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, w, h, true)
-        if (scaled !== bmp) bmp.recycle()
-        return scaled.asImageBitmap()
+
+        // Keep decoded covers small on low-memory devices before normalizing their aspect ratio.
+        var result = decoded
+        val largestDecodedSide = maxOf(decoded.width, decoded.height)
+        if (largestDecodedSide > maxDimension) {
+            val scale = maxDimension.toFloat() / largestDecodedSide
+            val w = (decoded.width * scale).toInt().coerceAtLeast(1)
+            val h = (decoded.height * scale).toInt().coerceAtLeast(1)
+            result = android.graphics.Bitmap.createScaledBitmap(decoded, w, h, true)
+            if (result !== decoded) decoded.recycle()
+        }
+
+        // Standard portrait box art is about 2:3. Stretch only unusually narrow portrait covers horizontally;
+        // leave square and landscape artwork untouched, and never enlarge the height.
+        if (result.height > result.width) {
+            val standardWidth = (result.height * 2 + 2) / 3
+            if (result.width < standardWidth) {
+                val stretched = android.graphics.Bitmap.createScaledBitmap(result, standardWidth, result.height, true)
+                if (stretched !== result) result.recycle()
+                result = stretched
+            }
+        }
+        return result.asImageBitmap()
     }
 
     private fun download(name: String, to: File): Boolean = runCatching {
@@ -104,6 +118,8 @@ object Covers {
     // punctuation and articles, and spells "&" as "and".
     private fun norm(t: String) = t
         .replace(Regex("\\([^)]*\\)?|\\[[^]]*]?"), " ")
+        // Preserve possessive names such as Steam-Heart's as the same words as "Steam Hearts".
+        .replace(Regex("(?i)'s\\b"), "s")
         .replace(Regex("(?i)\\b(cd|disc|disk|dvd)\\s*\\d+\\b"), " ")
         .replace("&", " and ")
         .lowercase()
