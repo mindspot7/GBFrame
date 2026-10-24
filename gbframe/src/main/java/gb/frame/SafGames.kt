@@ -171,28 +171,40 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         }
         if (ext == "mds") siblings.filter { it.name.endsWith(".mdf", true) }.forEach { wanted += it.name.lowercase() }
 
-        // Keep the descriptor open for the entire emulation session. The core's path-based loaders
-        // follow this staging symlink to the Android-granted descriptor, avoiding a full ISO/CHD copy.
-        // The original extension is preserved because LoadDisc dispatches loaders by file extension.
+        // CHD/ISO loaders open their input with native path-based APIs. A /proc/self/fd symlink is
+        // not reliable for all Android document providers and libchdr can report it as "file not found".
+        // Stage a real file in the app cache, retaining the original extension for loader selection.
         if (ext == "chd" || ext == "iso") {
             val source = DocumentsContract.buildDocumentUriUsingTree(tree, main.docId)
-            val pfd = runCatching { appContext.contentResolver.openFileDescriptor(source, "r") }
-                .getOrNull() ?: run { Log.e("GBSat-SAF", "openFileDescriptor failed name=" + name); return null }
-            if (pfd.statSize == 0L || (main.size > 0L && pfd.statSize > 0L && pfd.statSize != main.size)) {
-                Log.e("GBSat-SAF", "descriptor size rejected name=" + name + "; providerSize=" + main.size + "; fdSize=" + pfd.statSize)
-                pfd.close()
-                return null
-            }
-            val stage = File(appContext.cacheDir, "disc-fd").apply { mkdirs() }
-            val stagedPath = File(stage, main.name)
-            runCatching { stagedPath.delete(); Os.symlink("/proc/self/fd/${pfd.fd}", stagedPath.path) }
-                .onFailure {
-                    Log.e("GBSat-SAF", "descriptor symlink failed name=" + name + "; error=" + it.message)
-                    pfd.close()
+            val digest = MessageDigest.getInstance("SHA-256")
+                .digest(path.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }.take(24)
+            val cacheDir = File(appContext.cacheDir, "disc-cache").apply { mkdirs() }
+            val stamp = "${main.size}-${main.lastModified}"
+            val staged = File(cacheDir, "${digest}-${stamp}.${ext}")
+            if (!staged.isFile || (main.size > 0L && staged.length() != main.size)) {
+                val temp = File(cacheDir, staged.name + ".tmp")
+                val copied = runCatching {
+                    appContext.contentResolver.openInputStream(source)?.use { input ->
+                        temp.outputStream().buffered().use { output -> input.copyTo(output, 1024 * 1024) }
+                    } ?: error("Document provider returned no input stream")
+                    val actual = temp.length()
+                    if (actual <= 0L || (main.size > 0L && actual != main.size)) {
+                        error("Copied size mismatch: expected=${main.size}, actual=$actual")
+                    }
+                    if (staged.exists()) staged.delete()
+                    if (!temp.renameTo(staged)) error("Could not finalize cached disc image")
+                    actual
+                }.getOrElse {
+                    temp.delete()
+                    Log.e("GBSat-SAF", "cache copy failed name=$name; error=${it.message}")
+                    return null
                 }
-            if (!stagedPath.exists()) return null
-            Log.i("GBSat-SAF", "direct descriptor path=" + stagedPath.path + "; fd=" + pfd.fd + "; size=" + pfd.statSize)
-            return OpenDisc(stagedPath.path, listOf(pfd))
+                Log.i("GBSat-SAF", "cached disc name=$name; size=$copied; path=${staged.path}")
+            } else {
+                Log.i("GBSat-SAF", "reusing cached disc name=$name; size=${staged.length()}")
+            }
+            return OpenDisc(staged.path, emptyList())
         }
 
         val stage = File(appContext.cacheDir, "disc").apply { deleteRecursively(); mkdirs() }
