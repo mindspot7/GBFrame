@@ -709,7 +709,7 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
 @Composable
 fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
     var style by HomeTheme.style
-    var help by HomeTheme.buttonHelp
+    var fullscreen by HomeTheme.fullscreen
     SettingsGroup("Layout", Icons.Default.Palette) {
         ChoiceRow(
             "Home screen",
@@ -720,7 +720,7 @@ fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
             },
             HomeStyle.entries.map { it.label }, style.ordinal,
         ) { style = HomeStyle.entries[it]; onLayoutChanged() }
-        ToggleRow(Icons.Default.SportsEsports, "Button help", "The bar with the controller buttons at the bottom of the home screen", help) { help = it }
+        ToggleRow(Icons.Default.Fullscreen, "Fullscreen mode", "Hide the top and bottom bars and expand the box-art grid", fullscreen) { fullscreen = it }
     }
 }
 
