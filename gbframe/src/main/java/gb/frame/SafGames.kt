@@ -171,8 +171,8 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         if (ext == "mds") siblings.filter { it.name.endsWith(".mdf", true) }.forEach { wanted += it.name.lowercase() }
 
         // Keep the original extension because LoadDisc dispatches loaders by path extension.
-        // The staged entry is only a symlink to the open SAF descriptor; disc bytes are never copied.
-        // The descriptor remains open for the full lifetime of the game.
+        // CHD/ISO loaders use native stdio/libchdr. Some SAF providers expose descriptors that cannot be reopened
+        // reliably through a /proc/self/fd symlink, so stage a real file in app-private cache instead.
         if (ext == "chd" || ext == "iso") {
             val source = DocumentsContract.buildDocumentUriUsingTree(tree, main.docId)
             val pfd = runCatching {
@@ -189,17 +189,22 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
                 mkdirs()
             }
             val stagedPath = File(stage, main.name)
-            val linked = runCatching {
-                Os.symlink("/proc/self/fd/${pfd.fd}", stagedPath.path)
-            }.isSuccess
-            if (!linked) {
-                Log.e("GBSat-SAF", "symlink failed name=" + name + "; fd=" + pfd.fd)
-                pfd.close()
+            val copied = runCatching {
+                android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { input ->
+                    stagedPath.outputStream().use { output -> input.copyTo(output, 1024 * 1024) }
+                }
+            }.getOrElse {
+                Log.e("GBSat-SAF", "copy failed name=" + name + "; error=" + it.message)
                 stage.deleteRecursively()
                 return null
             }
-            Log.i("GBSat-SAF", "opened direct path=" + stagedPath.path + "; fd=" + pfd.fd)
-            return OpenDisc(stagedPath.path, listOf(pfd))
+            if (copied == 0L || (main.size > 0L && copied != main.size)) {
+                Log.e("GBSat-SAF", "copy size mismatch name=" + name + "; expected=" + main.size + "; copied=" + copied)
+                stage.deleteRecursively()
+                return null
+            }
+            Log.i("GBSat-SAF", "staged real file path=" + stagedPath.path + "; copiedBytes=" + copied)
+            return OpenDisc(stagedPath.path, emptyList())
         }
 
         val stage = File(appContext.cacheDir, "disc").apply { deleteRecursively(); mkdirs() }
