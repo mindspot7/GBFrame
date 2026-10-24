@@ -11,7 +11,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `Settings.kt` | Settings page blocks: `SettingsGroup`, `ToggleRow`, `ActionRow`, `ChoiceRow`, `InfoRow`, `SettingsDivider`, `RowIcon` |
 | `Dialogs.kt` | `ConfirmDialog` (in-window, works with A/B), `ButtonHint` + `PadColors` |
 | `MenuIcons.kt` | Illustrated multicolor menu icons (`MenuIcon`, `MenuIconView`) |
-| `PerfOverlay.kt` | Monitoring overlay (FPS, speed, CPU/GPU, renderer, resolution, frame time) |
+| `PerfOverlay.kt` | Monitoring overlay (FPS, speed, CPU/GPU, renderer, resolution, frame time): FPS and speed green from 95% of full speed, yellow from 80%, red below (`speedColor`); GPU usage from the app's own GPU time (`gpuLoad`: timer/timestamp queries), else the driver's sysfs load |
 | `Controller.kt` | `rememberHasGamepad()` |
 | `Wizard.kt` | First-run `SetupWizard` (steps with gradient badges), `WizardStatus`, `PresetPicker` |
 | `Covers.kt` | Box art: custom image → cache → libretro-thumbnails download with fuzzy title matching (`Covers.init(dataDir, system = "Sega - Saturn")`) |
@@ -33,8 +33,11 @@ Also shared beyond Kotlin:
 | --- | --- |
 | `gbframe/.../Hotkeys.kt` | Hotkeys (quick save/load, fast forward, menu) with button combinations, `keyName` |
 | `gbframe/.../SafGames.kt` | Games folder through the Storage Access Framework: scan, open discs with their track files (CUE, GDI, MDS) as `/proc/self/fd` symlinks for path-based cores |
-| `native/` | C++ for the app's JNI library (`gb_native.cmake`): OpenGL ES presenter (`gl_renderer`, zero-copy AHardwareBuffer, filters, shaders), CPU placement + performance hints (`cpu_tuning`, thread roles by name), PGO training support (`pgo`) |
-| `tools/` | Windows scripts for device tests over USB: `profile.bat` (simpleperf), `perf-log.bat` (performance log), `pgo-pull.bat` (PGO training data); set `APP`/`NAME` at the top |
+| `native/` | C++ for the app's JNI library (`gb_native.cmake`): OpenGL ES presenter (`gl_renderer`, zero-copy AHardwareBuffer, filters, shaders: Scanlines, CRT, CRT Royale, GTU, LCD3x; bsnes gamma ramp colour correction; GPU time of its draws for the overlay), CPU placement + performance hints (`cpu_tuning`, thread roles by name), PGO training support (`pgo`) |
+| `native/auto_skip` | Skip Engine (`gb::AutoSkip`): maximum speed through loading screens, black transitions and save waits, and whether a faster disc read speed is safe (not while the game streams video/music from the disc). The app reports its core's disc and backup memory activity, delivered frames and sound samples |
+| `native/diag_props.hpp` | A/B diagnostic switches read from adb-set properties (`debug.<app>.<name>`, `gb::DiagOn`), shown in the performance log |
+| `Shaders.kt` | The presenter's shader and colour correction ids, names and menu order (`Shaders.menuOrder`, `name`, `next`, `sanitize`) |
+| `tools/emu-test.bat` | One Windows menu for device tests over USB (copy it to the app and set the block at the top): download/install the latest build, performance log, CPU profile (simpleperf with the profiling build, generated when older than the normal build), library scroll measurement, PGO data, A/B diagnostic switches, wake the device, screen capture. Output files are named after the game |
 
 ## Using it in an app
 

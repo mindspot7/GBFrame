@@ -6,8 +6,22 @@ line here whenever a new app teaches something that would have saved time.
 ## Measure before optimizing
 
 - Profile on the slowest device (Unisoc T618 / Mali-G52) before changing anything. A `profileable` manifest flag plus
-  a "Profiling build" workflow that keeps native symbols (`keepDebugSymbols`) and a one-click `simpleperf` script
-  (`tools/profile.bat`) gives per-thread and per-function numbers in minutes.
+  a "Profiling build" workflow that keeps native symbols (`keepDebugSymbols`) and a one-click `simpleperf` option in
+  the test script (`tools/emu-test.bat`, option 3) gives per-thread and per-function numbers in minutes.
+- For hot spots inside one big function, resolve the profile's addresses to source lines: take `lib<app>.so` from the
+  profiling APK and run `llvm-addr2line -f -i -C` on the "by address" section (inlined frames included).
+- Check *why* a hot path is entered before optimizing it: the SH-2 chained interpreter returned to its caller ~12% of
+  the time; keeping it running through loops gave nothing, because the real reason was the 32-cycle time slices of the
+  two CPUs. Skipping the slow first instruction of each slice did help.
+- The performance log times components on a sample of frames (1 in 7). Those frames must run the same code as the
+  others: a fast path disabled on measured frames made the log time the old path and hid the gain.
+- Compare runs of the same scene only: a 30 s sample varies by a few percent between runs. Bucket the seconds by load
+  (e.g. VDP1 commands per frame) and compare buckets, and prefer A/B switches inside one run (`diag_props.hpp`,
+  `debug.<app>.<name>` set by the test script) over builds compared across time.
+- A faster component often just moves the wait: a faster SH-2 made the emulation wait for the VDP2 thread, then for
+  the sound thread. Log every wait per helper thread and per wait site (`wait_vdp2_frame_ms`, `wait_vdp2_copy_ms`).
+- Kernel time in a cpu-clock profile concentrated on one address (IRQ re-enable after scheduler work) is not proof of
+  costly thread wake-ups: batching the render threads' events cut wake-ups a lot and changed nothing measurable.
 - Give every native thread a name of **15 characters or less**: Linux rejects longer names, the thread keeps the app's
   name, and both profiling and per-thread CPU placement silently stop working.
 - `cpu-clock` profiles don't show time spent waiting (GPU fences, sleeps). For GPU renderers, add counters instead:
@@ -81,5 +95,47 @@ line here whenever a new app teaches something that would have saved time.
 - Compose will not focus clickable items while Android is in touch mode, and a key consumed before the view tree (as `setControllerContent` does) never leaves it: call `requestFocusFromTouch()` first, or the programmatic focus after a tap silently fails.
 - Before a JIT, measure idle loops: on Saturn games the SH-2s spent 60-100% of their interpreted cycles in loops of at most 5 instructions that only poll memory. Skipping such a loop to the end of the CPU's time slice is exact (nothing else runs during the slice) and much cheaper than a recompiler; exclude memory with read side effects (FIFO data ports) and loops that carry a register between iterations.
 - Threads that wait for work all the time (a sound chip thread between sample ticks) must not use `std::atomic::wait` on Android: libc++ polls with `clock_gettime` and `sched_yield` for up to ~64 us before sleeping, which was 12-36% of a core on the T618 (simpleperf). Spin briefly, then a futex wait, with the waker only calling FUTEX_WAKE when the thread announced it is sleeping (GBSat SCSP).
-- Profile (simpleperf, `profile.bat` with the profiling build) before a big CPU optimization: on the T618 the SH-2 interpreter turned out to have spare time at 60 fps (emulation thread 55-70% of a core), so a decoded-instruction cache would not have changed the frame rate, while the sound thread's polling did.
+- Profile (simpleperf, test script option 3 with the profiling build) before a big CPU optimization: on the T618 the SH-2 interpreter turned out to have spare time at 60 fps (emulation thread 55-70% of a core), so a decoded-instruction cache would not have changed the frame rate, while the sound thread's polling did.
 - A threaded renderer that reads the other chip's display buffer (Saturn VDP2 reading the VDP1 framebuffer) should take its own copy at the start of each frame: the producer's erase/swap then waits only for the copy, not for the whole frame (VF2 drawn frames 21-24 ms -> 13 ms).
+
+## Interpreters
+
+- A threaded ("computed goto") interpreter, where each instruction jumps straight to the next handler, cut the SH-2
+  time by ~9% on the T618 (one shared dispatch point was mispredicted most of the time). Keep the plain interpreter
+  too, and a CI test that runs random programs through both and compares every register and memory write.
+
+## Threaded renderers and presentation
+
+- A render thread that draws into the only framebuffer forces the emulation to wait at the first line of the next
+  frame until the previous one is finished. Two framebuffers that alternate (progressive screens, and interlaced ones
+  when each drawn frame fills both fields) removed it: Burning Rangers on the T618 went from 58.2 to 59.8 fps with no
+  second below 58. Frames the frontend skips must not force the delivery of the pending frame either.
+- GPU usage for the overlay: on many Android devices the driver's sysfs load can't be read by apps (SELinux). Measure
+  the app's own GPU time instead (`GL_EXT_disjoint_timer_query` around the presenter's draws, Vulkan timestamps at the
+  start and end of each command buffer, read after the fence), never waiting for a result.
+- RetroArch's multi-pass CRT shaders (crt-royale: 8-12 passes with mask textures; GTU: 3 passes) fit a Mali-G52 as
+  single-pass approximations that keep their look (linear light, brightness-dependent gaussian beams, aperture grille
+  mask with brightness compensation, halation; GTU's band-limited signal and integrated beams). Validate GLSL with
+  `glslangValidator` and preview with a numpy mirror of the shader on frames captured on the device before shipping.
+- Colour corrections such as the bsnes gamma ramp are a separate option applied to the source colours, combinable with
+  any shader (RetroArch users stack them).
+- FXAA gains little on these consoles: pixel art and HUD text get blurred, 3D edges improve modestly at native
+  resolution. Bilinear is not anti-aliasing (it softens the steps but keeps their shape). Decide with previews.
+
+## Loading
+
+- Skip Engine (`auto_skip`): maximum speed only while a load, transition or save wait is detected (disc activity with a
+  still or black, silent picture; silent black frames; bulk backup memory access), with hysteresis. It is limited by
+  the device's speed, so it complements a faster disc read speed instead of replacing it.
+- Faster disc reads can desync videos and streamed music: turn the speedup off while the game streams (disc activity
+  with a moving picture and sound), like DuckStation does for XA/CD audio and video decoding. Then a higher default
+  (8x) is safe. Apply a speed change to a read already in progress.
+
+## Interface
+
+- A lazy list's scroll state created while the data is still loading stays on the first item: recreate it once the
+  data arrives (keyed on "list empty"), or the selected item is off screen when it should take the focus.
+- Programmatic focus right after a screen appears must retry until the requester is attached and the focus is really
+  in the list; a single try after a fixed delay often missed, and the first D-pad press then picked another item.
+- Overlay colours follow common emulators: FPS and speed green from 95% of full speed (DuckStation and PCSX2/AetherSX2
+  also treat below 95% as slow), yellow from 80%, red below.

@@ -38,6 +38,30 @@ of these repositories.
 - Report results briefly: what changed and the build name (e.g. `GBSat-v1.3.1-build141`). Mention CI only when something
   went wrong, and don't say that a build wasn't tested on a device (the owner knows); say what to test only when it's
   not obvious.
+- After a push, send the written analysis/implementation reply **right away, while CI runs**; watch the run in the
+  background and then report only the build name (and any CI problem). Don't send messages about background
+  notifications that change nothing (expired monitors and the like).
+- Profiling builds only when needed: the test script's profile option generates one when the latest is older than the
+  normal build (same version code). Don't start one after every push.
+
+## Device tests (test script)
+
+- The owner tests with the app's copy of `tools/emu-test.bat` (GBSat: `tools/gbsat.bat`) in the adb platform-tools
+  folder on his Windows PC, connected to the session: 1 install the latest build (deletes the APK after installing),
+  2 performance log, 3 CPU profile, 4 library scroll measurement, 5 PGO data, 6 A/B diagnostic switches, 7 wake the
+  device, 8 screen capture. Files are named after the game (`<app>-perf-log_<GAME>.csv`, `<app>-profile_<GAME>.txt`,
+  `<app>-tela_<GAME>.png`; the game comes from the log's `game` column).
+- When the owner says **"pronto"**, read the new files in that folder and analyze them (compare with the previous run
+  of the same game and scene). Keep the script in the app repo and write every change to the owner's copy too, then
+  check the file on his PC (size/content): a write once didn't land.
+- Suspect a regression? Add an A/B switch (`gb::DiagOn`, `debug.<app>.<name>`, shown as `diag=` in the log) and let
+  the owner flip it in one run with option 6 instead of comparing builds; he reports what he sees.
+- For visual changes (shaders, anti-aliasing, colour), first show previews computed from his own captures (option 8)
+  at his screen's resolution, then build.
+- Look at the reference emulators' sources first (DuckStation/SwanStation for features, RetroArch slang-shaders for
+  shaders) and adapt; when the reference is closed (e.g. DukeStation's Skip Engine), implement the idea and say so.
+- "Gere versão x.y.z": set `VERSION` to x.y.z, move `## Unreleased` into a `## x.y.z` section (with a new empty
+  `## Unreleased` on top), push, and report the build.
 
 ## Releases
 
