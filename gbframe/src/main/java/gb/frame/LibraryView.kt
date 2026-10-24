@@ -1,7 +1,6 @@
 package gb.frame
 
 import android.content.SharedPreferences
-import androidx.compose.runtime.mutableStateOf
 
 /** Last selected game and save state in the library, remembered between sessions. */
 object LibraryView {
