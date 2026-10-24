@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -21,7 +22,7 @@ import java.net.URL
 object Covers {
     private lateinit var dir: File
     // Bound the cache by bytes, not entry count: a handful of tall covers can otherwise exhaust low-memory devices.
-    private val cacheKb = (Runtime.getRuntime().maxMemory() / 1024L / 12L).toInt().coerceIn(2048, 12 * 1024)
+    private val cacheKb = (Runtime.getRuntime().maxMemory() / 1024L / 40L).toInt().coerceIn(2048, 8 * 1024)
     private val memory = object : LruCache<String, ImageBitmap>(cacheKb) {
         override fun sizeOf(key: String, value: ImageBitmap): Int =
             (value.asAndroidBitmap().allocationByteCount / 1024).coerceAtLeast(1)
@@ -46,7 +47,7 @@ object Covers {
     private fun safe(title: String) = title.replace(Regex("[&*/:`<>?\\\\|\"]"), "_")
     private fun custom(title: String) = File(dir, "custom/${safe(title)}.img")
     private fun cached(title: String) = File(dir, "${safe(title)}.png")
-    private fun miss(title: String) = File(dir, "${safe(title)}.miss3")
+    private fun miss(title: String) = File(dir, "${safe(title)}.miss4")
 
     /**
      * Widest cover worth keeping: half the screen's short side (the focused cover in the shelf or grid is smaller), so
@@ -74,7 +75,6 @@ object Covers {
         while (largestSide / (sample * 2) >= maxDimension) sample *= 2
         val bmp = BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply {
             inSampleSize = sample
-            inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
         }) ?: return null
         val largestDecodedSide = maxOf(bmp.width, bmp.height)
         if (largestDecodedSide <= maxDimension) return bmp.asImageBitmap()
@@ -88,7 +88,7 @@ object Covers {
     }
 
     private fun download(name: String, to: File): Boolean = runCatching {
-        val url = URL(base + Uri.encode(safe(name) + ".png"))
+        val url = URL(base + Uri.encode(name + ".png"))
         val c = url.openConnection() as HttpURLConnection
         c.connectTimeout = 8000; c.readTimeout = 15000
         if (c.responseCode != 200) return@runCatching false
@@ -113,7 +113,8 @@ object Covers {
 
 
     // Lists the thumbnail server's file names once, so titles can be matched even when the disc image name differs.
-    @Synchronized\n    private fun loadIndex(): List<String> {
+    @Synchronized
+    private fun loadIndex(): List<String> {
         index?.let { return it }
         val list = runCatching {
             val c = URL(base).openConnection() as HttpURLConnection
