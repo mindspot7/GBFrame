@@ -633,6 +633,7 @@ fun HomeMenuPanel(
     open: Boolean, onDismiss: () -> Unit, focus: FocusRequester,
     appIcon: Painter, appName: String,
     themeLabel: String, fullscreen: Boolean, onCycleTheme: () -> Unit, onToggleFullscreen: () -> Unit,
+    recentMode: Boolean = false, onToggleRecent: () -> Unit = {},
     items: List<HomeMenuItem>, onQuit: () -> Unit,
     header: @Composable () -> Unit = {},
     /** Smaller entries shown as compact tiles next to Quit (e.g. About). */
@@ -682,6 +683,11 @@ fun HomeMenuPanel(
                             Modifier.weight(1f), onCycleTheme, colorfulIcon = true)
                         ViewTile(Icons.Default.Fullscreen, "Fullscreen", if (fullscreen) "On" else "Off", fullscreen,
                             Modifier.weight(1f), onToggleFullscreen)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ViewTile(Icons.Default.History, "Library", if (recentMode) "Recent" else "All games", recentMode,
+                            Modifier.weight(1f), onToggleRecent)
+                        Spacer(Modifier.weight(1f))
                     }
                     // Settings
                     MenuSection("SETTINGS")

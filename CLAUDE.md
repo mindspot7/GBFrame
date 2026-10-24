@@ -121,13 +121,13 @@ of these repositories.
   library layout (all games / recent save states: `LibraryView`) and the game or save state selected last (the library
   opens on it again after a game, a menu or a settings page, and at the next start), so the app reopens the way it was left.
 - Controller: **A** confirms, **B** goes back (Exit dialog in the library), **X** opens the settings menu, **Y** opens the
-  game options, **Select** switches all games / recent save states (handled in the Activity so it works without focus),
-  **Start** does nothing in the library. The top bar is touch-only.
+  game options, **Select** toggles library fullscreen (handled in the Activity so it works without focus), and the menu's
+  **Library** tile switches between All games and Recent save states. **Start** does nothing in the library. The top bar is touch-only.
 - Every dialog and menu must work with the controller from the first press: draw dialogs in the app window, give the
   first item focus, never let the game `SurfaceView` take key focus, and let Android turn hat-axis D-pads into D-pad keys
   while a menu is open.
 - Home screen: `HomeTopBar` (app icon, app name with a menu arrow, clock, battery icon; a tap opens the menu) and
-  `HomeLibrary` in one of three layouts: **Showcase** (default: selected game large on top, one-line title that scrolls when long, shelf below; Recent shows save-state screenshots in the same layout), **Grid** (grid of 3D boxes drawn from the 2D covers: `BoxArt3D`) and **All in One** (latest save states first, then all games). Theme cycling and library fullscreen are exclusively in the `HomeMenuPanel` LIBRARY → Theme and FullScreen tiles; they are not settings pages. The main menu slides in from the left (X, or a tap on the top bar) with the library view (All games / Recent, with counts), settings as icon tiles and Quit; it stays open while a settings page is shown, so Back returns to it on the same entry.
+  `HomeLibrary` in one of three layouts: **Showcase** (default: selected game large on top, one-line title that scrolls when long, shelf below; Recent shows save-state screenshots in the same layout), **Grid** (grid of 3D boxes drawn from the 2D covers: `BoxArt3D`) and **All in One** (latest save states first, then all games). Theme cycling, library fullscreen, and All games/Recent switching are exclusively in the `HomeMenuPanel` LIBRARY tiles; they are not settings pages. The main menu slides in from the left (X, or a tap on the top bar) with the library view (All games / Recent, with counts), settings as icon tiles and Quit; it stays open while a settings page is shown, so Back returns to it on the same entry.
 - Use `setControllerContent` instead of `setContent`: after a touch, Android spends the first D-pad press leaving touch
   mode, so moving needed two presses; it sends D-pad keys in touch mode straight to the Activity.
 - X (menu) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys

@@ -67,6 +67,7 @@ line here whenever a new app teaches something that would have saved time.
   first item, never let the game `SurfaceView` take key focus, let Android map hat-axis D-pads to D-pad keys while a
   menu is open, and handle global buttons (Select, B in dialogs) in the Activity.
 - With targetSdk 36 (predictive back), map the controller's B to `onBackPressedDispatcher.onBackPressed()`.
+- When a screen leaves composition, clear any focus flags stored outside Compose state. A stale `hasFocus=true` can make focus restoration skip the requester and leave selection behind an overlay. Do not attach one `FocusRequester` to multiple controls when only one should receive initial focus.
 
 ## Storage, saves and Play
 
