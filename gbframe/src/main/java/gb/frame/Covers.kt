@@ -20,6 +20,7 @@ import java.net.URL
  * (thumbnails.libretro.com, matched by the disc image's file name) -> placeholder.
  */
 object Covers {
+    private const val COVER_RATIO = 0.66f
     private lateinit var dir: File
     // Bound the cache by bytes, not entry count: a handful of tall covers can otherwise exhaust low-memory devices.
     private val cacheKb = (Runtime.getRuntime().maxMemory() / 1024L / 40L).toInt().coerceIn(2048, 8 * 1024)
@@ -88,8 +89,24 @@ object Covers {
             if (result !== decoded) decoded.recycle()
         }
 
-        // Keep each Saturn cover's source aspect ratio. Shelf presentation handles modest visual standardization.
-        return result.asImageBitmap()
+        // Every Saturn box art uses the same 2:3-ish canvas. Fit the original art inside it without stretching or
+        // cropping, so shelf, grid, and AIO have consistent cover widths/heights even when scans vary in shape.
+        val frameWidth = (maxDimension * COVER_RATIO).toInt().coerceAtLeast(1)
+        val frameHeight = maxDimension
+        val frame = android.graphics.Bitmap.createBitmap(frameWidth, frameHeight, android.graphics.Bitmap.Config.ARGB_8888)
+        frame.eraseColor(android.graphics.Color.rgb(17, 19, 26))
+        val scale = minOf(frameWidth.toFloat() / result.width, frameHeight.toFloat() / result.height)
+        val drawWidth = result.width * scale
+        val drawHeight = result.height * scale
+        val left = (frameWidth - drawWidth) / 2f
+        val top = (frameHeight - drawHeight) / 2f
+        android.graphics.Canvas(frame).drawBitmap(
+            result, null,
+            android.graphics.RectF(left, top, left + drawWidth, top + drawHeight),
+            android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG)
+        )
+        result.recycle()
+        return frame.asImageBitmap()
     }
 
     private fun download(name: String, to: File): Boolean = runCatching {

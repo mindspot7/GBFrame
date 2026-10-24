@@ -282,20 +282,17 @@ fun CoverCard(
             contentAlignment = Alignment.BottomCenter,
         ) {
             if (cover != null) {
-                val sourceRatio = cover.width.toFloat() / cover.height
-                // Keep a consistent Saturn shelf silhouette while preserving the artwork's original proportions.
-                // The modest ratio clamp prevents very narrow/square scans from dominating the shelf without stretching them.
-                val ratio = sourceRatio.coerceIn(0.58f, 0.72f)
+                // Covers are normalized to one fixed frame ratio by Covers.decode().
+                val ratio = 0.66f
                 Image(cover, title, Modifier.fillMaxWidth().aspectRatio(ratio).clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, Color.White.copy(alpha = .18f), RoundedCornerShape(10.dp)), contentScale = ContentScale.Fit)
+                    .border(1.dp, palette.border, RoundedCornerShape(10.dp)), contentScale = ContentScale.Fit)
             } else {
                 CoverPlaceholder(title, Modifier.size(width, height))
             }
         }
         if (reflection) {
             if (cover != null) {
-                val sourceRatio = cover.width.toFloat() / cover.height
-                val ratio = sourceRatio.coerceIn(0.58f, 0.72f)
+                val ratio = 0.66f
                 // Mirror of the cover's bottom part, fading out, baked once into a small bitmap when the cover loads and drawn
                 // as a plain image. Drawing it live was slow on the Mali-G52 while scrolling: an offscreen layer per cover (to
                 // fade with DstIn) cost GPU time on every frame, and a combined bitmap+gradient shader made the draw commands
@@ -335,8 +332,8 @@ private fun reflectionOf(cover: ImageBitmap, fraction: Float): ImageBitmap {
 @Composable
 private fun CoverPlaceholder(title: String, modifier: Modifier) {
     Column(
-        modifier.clip(RoundedCornerShape(10.dp)).background(Color(0xFF241F3D))
-            .border(1.dp, Color.White.copy(alpha = .16f), RoundedCornerShape(10.dp)).padding(10.dp),
+        modifier.clip(RoundedCornerShape(10.dp)).background(palette.card)
+            .border(1.dp, palette.border, RoundedCornerShape(10.dp)).padding(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
     ) {
         Icon(Icons.Default.Album, null, Modifier.size(40.dp), tint = palette.accent.copy(alpha = .7f))
@@ -372,7 +369,7 @@ private fun PillButton(text: String, primary: Boolean, icon: ImageVector? = null
     val p = palette
     Row(
         Modifier.height(42.dp).clip(RoundedCornerShape(50))
-            .then(if (primary) Modifier.background(p.accent) else Modifier.border(1.dp, Color.White.copy(alpha = .3f), RoundedCornerShape(50)))
+            .then(if (primary) Modifier.background(p.accent) else Modifier.border(1.dp, p.accent.copy(alpha = .55f), RoundedCornerShape(50)))
             .focusProperties { canFocus = false }.clickable(onClick = onClick).padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -556,6 +553,7 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(
             modifier.fillMaxWidth().aspectRatio(0.72f)
+                .border(if (focused) 1.5.dp else 1.dp, if (focused) palette.highlight else palette.border, RoundedCornerShape(10.dp))
                 .onFocusChanged { focused = it.isFocused; if (it.isFocused) LibraryView.lastGame = g.key }
                 .optionsKey { actions.options(g) }
                 .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
@@ -783,7 +781,8 @@ fun BoxArt3D(cover: ImageBitmap, modifier: Modifier = Modifier) {
     val bmp = remember(cover) { cover.asAndroidBitmap() }
     androidx.compose.foundation.Canvas(modifier) {
         val W = size.width; val H = size.height
-        val ratio = (bmp.width.toFloat() / bmp.height).coerceIn(0.6f, 1.3f)
+        // Covers.decode() normalizes all artwork to the same ratio; keep the 3D face fixed regardless of source scan.
+        val ratio = 0.66f
         val depth = W * 0.11f                    // visible spine width
         val faceW = W - depth
         val faceH = (faceW / ratio).coerceAtMost(H * 0.97f)
