@@ -181,10 +181,10 @@ fun HomeLibrary(
             HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, first, coverVersion, empty, compact = fullscreen)
             else -> when {
                 empty != null -> empty()
-                recent && style == HomeStyle.Showcase -> ShowcaseRecent(games, latest, actions, first)
+                recent && style == HomeStyle.Showcase -> ShowcaseRecent(games, latest, actions, first, fullscreen = fullscreen)
                 recent -> ResumeGrid(latest, actions.resume, first = first)
-                style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion)
-                else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion)
+                style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion, fullscreen = fullscreen)
+                else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen = fullscreen)
             }
         }
     }
@@ -465,7 +465,7 @@ private fun Modifier.steadyKeys(pace: RowPace) = onPreviewKeyEvent { e ->
 // ---- A: Showcase ------------------------------------------------------------------------------------------------------
 
 @Composable
-private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int) {
+private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean = false) {
     val p = palette
     var selected by remember(games) { mutableStateOf(games.getOrNull(LibraryView.gameIndex(games))) }
     val bg = p.background.last()
@@ -475,11 +475,11 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
         Column(Modifier.fillMaxSize()) {
             selected?.let { g ->
                 val st = latestByGame[g.key]
-                Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = if (compact) 10.dp else 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp)) {
+                Column(Modifier.fillMaxWidth().padding(start = if (fullscreen) 30.dp else 24.dp, end = if (fullscreen) 30.dp else 24.dp, top = if (fullscreen) 10.dp else if (compact) 10.dp else 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (compact || fullscreen) 4.dp else 8.dp)) {
                     HeroTitle(g.title, compact)
                     GameInfo(g, st != null)
-                    if (!compact) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!compact && !fullscreen) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         PillButton(if (st != null) "Continue" else "Play", true, Icons.Default.PlayArrow) { if (st != null) actions.resume(st) else actions.play(g) }
                         PillButton("Start fresh", false) { actions.fresh(g) }
                         PillButton("Options", false) { actions.options(g) }
@@ -496,7 +496,7 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
                 val cardH = (room / k).coerceIn(64.dp, 260.dp)
                 val boxH = cardH * 0.72f / 0.66f
                 Shelf(games, version, cardH * 0.72f, cardH, first, reflection = withRefl, focusScale = s, actions = actions, startPad = 20.dp,
-                    topRoom = boxH * (s - 1f) + 12.dp, edge = 24.dp) { g, _ -> selected = g } // lined up with the title
+                    topRoom = boxH * (s - 1f) + if (fullscreen) 8.dp else 12.dp, edge = if (fullscreen) 32.dp else 24.dp) { g, _ -> selected = g } // lined up with the title
             }
             Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
         }
@@ -523,7 +523,7 @@ private fun rememberScreenshot(e: ResumeEntry?): ImageBitmap? {
 
 /** Showcase in Recent mode: the same hero, with save-state screenshots in the shelf instead of box art. */
 @Composable
-private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester) {
+private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester, fullscreen: Boolean = false) {
     val p = palette
     val byKey = remember(games) { games.associateBy { it.key } }
     val start = remember(latest) { LibraryView.stateIndex(latest) }
@@ -538,8 +538,8 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
             selected?.let { e ->
                 val g = byKey[e.game]
                 val date = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(e.time))
-                Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = if (compact) 10.dp else 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp)) {
+                Column(Modifier.fillMaxWidth().padding(start = if (fullscreen) 30.dp else 24.dp, end = if (fullscreen) 30.dp else 24.dp, top = if (fullscreen) 10.dp else if (compact) 10.dp else 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (compact || fullscreen) 4.dp else 8.dp)) {
                     HeroTitle(g?.title ?: e.title, compact)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Save, null, tint = TealSave, modifier = Modifier.size(17.dp))
@@ -552,7 +552,7 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
                             Text(formatPlayTime(g.playSeconds), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
                         }
                     }
-                    if (!compact) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!compact && !fullscreen) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         PillButton("Continue", true, Icons.Default.PlayArrow) { actions.resume(e) }
                         if (g != null) {
                             PillButton("Start fresh", false) { actions.fresh(g) }
@@ -569,10 +569,10 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
             val slotPx = with(LocalDensity.current) { (shotW + gap).roundToPx() }
             LaunchedEffect(focusIndex) { if (focusIndex >= 0) pace.scroll(rowState, focusIndex, -slotPx) }
             // Lined up with the title (the zoomed screenshot when a controller selects it; the zoom grows from the center)
-            val side = 24.dp + if (rememberHasGamepad()) shotW * 0.05f else 0.dp
+            val side = (if (fullscreen) 32.dp else 24.dp) + if (rememberHasGamepad()) shotW * 0.05f else 0.dp
             LazyRow(
                 state = rowState,
-                contentPadding = PaddingValues(start = side, end = side, top = shotH * 0.1f + 10.dp, bottom = 4.dp),
+                contentPadding = PaddingValues(start = side, end = side, top = shotH * 0.1f + if (fullscreen) 6.dp else 10.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.fillMaxWidth().steadyKeys(pace),
             ) {
                 items(latest.size, key = { latest[it].key }) { i ->
@@ -634,8 +634,8 @@ private fun GridHome(
                             // A new state once the games are loaded starts on the selected one (see Shelf)
                             state = remember(games.isEmpty()) { androidx.compose.foundation.lazy.grid.LazyGridState(start) },
                             // Room around and between the covers for the enlarged (focused) one, and off the top/bottom bars
-                            columns = GridCells.Fixed(cols), contentPadding = if (compact) PaddingValues(6.dp) else PaddingValues(horizontal = 14.dp, vertical = 18.dp),
-                            horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 20.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 26.dp),
+                            columns = GridCells.Fixed(cols), contentPadding = if (compact) PaddingValues(horizontal = 18.dp, vertical = 12.dp) else PaddingValues(horizontal = 14.dp, vertical = 18.dp),
+                            horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 20.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 26.dp),
                             modifier = Modifier.fillMaxSize(),
                         ) {
                             items(games.size, key = { games[it].key }) { i ->
@@ -679,17 +679,17 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
 // ---- D: Continue playing + library ------------------------------------------------------------------------------------
 
 @Composable
-private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int) {
+private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean = false) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val hasStates = latest.isNotEmpty()
         val thumbW = ((maxHeight * 0.34f) * (4f / 3f)).coerceIn(140.dp, 320.dp)
         val cardH = (maxHeight * if (hasStates) 0.30f else 0.50f).coerceIn(90.dp, 240.dp)
         // Without save states the shelf alone is centered vertically
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        Column(Modifier.fillMaxSize().padding(horizontal = if (fullscreen) 18.dp else 0.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = if (hasStates) Arrangement.spacedBy(8.dp) else Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
             if (hasStates) {
                 SectionLabel("CONTINUE PLAYING")
-                LazyRow(contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                LazyRow(contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(if (fullscreen) 20.dp else 16.dp)) {
                     items(latest.size, key = { latest[it].key }) { i ->
                         val e = latest[i]
                         ResumeCard(e, Modifier.width(thumbW).then(if (i == 0) Modifier.focusRequester(first) else Modifier)) { actions.resume(e) }
@@ -698,7 +698,7 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
             }
             SectionLabel(if (games.isEmpty()) "ALL GAMES" else "ALL GAMES · ${games.size}", Color.White.copy(alpha = .75f))
             Shelf(games, version, cardH * 0.72f, cardH, if (hasStates) null else first, reflection = false, focusScale = 1.1f,
-                actions = actions, startPad = 8.dp) { _, _ -> }
+                actions = actions, startPad = if (fullscreen) 28.dp else 8.dp, edge = if (fullscreen) 28.dp else null) { _, _ -> }
         }
     }
 }
