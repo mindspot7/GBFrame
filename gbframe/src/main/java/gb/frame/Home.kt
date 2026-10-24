@@ -635,6 +635,8 @@ fun HomeMenuPanel(
     header: @Composable () -> Unit = {},
     /** Smaller entries shown as compact tiles next to Quit (e.g. About). */
     extras: List<HomeMenuItem> = emptyList(),
+    /** Quick library actions shown in the former library/recent shortcut row. */
+    quickActions: List<HomeMenuItem> = emptyList(),
     /** Whether something inside the panel has the focus (the app gives it back when a key comes while it hasn't). */
     onFocusChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -689,11 +691,19 @@ fun HomeMenuPanel(
                         }
                     }
                     Spacer(Modifier.height(2.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        extras.forEachIndexed { k, m ->
-                            MenuRow(m.icon, m.label, Modifier.weight(1f).then(if (m.selected && selectedItem < 0) Modifier.focusRequester(focus) else Modifier), m.onClick)
+                    if (quickActions.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            quickActions.forEach { m -> MenuRow(m.icon, m.label, Modifier.weight(1f), m.onClick) }
+                            if (extras.isEmpty()) MenuRow(MenuIcon.Quit, "Quit", Modifier.weight(1f), onQuit)
                         }
-                        MenuRow(MenuIcon.Quit, "Quit", Modifier.weight(1f), onQuit)
+                    }
+                    if (extras.isNotEmpty() || quickActions.isEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            extras.forEach { m ->
+                                MenuRow(m.icon, m.label, Modifier.weight(1f).then(if (m.selected && selectedItem < 0) Modifier.focusRequester(focus) else Modifier), m.onClick)
+                            }
+                            MenuRow(MenuIcon.Quit, "Quit", Modifier.weight(1f), onQuit)
+                        }
                     }
                 }
             }
