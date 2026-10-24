@@ -589,6 +589,7 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
 // ---- C: Classic Console -----------------------------------------------------------------------------------------------
 
 /** A clean, flat cover wall inspired by classic console game-selection screens. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ClassicConsoleHome(
     games: List<HomeGame>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean,
@@ -661,22 +662,11 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
 
 // ---- Settings ----------------------------------------------------------------------------------------------------------
 
-/** "Layout" settings block (e.g. in Extras): picks the home screen layout. */
+/** "Layout" settings block: fullscreen only. Theme selection is exclusively available from the LIBRARY → Theme tile. */
 @Composable
 fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
-    var style by HomeTheme.style
     var fullscreen by HomeTheme.fullscreen
-    SettingsGroup("Layout", Icons.Default.Palette) {
-        ChoiceRow(
-            "Home screen",
-            when (style) {
-                HomeStyle.Showcase -> "The selected game large on top, box art below"
-                HomeStyle.Grid -> "Box art in a grid"
-                HomeStyle.Continue -> "Your latest save states first, then all games"
-                HomeStyle.ClassicConsole -> "Classic console-style cover wall"
-            },
-            HomeStyle.entries.map { it.label }, style.ordinal,
-        ) { style = HomeStyle.entries[it]; onLayoutChanged() }
+    SettingsGroup("Layout", Icons.Default.Fullscreen) {
         ToggleRow(Icons.Default.Fullscreen, "Fullscreen mode", "Hide the top and bottom bars and expand the box-art grid", fullscreen) { fullscreen = it }
     }
 }
