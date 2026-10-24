@@ -177,7 +177,7 @@ fun HomeLibrary(
     var libraryFocused by remember { mutableStateOf(false) } // something in the library has the focus
     // The selection only exists with a physical controller (handhelds' built-in controls count)
     val hasPad = rememberHasGamepad()
-    LaunchedEffect(style, recent, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad) {
+    LaunchedEffect(recent, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad) {
         if (empty == null && hasPad) {
             // The selected cover may not be laid out yet (games loaded just now, a game screen closing): requestFocus throws
             // until its requester is attached. One try after 60 ms often missed it, nothing kept the focus and the first
