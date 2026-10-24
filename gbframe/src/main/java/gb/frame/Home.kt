@@ -148,7 +148,7 @@ class HomeActions(
  */
 @Composable
 fun HomeLibrary(
-    style: HomeStyle, games: List<HomeGame>, states: List<ResumeEntry>, actions: HomeActions,
+    style: HomeStyle, games: List<HomeGame>, states: List<ResumeEntry>, recent: Boolean, actions: HomeActions,
     coverVersion: Int = 0, empty: (@Composable () -> Unit)? = null,
     /** Change it to put the focus back on the selected game (e.g. after the menu closed or a touch cleared the focus). */
     refocus: Int = 0,
@@ -161,7 +161,7 @@ fun HomeLibrary(
     var libraryFocused by remember { mutableStateOf(false) } // something in the library has the focus
     // The selection only exists with a physical controller (handhelds' built-in controls count)
     val hasPad = rememberHasGamepad()
-    LaunchedEffect(style, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad) {
+    LaunchedEffect(style, recent, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad) {
         if (empty == null && hasPad) {
             // The selected cover may not be laid out yet (games loaded just now, a game screen closing): requestFocus throws
             // until its requester is attached. One try after 60 ms often missed it, nothing kept the focus and the first
@@ -177,7 +177,9 @@ fun HomeLibrary(
     Box(modifier.fillMaxSize().onFocusChanged { libraryFocused = it.hasFocus }) {
         when {
             empty != null -> empty()
-            style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, actions, first, coverVersion, compact = fullscreen)
+            recent && style == HomeStyle.Showcase -> ShowcaseRecent(games, latest, actions, first)
+            recent -> ResumeGrid(latest, actions.resume, first = first)
+            style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, false, actions, first, coverVersion, null, compact = fullscreen)
             style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion, fullscreen = fullscreen)
             else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen = fullscreen)
         }
@@ -629,12 +631,11 @@ fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
 fun HomeMenuPanel(
     open: Boolean, onDismiss: () -> Unit, focus: FocusRequester,
     appIcon: Painter, appName: String,
+    recent: Boolean, gamesCount: Int, recentCount: Int, onShowRecent: (Boolean) -> Unit,
     items: List<HomeMenuItem>, onQuit: () -> Unit,
     header: @Composable () -> Unit = {},
     /** Smaller entries shown as compact tiles next to Quit (e.g. About). */
     extras: List<HomeMenuItem> = emptyList(),
-    /** Quick library actions shown in the former library/recent shortcut row. */
-    quickActions: List<HomeMenuItem> = emptyList(),
     /** Whether something inside the panel has the focus (the app gives it back when a key comes while it hasn't). */
     onFocusChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -672,7 +673,16 @@ fun HomeMenuPanel(
                     header()
                     val selectedItem = items.indexOfFirst { it.selected }
                     // Focus: the settings page just closed, else the first settings entry
+                    val viewFocus = items.none { it.selected } && extras.none { it.selected }
                     val itemFocus = if (selectedItem >= 0) selectedItem else if (extras.none { it.selected }) 0 else -1
+                    // Library view
+                    MenuSection("LIBRARY")
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ViewTile(Icons.Default.GridView, "All games", if (gamesCount == 1) "1 game" else "$gamesCount games", !recent,
+                            Modifier.weight(1f).then(if (viewFocus && !recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(false) }
+                        ViewTile(Icons.Default.History, "Recent", if (recentCount == 1) "1 save state" else "$recentCount save states", recent,
+                            Modifier.weight(1f).then(if (viewFocus && recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(true) }
+                    }
                     // Settings
                     MenuSection("SETTINGS")
                     BoxWithConstraints {
@@ -689,19 +699,11 @@ fun HomeMenuPanel(
                         }
                     }
                     Spacer(Modifier.height(2.dp))
-                    if (quickActions.isNotEmpty()) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            quickActions.forEach { m -> MenuRow(m.icon, m.label, Modifier.weight(1f), m.onClick) }
-                            if (extras.isEmpty()) MenuRow(MenuIcon.Quit, "Quit", Modifier.weight(1f), onQuit)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        extras.forEachIndexed { k, m ->
+                            MenuRow(m.icon, m.label, Modifier.weight(1f).then(if (m.selected && selectedItem < 0) Modifier.focusRequester(focus) else Modifier), m.onClick)
                         }
-                    }
-                    if (extras.isNotEmpty() || quickActions.isEmpty()) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            extras.forEach { m ->
-                                MenuRow(m.icon, m.label, Modifier.weight(1f).then(if (m.selected && selectedItem < 0) Modifier.focusRequester(focus) else Modifier), m.onClick)
-                            }
-                            MenuRow(MenuIcon.Quit, "Quit", Modifier.weight(1f), onQuit)
-                        }
+                        MenuRow(MenuIcon.Quit, "Quit", Modifier.weight(1f), onQuit)
                     }
                 }
             }
