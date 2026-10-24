@@ -291,21 +291,24 @@ fun CoverCard(
             contentAlignment = Alignment.BottomCenter,
         ) {
             if (cover != null) {
-                val ratio = (cover.width.toFloat() / cover.height).coerceIn(0.66f, 1.25f)
-                Image(cover, title, Modifier.fillMaxWidth().aspectRatio(ratio).clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, Color.White.copy(alpha = .18f), RoundedCornerShape(10.dp)), contentScale = ContentScale.FillBounds)
+                // Every game uses the same portrait frame. Fit keeps unusual/square artwork intact instead of stretching it.
+                Box(Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFF241F3D))
+                    .border(1.dp, Color.White.copy(alpha = .18f), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(cover, title, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                }
             } else {
                 CoverPlaceholder(title, Modifier.size(width, height))
             }
         }
         if (reflection) {
             if (cover != null) {
-                val ratio = (cover.width.toFloat() / cover.height).coerceIn(0.66f, 1.25f)
-                // Mirror of the cover's bottom part, fading out, baked once into a small bitmap when the cover loads and drawn
-                // as a plain image. Drawing it live was slow on the Mali-G52 while scrolling: an offscreen layer per cover (to
-                // fade with DstIn) cost GPU time on every frame, and a combined bitmap+gradient shader made the draw commands
-                // slow (dumpsys gfxinfo: 53% janky frames)
-                val refl = remember(cover, ratio, width, height) { reflectionOf(cover, (height.value * 0.16f) / (width.value / ratio)) }
+                // Reflection follows the standardized portrait frame, regardless of the source artwork's dimensions.
+                val refl = remember(cover, width, height) {
+                    reflectionOf(cover, (height.value * 0.16f) / (width.value / 0.66f))
+                }
                 Image(refl, null, Modifier.fillMaxWidth().height(reflH), contentScale = ContentScale.FillBounds)
             } else Spacer(Modifier.height(reflH))
         }
@@ -886,41 +889,57 @@ private fun MenuRow(icon: MenuIcon, label: String, modifier: Modifier, onClick: 
 fun BoxArt3D(cover: ImageBitmap, modifier: Modifier = Modifier) {
     val bmp = remember(cover) { cover.asAndroidBitmap() }
     androidx.compose.foundation.Canvas(modifier) {
-        val W = size.width; val H = size.height
-        val ratio = (bmp.width.toFloat() / bmp.height).coerceIn(0.6f, 1.3f)
-        val depth = W * 0.11f                    // visible spine width
-        val faceW = W - depth
-        val faceH = (faceW / ratio).coerceAtMost(H * 0.97f)
-        val shrink = faceH * 0.055f              // far (right) edge is shorter: perspective
-        val top = H - faceH - H * 0.02f
-        val bottom = top + faceH
-        val nat = drawContext.canvas.nativeCanvas
-        // Shadow
-        drawOval(Color.Black.copy(alpha = .35f), topLeft = androidx.compose.ui.geometry.Offset(W * 0.02f, bottom - faceH * 0.02f),
-            size = androidx.compose.ui.geometry.Size(W * 0.98f, faceH * 0.06f))
-        fun quad(src: android.graphics.RectF, dst: FloatArray, paint: android.graphics.Paint) {
-            val m = android.graphics.Matrix()
-            val s = floatArrayOf(src.left, src.top, src.right, src.top, src.right, src.bottom, src.left, src.bottom)
-            m.setPolyToPoly(s, 0, dst, 0, 4)
-            nat.save(); nat.concat(m)
-            nat.drawBitmap(bmp, android.graphics.Rect(src.left.toInt(), src.top.toInt(), src.right.toInt(), src.bottom.toInt()), src, paint)
-            nat.restore()
-        }
+        val w = size.width
+        val h = size.height
+        val depth = w * 0.11f
+        val faceLeft = depth
+        val faceWidth = w - depth
+        // The visible box is always portrait (roughly Saturn box-art ratio). Artwork is fitted inside it uniformly.
+        val faceHeight = (faceWidth / 0.66f).coerceAtMost(h * 0.97f)
+        val top = h - faceHeight - h * 0.02f
+        val bottom = top + faceHeight
+        val face = android.graphics.RectF(faceLeft, top, w, bottom)
+        val native = drawContext.canvas.nativeCanvas
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG)
-        // Spine: the cover's left 7%, darkened, slanting away to the left
-        val spineSrc = android.graphics.RectF(0f, 0f, bmp.width * 0.07f, bmp.height.toFloat())
-        val spinePaint = android.graphics.Paint(paint).apply { colorFilter = android.graphics.LightingColorFilter(0xFF8A8A8A.toInt(), 0) }
-        quad(spineSrc, floatArrayOf(0f, top + shrink * 0.8f, depth, top, depth, bottom, 0f, bottom - shrink * 0.8f), spinePaint)
-        // Front
-        val faceSrc = android.graphics.RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat())
-        val face = floatArrayOf(depth, top, W, top + shrink, W, bottom - shrink, depth, bottom)
-        quad(faceSrc, face, paint)
-        // Gloss on the front and an edge line between spine and front
-        val path = androidx.compose.ui.graphics.Path().apply {
-            moveTo(depth, top); lineTo(W, top + shrink); lineTo(W, bottom - shrink); lineTo(depth, bottom); close()
+
+        drawOval(Color.Black.copy(alpha = .35f),
+            topLeft = androidx.compose.ui.geometry.Offset(w * 0.02f, bottom - faceHeight * 0.02f),
+            size = androidx.compose.ui.geometry.Size(w * 0.98f, faceHeight * 0.06f))
+
+        // Background makes letterboxing intentional and consistent for square or landscape source art.
+        val facePath = android.graphics.Path().apply {
+            moveTo(faceLeft, top + faceHeight * 0.015f)
+            lineTo(w, top + faceHeight * 0.035f)
+            lineTo(w, bottom - faceHeight * 0.035f)
+            lineTo(faceLeft, bottom)
+            close()
         }
-        drawPath(path, Brush.linearGradient(listOf(Color.White.copy(alpha = .22f), Color.Transparent, Color.Transparent, Color.Black.copy(alpha = .12f)),
-            start = androidx.compose.ui.geometry.Offset(depth, top), end = androidx.compose.ui.geometry.Offset(W, bottom)))
-        drawLine(Color.White.copy(alpha = .35f), androidx.compose.ui.geometry.Offset(depth, top), androidx.compose.ui.geometry.Offset(depth, bottom), strokeWidth = 1.5f)
+        native.drawPath(facePath, android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.rgb(28, 24, 48)
+        })
+
+        val scale = minOf(faceWidth / bmp.width, faceHeight / bmp.height)
+        val imageW = bmp.width * scale
+        val imageH = bmp.height * scale
+        val imageLeft = faceLeft + (faceWidth - imageW) / 2f
+        val imageTop = top + (faceHeight - imageH) / 2f
+        native.drawBitmap(bmp, null, android.graphics.RectF(imageLeft, imageTop, imageLeft + imageW, imageTop + imageH), paint)
+
+        // A slim spine and subtle edge retain the 3D-box cue without changing the artwork's aspect ratio.
+        native.drawRect(0f, top + faceHeight * 0.015f, depth, bottom,
+            android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.rgb(18, 15, 32)
+            })
+        drawLine(Color.White.copy(alpha = .35f),
+            androidx.compose.ui.geometry.Offset(faceLeft, top),
+            androidx.compose.ui.geometry.Offset(faceLeft, bottom), strokeWidth = 1.5f)
+        drawPath(androidx.compose.ui.graphics.Path().apply {
+            moveTo(faceLeft, top); lineTo(w, top + faceHeight * 0.02f)
+            lineTo(w, bottom - faceHeight * 0.035f); lineTo(faceLeft, bottom); close()
+        }, Brush.linearGradient(
+            listOf(Color.White.copy(alpha = .12f), Color.Transparent, Color.Black.copy(alpha = .10f)),
+            start = androidx.compose.ui.geometry.Offset(faceLeft, top),
+            end = androidx.compose.ui.geometry.Offset(w, bottom),
+        ))
     }
 }
