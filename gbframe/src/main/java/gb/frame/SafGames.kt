@@ -8,6 +8,7 @@ import android.provider.DocumentsContract
 import android.system.Os
 import android.util.Log
 import java.io.File
+import java.security.MessageDigest
 
 /**
  * Game files read through the Storage Access Framework (no broad storage permission, Google Play compliant).
@@ -184,23 +185,30 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
                 pfd.close()
                 return null
             }
-            val stage = File(appContext.cacheDir, "disc-direct").apply {
-                deleteRecursively()
-                mkdirs()
+            // Cache a complete private copy by SAF document identity. The first open copies the disc;
+            // subsequent opens reuse it and avoid rereading hundreds of megabytes from the provider.
+            val cacheKey = MessageDigest.getInstance("SHA-256")
+                .digest((tree.toString() + "|" + main.docId + "|" + main.name).toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
+            val stage = File(appContext.cacheDir, "disc-cache").apply { mkdirs() }
+            val stagedPath = File(stage, cacheKey + "-" + main.name)
+            if (stagedPath.isFile && pfd.statSize > 0L && stagedPath.length() == pfd.statSize) {
+                pfd.close()
+                Log.i("GBSat-SAF", "cache hit name=" + name + "; bytes=" + stagedPath.length())
+                return OpenDisc(stagedPath.path, emptyList())
             }
-            val stagedPath = File(stage, main.name)
             val copied = runCatching {
                 android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { input ->
                     stagedPath.outputStream().use { output -> input.copyTo(output, 1024 * 1024) }
                 }
             }.getOrElse {
                 Log.e("GBSat-SAF", "copy failed name=" + name + "; error=" + it.message)
-                stage.deleteRecursively()
+                stagedPath.delete()
                 return null
             }
             if (copied == 0L || (main.size > 0L && copied != main.size)) {
                 Log.e("GBSat-SAF", "copy size mismatch name=" + name + "; expected=" + main.size + "; copied=" + copied)
-                stage.deleteRecursively()
+                stagedPath.delete()
                 return null
             }
             Log.i("GBSat-SAF", "staged real file path=" + stagedPath.path + "; copiedBytes=" + copied)
