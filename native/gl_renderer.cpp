@@ -286,7 +286,7 @@ void Loop() {
     GLuint prog = 0, tex = 0, vao = 0;
     GLint uSrcSize = -1;
     GLint uFrameSize = -1, uRamp = -1;
-    GLint uTexSize = -1, uOutSize = -1, uFilter = -1, uShader = -1;
+    GLint uTex = -1, uTexSize = -1, uOutSize = -1, uFilter = -1, uShader = -1;
     uint32_t texW = 0, texH = 0;
     float texScale = 1.0f;
     std::vector<uint32_t> local;
@@ -356,6 +356,7 @@ void Loop() {
                             glAttachShader(prog, vs);
                             glAttachShader(prog, fs);
                             glLinkProgram(prog);
+                            uTex = glGetUniformLocation(prog, "uTex");
                             uTexSize = glGetUniformLocation(prog, "uTexSize");
                             uSrcSize = glGetUniformLocation(prog, "uSrcSize");
                             uFrameSize = glGetUniformLocation(prog, "uFrameSize");
@@ -475,7 +476,7 @@ void Loop() {
         glBindVertexArray(vao);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, drawTex ? drawTex : tex);
-        glUniform1i(glGetUniformLocation(prog, "uTex"), 0);
+        glUniform1i(uTex, 0);
         glUniform2f(uTexSize, (float)drawW, (float)drawH);
         {
             // Hi-res (640/704 wide) and interlaced (448+ lines) modes, used by many games in menus and title screens,
