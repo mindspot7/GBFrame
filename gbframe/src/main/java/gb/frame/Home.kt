@@ -112,6 +112,22 @@ object HomeTheme {
         override fun component2(): (Boolean) -> Unit = { value = it }
     }
 
+    private const val HELP_KEY = "gbframe.buttonHelp"
+
+    /** Shows the controller button help bar at the bottom of the home screen (when a controller is connected). */
+    val buttonHelp = object : MutableState<Boolean> {
+        private val state = mutableStateOf(true)
+        override var value: Boolean
+            get() = state.value
+            set(v) {
+                if (state.value == v) return
+                state.value = v
+                prefs?.edit()?.putBoolean(HELP_KEY, v)?.apply()
+            }
+        override fun component1() = value
+        override fun component2(): (Boolean) -> Unit = { value = it }
+    }
+
     fun init(prefs: SharedPreferences) {
         this.prefs = prefs
         fullscreen.value = prefs.getBoolean(FULLSCREEN_KEY, false)
@@ -177,9 +193,9 @@ fun HomeLibrary(
     Box(modifier.fillMaxSize().onFocusChanged { libraryFocused = it.hasFocus }) {
         when {
             empty != null -> empty()
+            style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, first, coverVersion, empty, compact = fullscreen)
             recent && style == HomeStyle.Showcase -> ShowcaseRecent(games, latest, actions, first)
             recent -> ResumeGrid(latest, actions.resume, first = first)
-            style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, false, actions, first, coverVersion, null, compact = fullscreen)
             style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion, fullscreen = fullscreen)
             else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen = fullscreen)
         }
