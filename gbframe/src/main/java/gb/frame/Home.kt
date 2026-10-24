@@ -100,25 +100,21 @@ object HomeTheme {
         override fun component2(): (HomeStyle) -> Unit = { value = it }
     }
 
-    private const val HELP_KEY = "gbframe.buttonHelp"
+    private const val FULLSCREEN_KEY = "gbframe.fullscreenMode"
 
-    /** Shows the controller button help bar at the bottom of the home screen (when a controller is connected). */
-    val buttonHelp = object : MutableState<Boolean> {
-        private val state = mutableStateOf(true)
+    /** Fullscreen library: hide app chrome and maximize box art. */
+    val fullscreen = object : MutableState<Boolean> {
+        private val state = mutableStateOf(false)
         override var value: Boolean
             get() = state.value
-            set(v) {
-                if (state.value == v) return
-                state.value = v
-                prefs?.edit()?.putBoolean(HELP_KEY, v)?.apply()
-            }
+            set(v) { if (state.value == v) return; state.value = v; prefs?.edit()?.putBoolean(FULLSCREEN_KEY, v)?.apply() }
         override fun component1() = value
         override fun component2(): (Boolean) -> Unit = { value = it }
     }
 
     fun init(prefs: SharedPreferences) {
         this.prefs = prefs
-        buttonHelp.value = prefs.getBoolean(HELP_KEY, true)
+        fullscreen.value = prefs.getBoolean(FULLSCREEN_KEY, false)
         style.value = HomeStyle.entries.firstOrNull { it.name == prefs.getString(KEY, null) } ?: HomeStyle.Showcase
     }
 }
@@ -159,6 +155,7 @@ fun HomeLibrary(
     /** Change it to put the focus back on the selected game (e.g. after the menu closed or a touch cleared the focus). */
     refocus: Int = 0,
     modifier: Modifier = Modifier,
+    fullscreen: Boolean = false,
 ) {
     val latest = remember(states) { states.sortedByDescending { it.time }.distinctBy { it.game } }
     val latestByGame = remember(latest) { latest.associateBy { it.game } }
@@ -181,7 +178,7 @@ fun HomeLibrary(
     }
     Box(modifier.fillMaxSize().onFocusChanged { libraryFocused = it.hasFocus }) {
         when (style) {
-            HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, first, coverVersion, empty)
+            HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, first, coverVersion, empty, compact = fullscreen)
             else -> when {
                 empty != null -> empty()
                 recent && style == HomeStyle.Showcase -> ShowcaseRecent(games, latest, actions, first)
@@ -620,7 +617,7 @@ private fun ShotCard(e: ResumeEntry, w: Dp, h: Dp, modifier: Modifier, onClick: 
 @Composable
 private fun GridHome(
     games: List<HomeGame>, latest: List<ResumeEntry>, latestByGame: Map<String, ResumeEntry>, recent: Boolean, actions: HomeActions,
-    first: FocusRequester, version: Int, empty: (@Composable () -> Unit)?,
+    first: FocusRequester, version: Int, empty: (@Composable () -> Unit)?, compact: Boolean = false,
 ) {
     // All games / Recent is switched from the main menu (or Select)
     Row(Modifier.fillMaxSize()) {
@@ -637,8 +634,8 @@ private fun GridHome(
                             // A new state once the games are loaded starts on the selected one (see Shelf)
                             state = remember(games.isEmpty()) { androidx.compose.foundation.lazy.grid.LazyGridState(start) },
                             // Room around and between the covers for the enlarged (focused) one, and off the top/bottom bars
-                            columns = GridCells.Fixed(cols), contentPadding = PaddingValues(horizontal = 14.dp, vertical = 18.dp),
-                            horizontalArrangement = Arrangement.spacedBy(20.dp), verticalArrangement = Arrangement.spacedBy(26.dp),
+                            columns = GridCells.Fixed(cols), contentPadding = if (compact) PaddingValues(6.dp) else PaddingValues(horizontal = 14.dp, vertical = 18.dp),
+                            horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 20.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 26.dp),
                             modifier = Modifier.fillMaxSize(),
                         ) {
                             items(games.size, key = { games[it].key }) { i ->

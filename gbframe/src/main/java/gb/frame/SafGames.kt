@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.system.Os
+import android.util.Log
 import java.io.File
 
 /**
@@ -132,11 +133,14 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
 
     /** Opens a game's disc image and the files it references (BIN tracks, IMG/SUB, MDF). */
     fun open(path: String): OpenDisc? {
+        Log.i("GBSat-SAF", "open start path=" + path + "; folderConfigured=" + gamesDir().startsWith("content://"))
         if (!path.startsWith(PREFIX) && File(path).canRead()) return OpenDisc(path, emptyList())
-        val tree = tree() ?: return null
-        val (_, siblings) = locate(path) ?: return null
+        val tree = tree() ?: run { Log.e("GBSat-SAF", "no SAF tree URI"); return null }
+        val located = locate(path) ?: run { Log.e("GBSat-SAF", "locate failed path=" + path); return null }
+        val (_, siblings) = located
         val name = fileName(path)
-        val main = siblings.firstOrNull { !it.isDir && it.name == name } ?: return null
+        val main = siblings.firstOrNull { !it.isDir && it.name == name } ?: run { Log.e("GBSat-SAF", "main document missing name=" + name); return null }
+        Log.i("GBSat-SAF", "located name=" + name + "; providerSize=" + main.size + "; siblingCount=" + siblings.size)
         val base = name.substringBeforeLast('.')
         val ext = name.substringAfterLast('.').lowercase()
         val wanted = mutableSetOf(name.lowercase())
@@ -173,8 +177,10 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
             val source = DocumentsContract.buildDocumentUriUsingTree(tree, main.docId)
             val pfd = runCatching {
                 appContext.contentResolver.openFileDescriptor(source, "r")
-            }.getOrNull() ?: return null
+            }.getOrNull() ?: run { Log.e("GBSat-SAF", "openFileDescriptor failed name=" + name); return null }
+            Log.i("GBSat-SAF", "descriptor opened name=" + name + "; fd=" + pfd.fd + "; statSize=" + pfd.statSize)
             if (pfd.statSize == 0L || (main.size > 0L && pfd.statSize > 0L && pfd.statSize != main.size)) {
+                Log.e("GBSat-SAF", "descriptor size rejected name=" + name + "; providerSize=" + main.size + "; fdSize=" + pfd.statSize)
                 pfd.close()
                 return null
             }
@@ -187,10 +193,12 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
                 Os.symlink("/proc/self/fd/${pfd.fd}", stagedPath.path)
             }.isSuccess
             if (!linked) {
+                Log.e("GBSat-SAF", "symlink failed name=" + name + "; fd=" + pfd.fd)
                 pfd.close()
                 stage.deleteRecursively()
                 return null
             }
+            Log.i("GBSat-SAF", "opened direct path=" + stagedPath.path + "; fd=" + pfd.fd)
             return OpenDisc(stagedPath.path, listOf(pfd))
         }
 
@@ -204,7 +212,9 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
             fds += pfd
             runCatching { Os.symlink("/proc/self/fd/${pfd.fd}", File(stage, linkName[c.name.lowercase()] ?: c.name).path) }
         }
-        if (fds.isEmpty()) return null
-        return OpenDisc(File(stage, main.name).path, fds)
+        if (fds.isEmpty()) { Log.e("GBSat-SAF", "no referenced files opened name=" + name + "; wanted=" + wanted.joinToString()); return null }
+        val stagedMain = File(stage, main.name).path
+        Log.i("GBSat-SAF", "staged path=" + stagedMain + "; openedDescriptors=" + fds.size + "; mainExists=" + File(stage, main.name).exists())
+        return OpenDisc(stagedMain, fds)
     }
 }
