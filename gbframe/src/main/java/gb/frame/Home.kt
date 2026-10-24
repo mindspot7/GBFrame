@@ -76,7 +76,7 @@ import kotlinx.coroutines.withContext
 //
 //   Showcase (default) — the selected game large on top (details, Continue / Start fresh /
 //                        Options), the box art shelf below.
-//   Grid               — the box art in a grid, All games / Recent chips.
+//   Grid               — the box art in a grid.
 //   Continue ("All in One") — the latest save state of each game first ("Continue playing"), then all games.
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -137,20 +137,18 @@ class HomeActions(
     val resume: (ResumeEntry) -> Unit,
     /** Open the settings menu (touch: tabs and buttons that lead to it). */
     val openMenu: () -> Unit,
-    /** Show recent save states (true) or all games (false). */
-    val showRecent: (Boolean) -> Unit,
 )
 
 /**
  * Home screen content below the top bar, in the chosen [style]. [states] are the save states (the latest of each game is
- * used); [recent] shows them instead of the games ([ResumeGrid]). [empty] replaces the games while there are none to show
+ * used); save states appear alongside the box-art shelf only in All in One. [empty] replaces the games while there are none to show
  * (no BIOS, no folder...). [menu] and [menuFocus] are for the Grid theme's icon rail ([onMenuFocus] tells when it has the focus). The first game (or save state in
  * Continue) takes the focus so the controller works at once; Y on a game opens its options. The library opens on the game
  * (or save state) selected last ([LibraryView.lastGame]), not on the first one.
  */
 @Composable
 fun HomeLibrary(
-    style: HomeStyle, games: List<HomeGame>, states: List<ResumeEntry>, recent: Boolean, actions: HomeActions,
+    style: HomeStyle, games: List<HomeGame>, states: List<ResumeEntry>, actions: HomeActions,
     coverVersion: Int = 0, empty: (@Composable () -> Unit)? = null,
     /** Change it to put the focus back on the selected game (e.g. after the menu closed or a touch cleared the focus). */
     refocus: Int = 0,
@@ -163,7 +161,7 @@ fun HomeLibrary(
     var libraryFocused by remember { mutableStateOf(false) } // something in the library has the focus
     // The selection only exists with a physical controller (handhelds' built-in controls count)
     val hasPad = rememberHasGamepad()
-    LaunchedEffect(style, recent, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad) {
+    LaunchedEffect(style, games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad) {
         if (empty == null && hasPad) {
             // The selected cover may not be laid out yet (games loaded just now, a game screen closing): requestFocus throws
             // until its requester is attached. One try after 60 ms often missed it, nothing kept the focus and the first
@@ -177,15 +175,11 @@ fun HomeLibrary(
         }
     }
     Box(modifier.fillMaxSize().onFocusChanged { libraryFocused = it.hasFocus }) {
-        when (style) {
-            HomeStyle.Grid -> GridHome(games, latest, latestByGame, recent, actions, first, coverVersion, empty, compact = fullscreen)
-            else -> when {
-                empty != null -> empty()
-                recent && style == HomeStyle.Showcase -> ShowcaseRecent(games, latest, actions, first, fullscreen = fullscreen)
-                recent -> ResumeGrid(latest, actions.resume, first = first)
-                style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion, fullscreen = fullscreen)
-                else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen = fullscreen)
-            }
+        when {
+            empty != null -> empty()
+            style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, actions, first, coverVersion, compact = fullscreen)
+            style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion, fullscreen = fullscreen)
+            else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen = fullscreen)
         }
     }
 }
@@ -521,127 +515,28 @@ private fun rememberScreenshot(e: ResumeEntry?): ImageBitmap? {
     return shot
 }
 
-/** Showcase in Recent mode: the same hero, with save-state screenshots in the shelf instead of box art. */
-@Composable
-private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester, fullscreen: Boolean = false) {
-    val p = palette
-    val byKey = remember(games) { games.associateBy { it.key } }
-    val start = remember(latest) { LibraryView.stateIndex(latest) }
-    var selected by remember(latest) { mutableStateOf(latest.getOrNull(start)) }
-    val bg = p.background.last()
-    BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
-        val compact = maxHeight < 300.dp
-        // Screenshots are 4:3, wider than box art: a little lower, so the hero keeps its room
-        val shotH = (maxHeight * if (compact) 0.42f else 0.36f).coerceIn(80.dp, 220.dp)
-        val shotW = shotH * (4f / 3f)
-        Column(Modifier.fillMaxSize()) {
-            selected?.let { e ->
-                val g = byKey[e.game]
-                val date = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(e.time))
-                Column(Modifier.fillMaxWidth().padding(start = if (fullscreen) 30.dp else 24.dp, end = if (fullscreen) 30.dp else 24.dp, top = if (fullscreen) 10.dp else if (compact) 10.dp else 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(if (compact || fullscreen) 4.dp else 8.dp)) {
-                    HeroTitle(g?.title ?: e.title, compact)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Save, null, tint = TealSave, modifier = Modifier.size(17.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("${e.label} · $date", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
-                        if (g != null && g.playSeconds >= 60) {
-                            Spacer(Modifier.width(14.dp))
-                            Icon(Icons.Default.Schedule, null, tint = Color.White.copy(alpha = .7f), modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(formatPlayTime(g.playSeconds), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
-                        }
-                    }
-                    if (!compact) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(if (fullscreen) 14.dp else 10.dp)) {
-                        PillButton("Continue", true, Icons.Default.PlayArrow) { actions.resume(e) }
-                        if (g != null) {
-                            PillButton("Start fresh", false) { actions.fresh(g) }
-                            PillButton("Options", false) { actions.options(g) }
-                        }
-                    }
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            val rowState = remember(latest.isEmpty()) { LazyListState((start - 1).coerceAtLeast(0)) } // see Shelf
-            var focusIndex by remember { mutableIntStateOf(-1) }
-            val pace = remember { RowPace() }
-            val gap = 18.dp
-            val slotPx = with(LocalDensity.current) { (shotW + gap).roundToPx() }
-            LaunchedEffect(focusIndex) { if (focusIndex >= 0) pace.scroll(rowState, focusIndex, -slotPx) }
-            // Lined up with the title (the zoomed screenshot when a controller selects it; the zoom grows from the center)
-            val side = (if (fullscreen) 32.dp else 24.dp) + if (rememberHasGamepad()) shotW * 0.05f else 0.dp
-            LazyRow(
-                state = rowState,
-                contentPadding = PaddingValues(start = side, end = side, top = shotH * 0.1f + if (fullscreen) 6.dp else 10.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.fillMaxWidth().steadyKeys(pace),
-            ) {
-                items(latest.size, key = { latest[it].key }) { i ->
-                    val e = latest[i]
-                    ShotCard(e, shotW, shotH, if (i == start) Modifier.focusRequester(first) else Modifier,
-                        onClick = { LibraryView.lastState = e.key; actions.resume(e) }, onOptions = { byKey[e.game]?.let(actions.options) }) {
-                        LibraryView.lastState = e.key; selected = e; pace.focused(); focusIndex = i
-                    }
-                }
-            }
-            Spacer(Modifier.height(if (compact) 6.dp else 14.dp))
-        }
-    }
-}
-
-/** A save-state screenshot in the Showcase shelf: grows when focused, slot label in the corner. */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ShotCard(e: ResumeEntry, w: Dp, h: Dp, modifier: Modifier, onClick: () -> Unit, onOptions: () -> Unit, onFocused: () -> Unit) {
-    val p = palette
-    val shot = rememberScreenshot(e)
-    var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (focused) 1.1f else 1f, label = "scale")
-    Box(
-        modifier.size(w, h).zIndex(if (focused) 1f else 0f)
-            .graphicsLayer { scaleX = scale; scaleY = scale; transformOrigin = TransformOrigin(0.5f, 1f) }
-            .clip(RoundedCornerShape(12.dp)).background(Color.Black)
-            .border(if (focused) 3.dp else 1.dp, if (focused) p.highlight else Color.White.copy(alpha = .18f), RoundedCornerShape(12.dp))
-            .onFocusChanged { focused = it.isFocused; if (it.isFocused) onFocused() }
-            .optionsKey(onOptions)
-            .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick, onLongClick = onOptions),
-    ) {
-        shot?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds) }
-            ?: Icon(Icons.Default.Image, null, Modifier.align(Alignment.Center).size(36.dp), tint = Color.White.copy(alpha = .4f))
-        Text(e.label, Modifier.align(Alignment.BottomStart).padding(6.dp).background(Color.Black.copy(alpha = .6f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 2.dp), color = Color.White, style = MaterialTheme.typography.labelSmall)
-    }
-}
-
 // ---- B: Grid ----------------------------------------------------------------------------------------------------------
 
 @Composable
 private fun GridHome(
-    games: List<HomeGame>, latest: List<ResumeEntry>, latestByGame: Map<String, ResumeEntry>, recent: Boolean, actions: HomeActions,
-    first: FocusRequester, version: Int, empty: (@Composable () -> Unit)?, compact: Boolean = false,
+    games: List<HomeGame>, latest: List<ResumeEntry>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions,
+    first: FocusRequester, version: Int, compact: Boolean = false,
 ) {
-    // All games / Recent is switched from the main menu (or Select)
     Row(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).fillMaxHeight()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                when {
-                    empty != null -> empty()
-                    recent -> ResumeGrid(latest, actions.resume, first = first)
-                    else -> BoxWithConstraints(Modifier.fillMaxSize()) {
-                        // At least 3 columns, so small and square screens don't get two huge covers per row
-                        val cols = (maxWidth / 124.dp).toInt().coerceAtLeast(3)
-                        val start = remember(games) { LibraryView.gameIndex(games) }
-                        LazyVerticalGrid(
-                            // A new state once the games are loaded starts on the selected one (see Shelf)
-                            state = remember(games.isEmpty()) { androidx.compose.foundation.lazy.grid.LazyGridState(start) },
-                            // Room around and between the covers for the enlarged (focused) one, and off the top/bottom bars
-                            columns = GridCells.Fixed(cols), contentPadding = if (compact) PaddingValues(horizontal = 18.dp, vertical = 12.dp) else PaddingValues(horizontal = 14.dp, vertical = 18.dp),
-                            horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 20.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 26.dp),
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            items(games.size, key = { games[it].key }) { i ->
-                                val g = games[i]
-                                GridCard(g, latestByGame[g.key] != null, version, if (i == start) Modifier.focusRequester(first) else Modifier, actions)
-                            }
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val cols = (maxWidth / 124.dp).toInt().coerceAtLeast(3)
+                    val start = remember(games) { LibraryView.gameIndex(games) }
+                    LazyVerticalGrid(
+                        state = remember(games.isEmpty()) { androidx.compose.foundation.lazy.grid.LazyGridState(start) },
+                        columns = GridCells.Fixed(cols), contentPadding = if (compact) PaddingValues(horizontal = 18.dp, vertical = 12.dp) else PaddingValues(horizontal = 14.dp, vertical = 18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 20.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 26.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(games.size, key = { games[it].key }) { i ->
+                            val g = games[i]
+                            GridCard(g, latestByGame[g.key] != null, version, if (i == start) Modifier.focusRequester(first) else Modifier, actions)
                         }
                     }
                 }
@@ -729,14 +624,13 @@ fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
 /**
  * Main menu of the home screen: a panel that slides in from the left over the library (like the in-game menu), opened by
  * X or a tap on the top bar. From top to bottom: the app and a close button, an optional [header] (e.g. the
- * RetroAchievements user), the library view (All games / Recent, with counts), the settings as icon tiles and Quit.
+ * RetroAchievements user), settings as icon tiles and Quit.
  * The focus starts on the settings entry marked [HomeMenuItem.selected] (the page just closed), else on the first one.
  */
 @Composable
 fun HomeMenuPanel(
     open: Boolean, onDismiss: () -> Unit, focus: FocusRequester,
     appIcon: Painter, appName: String,
-    recent: Boolean, gamesCount: Int, recentCount: Int, onShowRecent: (Boolean) -> Unit,
     items: List<HomeMenuItem>, onQuit: () -> Unit,
     header: @Composable () -> Unit = {},
     /** Smaller entries shown as compact tiles next to Quit (e.g. About). */
@@ -778,16 +672,7 @@ fun HomeMenuPanel(
                     header()
                     val selectedItem = items.indexOfFirst { it.selected }
                     // Focus: the settings page just closed, else the first settings entry
-                    val viewFocus = items.isEmpty() && extras.none { it.selected }
                     val itemFocus = if (selectedItem >= 0) selectedItem else if (extras.none { it.selected }) 0 else -1
-                    // Library view
-                    MenuSection("LIBRARY")
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ViewTile(Icons.Default.GridView, "All games", if (gamesCount == 1) "1 game" else "$gamesCount games", !recent,
-                            Modifier.weight(1f).then(if (viewFocus && !recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(false) }
-                        ViewTile(Icons.Default.History, "Recent", if (recentCount == 1) "1 save state" else "$recentCount save states", recent,
-                            Modifier.weight(1f).then(if (viewFocus && recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(true) }
-                    }
                     // Settings
                     MenuSection("SETTINGS")
                     BoxWithConstraints {
