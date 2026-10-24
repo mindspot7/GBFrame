@@ -587,6 +587,7 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
 
 // ---- C: Classic Console -----------------------------------------------------------------------------------------------
 
+@Composable
 private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean = false) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val hasStates = latest.isNotEmpty()
