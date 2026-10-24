@@ -80,7 +80,7 @@ import kotlinx.coroutines.withContext
 //   Continue ("All in One") — the latest save state of each game first ("Continue playing"), then all games.
 // ---------------------------------------------------------------------------------------------------------------------
 
-enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), Continue("All in One") }
+enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), Continue("All in One"), ClassicConsole("Classic Console") }
 
 /** Home layout chosen by the user (Settings → Extras → Layout), remembered between sessions. */
 object HomeTheme {
@@ -196,6 +196,7 @@ fun HomeLibrary(
             recent -> ResumeGrid(latest, actions.resume, first = first)
             style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, actions, first, coverVersion, compact = fullscreen)
             style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion, fullscreen = fullscreen)
+            style == HomeStyle.ClassicConsole -> ClassicConsoleHome(games, actions, first, coverVersion, fullscreen)
             else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen = fullscreen)
         }
     }
@@ -570,7 +571,6 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(
             modifier.fillMaxWidth().aspectRatio(0.72f)
-                .border(if (focused) 1.5.dp else 1.dp, if (focused) palette.highlight else palette.border, RoundedCornerShape(10.dp))
                 .onFocusChanged { focused = it.isFocused; if (it.isFocused) LibraryView.lastGame = g.key }
                 .optionsKey { actions.options(g) }
                 .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
@@ -578,10 +578,56 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
             contentAlignment = Alignment.BottomCenter,
         ) {
             if (cover != null) BoxArt3D(cover, Modifier.fillMaxSize())
-            else CoverPlaceholder(g.title, Modifier.fillMaxSize().border(1.dp, Color.White.copy(alpha = .16f), RoundedCornerShape(10.dp)))
+            else CoverPlaceholder(g.title, Modifier.fillMaxSize())
             if (hasState) Text("SAVED", Modifier.align(Alignment.BottomEnd).padding(6.dp)
                 .background(Color.Black.copy(alpha = .65f), RoundedCornerShape(8.dp)).padding(horizontal = 7.dp, vertical = 2.dp),
                 color = TealSave, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// ---- C: Classic Console -----------------------------------------------------------------------------------------------
+
+/** A clean, flat cover wall inspired by classic console game-selection screens. */
+@Composable
+private fun ClassicConsoleHome(
+    games: List<HomeGame>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val columns = (maxWidth / if (fullscreen) 148.dp else 132.dp).toInt().coerceAtLeast(2)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            contentPadding = PaddingValues(horizontal = if (fullscreen) 22.dp else 14.dp, vertical = if (fullscreen) 14.dp else 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (fullscreen) 18.dp else 14.dp),
+            verticalArrangement = Arrangement.spacedBy(if (fullscreen) 20.dp else 16.dp),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            items(games.size, key = { games[it].key }) { i ->
+                val game = games[i]
+                val cover = rememberCover(game.title, version)
+                var focused by remember { mutableStateOf(false) }
+                val scale by animateFloatAsState(if (focused) 1.05f else 1f, label = "classicConsoleScale")
+                Column(Modifier.graphicsLayer { scaleX = scale; scaleY = scale }.zIndex(if (focused) 1f else 0f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        Modifier.fillMaxWidth().aspectRatio(0.66f).clip(RoundedCornerShape(6.dp))
+                            .onFocusChanged { focused = it.isFocused; if (it.isFocused) LibraryView.lastGame = game.key }
+                            .then(if (i == 0) Modifier.focusRequester(first) else Modifier)
+                            .optionsKey { actions.options(game) }
+                            .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
+                                onClick = { LibraryView.lastGame = game.key; actions.play(game) }, onLongClick = { actions.options(game) }),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (cover != null) Image(cover, game.title, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                        else CoverPlaceholder(game.title, Modifier.fillMaxSize())
+                        if (game.hasAchievements) Icon(Icons.Default.EmojiEvents, "Achievements",
+                            Modifier.align(Alignment.TopEnd).padding(4.dp).size(18.dp), tint = Color(0xFFFFD166))
+                    }
+                    Spacer(Modifier.height(7.dp))
+                    Text(game.title, color = if (focused) palette.highlight else Color.White.copy(alpha = .9f),
+                        style = MaterialTheme.typography.labelMedium, fontWeight = if (focused) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp))
+                }
+            }
         }
     }
 }
@@ -627,6 +673,7 @@ fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
                 HomeStyle.Showcase -> "The selected game large on top, box art below"
                 HomeStyle.Grid -> "Box art in a grid"
                 HomeStyle.Continue -> "Your latest save states first, then all games"
+                HomeStyle.ClassicConsole -> "Classic console-style cover wall"
             },
             HomeStyle.entries.map { it.label }, style.ordinal,
         ) { style = HomeStyle.entries[it]; onLayoutChanged() }
