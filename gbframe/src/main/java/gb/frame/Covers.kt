@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.LruCache
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +20,14 @@ import java.net.URL
  */
 object Covers {
     private lateinit var dir: File
-    private val memory = LruCache<String, ImageBitmap>(64)
+    // Bound the cache by bytes, not entry count: a handful of tall covers can otherwise exhaust low-memory devices.
+    private val cacheKb = (Runtime.getRuntime().maxMemory() / 1024L / 12L).toInt().coerceIn(2048, 12 * 1024)
+    private val memory = object : LruCache<String, ImageBitmap>(cacheKb) {
+        override fun sizeOf(key: String, value: ImageBitmap): Int =
+            (value.asAndroidBitmap().allocationByteCount / 1024).coerceAtLeast(1)
+    }
+    // Avoid decoding/downloading many covers at once while the library first appears or scrolls.
+    private val loadSlots = Semaphore(2)
 
     /** libretro-thumbnails system folder, e.g. "Sega - Saturn", "Sony - PlayStation". */
     private var system = "Sega - Saturn"
@@ -44,22 +53,36 @@ object Covers {
      * covers aren't kept on the GPU at full size and shrunk on every frame (88 covers took ~33 MB of textures and most of
      * the Mali-G52's frame time while scrolling). 720x720 -> 360 px, 1280x960 -> 480 px.
      */
-    private val maxWidth: Int by lazy {
+    // A low heap implies a low-end handheld: keep covers smaller to reduce both decoded RAM and GPU texture use.
+    private val maxDimension: Int by lazy {
         val m = android.content.res.Resources.getSystem().displayMetrics
-        (minOf(m.widthPixels, m.heightPixels) / 2).coerceIn(256, 600)
+        val screenLimit = (minOf(m.widthPixels, m.heightPixels) / 2).coerceIn(256, 600)
+        val heapLimit = when {
+            Runtime.getRuntime().maxMemory() <= 256L * 1024 * 1024 -> 320
+            Runtime.getRuntime().maxMemory() <= 384L * 1024 * 1024 -> 384
+            else -> 480
+        }
+        minOf(screenLimit, heapLimit)
     }
 
     private fun decode(f: File): ImageBitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(f.path, bounds)
-        if (bounds.outWidth <= 0) return null
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        val largestSide = maxOf(bounds.outWidth, bounds.outHeight)
         var sample = 1
-        while (bounds.outWidth / (sample * 2) >= maxWidth) sample *= 2
-        val bmp = BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
-        if (bmp.width <= maxWidth) return bmp.asImageBitmap()
-        // Filtered once here (background thread) instead of by the GPU on every frame
-        val h = (bmp.height.toLong() * maxWidth / bmp.width).toInt().coerceAtLeast(1)
-        val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, maxWidth, h, true)
+        while (largestSide / (sample * 2) >= maxDimension) sample *= 2
+        val bmp = BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply {
+            inSampleSize = sample
+            inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+        }) ?: return null
+        val largestDecodedSide = maxOf(bmp.width, bmp.height)
+        if (largestDecodedSide <= maxDimension) return bmp.asImageBitmap()
+        // Resize once on the IO dispatcher; cap both axes, including very tall portrait covers.
+        val scale = maxDimension.toFloat() / largestDecodedSide
+        val w = (bmp.width * scale).toInt().coerceAtLeast(1)
+        val h = (bmp.height * scale).toInt().coerceAtLeast(1)
+        val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, w, h, true)
         if (scaled !== bmp) bmp.recycle()
         return scaled.asImageBitmap()
     }
@@ -90,7 +113,7 @@ object Covers {
 
 
     // Lists the thumbnail server's file names once, so titles can be matched even when the disc image name differs.
-    private fun loadIndex(): List<String> {
+    @Synchronized\n    private fun loadIndex(): List<String> {
         index?.let { return it }
         val list = runCatching {
             val c = URL(base).openConnection() as HttpURLConnection
@@ -112,42 +135,74 @@ object Covers {
     private fun fuzzy(title: String): String? {
         var want = norm(title)
         if (want.isEmpty()) return null
-        extraAliases[want]?.let { want = it }
+        extraAliases[want]?.let { want = norm(it) }
         val all = loadIndex()
         if (all.isEmpty()) return null
         fun pick(c: List<String>) = c.sortedWith(compareBy(
             { if ("(USA" in it) 0 else if ("(Europe" in it) 1 else if ("(Japan" in it) 2 else 3 },
             { if ("Disc 1" in it || "Disc" !in it) 0 else 1 },
         )).firstOrNull()
-        pick(all.filter { norm(it) == want })?.let { return it }
-        // Word overlap (Jaccard); the candidate must share the first word and most of the words
-        val w = words(want)
-        val first = want.substringBefore(' ')
+        val normalized = all.associateBy(::norm)
+        normalized[want]?.let { return it }
+
+        // Patched ROM filenames often append tags such as (BR V1.0), (DUB), [Translation]. Compare
+        // the clean base title too, and allow the candidate to contain all meaningful title words.
+        val baseWant = norm(title.replace(Regex("\\s*[\\[(].*$"), " ")
+            .replace(Regex("(?i)\\b(pt[- ]?br|br|dub|undub|translation|translated|patch|v\\d+(?:\\.\\d+)*)\\b"), " "))
+        if (baseWant.isNotBlank()) normalized[baseWant]?.let { return it }
+
+        val w = words(baseWant.ifBlank { want })
+        if (w.isEmpty()) return null
         var best: String? = null
         var bestScore = 0.0
         for (name in all) {
             val n = norm(name)
-            if (!n.startsWith(first)) continue
             val nw = words(n)
-            val score = (w intersect nw).size.toDouble() / (w union nw).size
-            if (score > bestScore || (score == bestScore && best != null && pick(listOf(best, name)) == name)) { best = name; bestScore = score }
+            if (nw.isEmpty() || w.intersect(nw).isEmpty()) continue
+            val intersection = (w intersect nw).size.toDouble()
+            val union = (w union nw).size.toDouble()
+            val jaccard = intersection / union
+            val containment = intersection / minOf(w.size, nw.size).toDouble()
+            val score = maxOf(jaccard, containment * 0.92)
+            if (score > bestScore || (score == bestScore && best != null && pick(listOf(best, name)) == name)) {
+                best = name
+                bestScore = score
+            }
         }
-        return if (bestScore >= 0.6) best else null
+        val threshold = if (w.size <= 2) 0.72 else 0.58
+        return if (bestScore >= threshold) best else null
     }
 
     suspend fun load(title: String): ImageBitmap? = withContext(Dispatchers.IO) {
         memory.get(title)?.let { return@withContext it }
-        val img = custom(title).takeIf { it.exists() }?.let(::decode)
-            ?: cached(title).takeIf { it.exists() }?.let(::decode)
-            ?: run {
-                if (miss(title).exists()) return@run null
-                val stripped = title.replace(Regex("(?i)\\s*\\((Disc|Disk|CD)\\s*\\d+\\)?"), "").trim()
-                val ok = download(title, cached(title)) || (stripped != title && download(stripped, cached(title))) ||
-                    (fuzzy(title)?.let { download(it, cached(title)) } ?: false)
-                if (ok) decode(cached(title)) else { miss(title).writeText("1"); null }
-            }
-        if (img != null) memory.put(title, img)
-        img
+        loadSlots.withPermit {
+            memory.get(title)?.let { return@withPermit it }
+            val img = custom(title).takeIf { it.exists() }?.let(::decode)
+                ?: cached(title).takeIf { it.exists() }?.let(::decode)
+                ?: run {
+                    // Versioned negative cache invalidates misses from older matching logic.
+                    if (miss(title).exists()) return@run null
+                    val stripped = title.replace(Regex("(?i)\\s*\\((Disc|Disk|CD)\\s*\\d+\\)?"), "").trim()
+                    val baseTitle = title.replace(Regex("\\s*[\\[(].*$"), "").trim()
+                    val candidates = listOf(title, stripped, baseTitle).filter { it.isNotBlank() }.distinct()
+                    var downloaded = false
+                    for (candidate in candidates) {
+                        if (download(candidate, cached(title))) { downloaded = true; break }
+                    }
+                    if (!downloaded) {
+                        val match = fuzzy(title)
+                        if (match != null) downloaded = download(match, cached(title))
+                    }
+                    if (downloaded) decode(cached(title))
+                    else {
+                        // Don't cache transient network/index failures; allow retry when connectivity returns.
+                        if (index?.isNotEmpty() == true) miss(title).writeText("1")
+                        null
+                    }
+                }
+            if (img != null) memory.put(title, img)
+            img
+        }
     }
 
     suspend fun setCustom(context: Context, title: String, uri: Uri) = withContext(Dispatchers.IO) {
