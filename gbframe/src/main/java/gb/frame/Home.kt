@@ -128,6 +128,12 @@ object HomeTheme {
         override fun component2(): (Boolean) -> Unit = { value = it }
     }
 
+    /** Switches to the next layout (Showcase, Grid, All in One, then Showcase again); same as the menu's Theme tile. */
+    fun cycleStyle() {
+        val all = HomeStyle.entries
+        style.value = all[(style.value.ordinal + 1) % all.size]
+    }
+
     fun init(prefs: SharedPreferences) {
         this.prefs = prefs
         fullscreen.value = prefs.getBoolean(FULLSCREEN_KEY, false)
@@ -170,6 +176,11 @@ fun HomeLibrary(
     refocus: Int = 0,
     modifier: Modifier = Modifier,
     fullscreen: Boolean = false,
+    /**
+     * False while something drawn over the library (the main menu) owns the controller: the library then never takes the
+     * focus, and when it turns true again (menu closed) the selection goes back to the game selected last.
+     */
+    focusEnabled: Boolean = true,
 ) {
     val latest = remember(states) { states.sortedByDescending { it.time }.distinctBy { it.game } }
     val latestByGame = remember(latest) { latest.associateBy { it.game } }
@@ -177,8 +188,9 @@ fun HomeLibrary(
     var libraryFocused by remember { mutableStateOf(false) } // something in the library has the focus
     // The selection only exists with a physical controller (handhelds' built-in controls count)
     val hasPad = rememberHasGamepad()
-    LaunchedEffect(games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad) {
-        if (empty == null && hasPad) {
+    // [style] is a key too: switching layout disposes the selected cover, so the new layout must take the focus back
+    LaunchedEffect(games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad, style, focusEnabled) {
+        if (empty == null && hasPad && focusEnabled) {
             // The selected cover may not be laid out yet (games loaded just now, a game screen closing): requestFocus throws
             // until its requester is attached. One try after 60 ms often missed it, nothing kept the focus and the first
             // D-pad press then picked the first visible cover (the one before the selected game). Retry for up to ~2 s.
@@ -203,7 +215,7 @@ fun HomeLibrary(
 // ---- Top bar ----------------------------------------------------------------------------------------------------------
 
 /**
- * Home top bar: app icon, [label] with a menu arrow, clock and battery. Touch only (the controller opens the menu with X);
+ * Home top bar: app icon, [label] with a menu arrow, clock and battery. Touch only (the controller opens the menu with B);
  * a tap anywhere on it opens the menu ([HomeMenuPanel]).
  */
 @Composable
@@ -408,6 +420,10 @@ private fun Shelf(
 ) {
     // Opens on the game selected last (kept in the second slot like any selection)
     val start = remember(games) { LibraryView.gameIndex(games) }
+    // Where the focus requester sits: the game selected right now. [start] only places the row at the first composition;
+    // keeping the requester on it made the focus return to the game the screen opened on after the menu closed.
+    // Selecting a cover recomposes the shelf ([focusIndex]), so this is read again after every move.
+    val target = LibraryView.gameIndex(games)
     // The app loads the games after the library appears (e.g. when a game closes): a scroll state created while the list
     // was still empty stayed on the first cover, the selected one was off screen and couldn't take the focus. A new state
     // once the games are there starts on it.
@@ -428,7 +444,7 @@ private fun Shelf(
     ) {
         items(games.size, key = { games[it].key }) { i ->
             val g = games[i]
-            CoverCard(g.title, version, cardW, cardH, if (i == start && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier,
+            CoverCard(g.title, version, cardW, cardH, if (i == target && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier,
                 reflection = reflection, focusScale = focusScale,
                 onClick = { LibraryView.lastGame = g.key; actions.play(g) }, onOptions = { actions.options(g) },
                 onFocused = { cover -> LibraryView.lastGame = g.key; onSelected(g, cover); pace.focused(); focusIndex = i })
@@ -541,6 +557,9 @@ private fun GridHome(
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     val cols = (maxWidth / 124.dp).toInt().coerceAtLeast(3)
                     val start = remember(games) { LibraryView.gameIndex(games) }
+                    // The requester follows the selected game (see Shelf); the grid recomposes when the selection moves
+                    var selectionTick by remember { mutableIntStateOf(0) }
+                    val target = remember(games, selectionTick) { LibraryView.gameIndex(games) }
                     LazyVerticalGrid(
                         state = remember(games.isEmpty()) { androidx.compose.foundation.lazy.grid.LazyGridState(start) },
                         columns = GridCells.Fixed(cols), contentPadding = if (compact) PaddingValues(horizontal = 18.dp, vertical = 12.dp) else PaddingValues(horizontal = 14.dp, vertical = 18.dp),
@@ -549,7 +568,7 @@ private fun GridHome(
                     ) {
                         items(games.size, key = { games[it].key }) { i ->
                             val g = games[i]
-                            GridCard(g, latestByGame[g.key] != null, version, if (i == start) Modifier.focusRequester(first) else Modifier, actions)
+                            GridCard(g, latestByGame[g.key] != null, version, if (i == target) Modifier.focusRequester(first) else Modifier, actions) { selectionTick++ }
                         }
                     }
                 }
@@ -560,7 +579,7 @@ private fun GridHome(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Modifier, actions: HomeActions) {
+private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Modifier, actions: HomeActions, onSelected: () -> Unit = {}) {
     val cover = rememberCover(g.title, version)
     var focused by remember { mutableStateOf(false) }
     // 3D box (cover + spine). The selected one grows (over its neighbours: zIndex); the grid's spacing leaves room for it
@@ -569,7 +588,7 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(
             modifier.fillMaxWidth().aspectRatio(0.72f)
-                .onFocusChanged { focused = it.isFocused; if (it.isFocused) LibraryView.lastGame = g.key }
+                .onFocusChanged { focused = it.isFocused; if (it.isFocused) { LibraryView.lastGame = g.key; onSelected() } }
                 .optionsKey { actions.options(g) }
                 .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
                     onClick = { LibraryView.lastGame = g.key; actions.play(g) }, onLongClick = { actions.options(g) }),
@@ -624,7 +643,7 @@ fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
 
 /**
  * Main menu of the home screen: a panel that slides in from the left over the library (like the in-game menu), opened by
- * X or a tap on the top bar. From top to bottom: the app and a close button, an optional [header] (e.g. the
+ * B or a tap on the top bar. From top to bottom: the app and a close button, an optional [header] (e.g. the
  * RetroAchievements user), settings as icon tiles and Quit.
  * The focus starts on the settings entry marked [HomeMenuItem.selected] (the page just closed), else on the first one.
  */
