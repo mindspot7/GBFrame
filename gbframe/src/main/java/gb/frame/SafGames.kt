@@ -175,7 +175,7 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
             val identity = "${tree}\n${main.docId}\n${main.size}\n${main.lastModified}"
             val key = MessageDigest.getInstance("SHA-256")
                 .digest(identity.toByteArray(Charsets.UTF_8))
-                .joinToString("") { "%02x".format(it) }
+                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
             val cache = File(appContext.cacheDir, "disc-chd-cache").apply { mkdirs() }
             val target = File(cache, "$key.chd")
             val valid = target.isFile && target.length() > 0L &&
