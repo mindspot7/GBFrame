@@ -80,7 +80,7 @@ import kotlinx.coroutines.withContext
 //   Continue ("All in One") — the latest save state of each game first ("Continue playing"), then all games.
 // ---------------------------------------------------------------------------------------------------------------------
 
-enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), Continue("All in One"), ClassicConsole("Classic Console") }
+enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), Continue("All in One") }
 
 /** Home layout chosen by the user (Settings → Extras → Layout), remembered between sessions. */
 object HomeTheme {
@@ -196,7 +196,6 @@ fun HomeLibrary(
             recent -> ResumeGrid(latest, actions.resume, first = first)
             style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, actions, first, coverVersion, compact = fullscreen)
             style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion, fullscreen = fullscreen)
-            style == HomeStyle.ClassicConsole -> ClassicConsoleHome(games, actions, first, coverVersion, fullscreen)
             else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen = fullscreen)
         }
     }
@@ -588,54 +587,6 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
 
 // ---- C: Classic Console -----------------------------------------------------------------------------------------------
 
-/** A clean, flat cover wall inspired by classic console game-selection screens. */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ClassicConsoleHome(
-    games: List<HomeGame>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean,
-) {
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val columns = (maxWidth / if (fullscreen) 148.dp else 132.dp).toInt().coerceAtLeast(2)
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columns),
-            contentPadding = PaddingValues(horizontal = if (fullscreen) 22.dp else 14.dp, vertical = if (fullscreen) 14.dp else 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(if (fullscreen) 18.dp else 14.dp),
-            verticalArrangement = Arrangement.spacedBy(if (fullscreen) 20.dp else 16.dp),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            items(games.size, key = { games[it].key }) { i ->
-                val game = games[i]
-                val cover = rememberCover(game.title, version)
-                var focused by remember { mutableStateOf(false) }
-                val scale by animateFloatAsState(if (focused) 1.05f else 1f, label = "classicConsoleScale")
-                Column(Modifier.graphicsLayer { scaleX = scale; scaleY = scale }.zIndex(if (focused) 1f else 0f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        Modifier.fillMaxWidth().aspectRatio(0.66f).clip(RoundedCornerShape(6.dp))
-                            .onFocusChanged { focused = it.isFocused; if (it.isFocused) LibraryView.lastGame = game.key }
-                            .then(if (i == 0) Modifier.focusRequester(first) else Modifier)
-                            .optionsKey { actions.options(game) }
-                            .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
-                                onClick = { LibraryView.lastGame = game.key; actions.play(game) }, onLongClick = { actions.options(game) }),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (cover != null) Image(cover, game.title, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                        else CoverPlaceholder(game.title, Modifier.fillMaxSize())
-                        if (game.hasAchievements) Icon(Icons.Default.EmojiEvents, "Achievements",
-                            Modifier.align(Alignment.TopEnd).padding(4.dp).size(18.dp), tint = Color(0xFFFFD166))
-                    }
-                    Spacer(Modifier.height(7.dp))
-                    Text(game.title, color = if (focused) palette.highlight else Color.White.copy(alpha = .9f),
-                        style = MaterialTheme.typography.labelMedium, fontWeight = if (focused) FontWeight.Bold else FontWeight.Medium,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp))
-                }
-            }
-        }
-    }
-}
-
-// ---- D: Continue playing + library ------------------------------------------------------------------------------------
-
-@Composable
 private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean = false) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val hasStates = latest.isNotEmpty()
@@ -662,13 +613,10 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
 
 // ---- Settings ----------------------------------------------------------------------------------------------------------
 
-/** "Layout" settings block: fullscreen only. Theme selection is exclusively available from the LIBRARY → Theme tile. */
+/** Kept as a compatibility entry point for host apps. Fullscreen is controlled only from the main menu tile. */
 @Composable
 fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
-    var fullscreen by HomeTheme.fullscreen
-    SettingsGroup("Layout", Icons.Default.Fullscreen) {
-        ToggleRow(Icons.Default.Fullscreen, "Fullscreen mode", "Hide the top and bottom bars and expand the box-art grid", fullscreen) { fullscreen = it }
-    }
+    // Intentionally empty: the fullscreen option must not be duplicated in Settings → Layout.
 }
 
 // ---- Main menu ---------------------------------------------------------------------------------------------------------
@@ -731,7 +679,7 @@ fun HomeMenuPanel(
                     MenuSection("LIBRARY")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ViewTile(Icons.Default.Palette, "Theme", themeLabel, false,
-                            Modifier.weight(1f).then(if (viewFocus) Modifier.focusRequester(focus) else Modifier), onCycleTheme)
+                            Modifier.weight(1f).then(if (viewFocus) Modifier.focusRequester(focus) else Modifier), onCycleTheme, colorfulIcon = true)
                         ViewTile(Icons.Default.Fullscreen, "Layout", if (fullscreen) "FullScreen" else "Default", fullscreen,
                             Modifier.weight(1f), onToggleFullscreen)
                     }
@@ -781,13 +729,26 @@ private fun Modifier.tile(focused: Boolean, selected: Boolean = false): Modifier
 }
 
 @Composable
-private fun ViewTile(icon: ImageVector, label: String, sub: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun ViewTile(
+    icon: ImageVector, label: String, sub: String, selected: Boolean, modifier: Modifier,
+    onClick: () -> Unit, colorfulIcon: Boolean = false,
+) {
     var focused by remember { mutableStateOf(false) }
     Row(
         modifier.height(68.dp).onFocusChanged { focused = it.isFocused }.tile(focused, selected).clickable(onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = if (selected) palette.highlight else Color.White.copy(alpha = .85f), modifier = Modifier.size(26.dp))
+        if (colorfulIcon) {
+            // A deliberately multicolour mark so Theme is recognizable regardless of the active theme palette.
+            Box(Modifier.size(26.dp)) {
+                Box(Modifier.align(Alignment.TopStart).size(15.dp).clip(CircleShape).background(Color(0xFFFF5C8A)))
+                Box(Modifier.align(Alignment.TopEnd).size(15.dp).clip(CircleShape).background(Color(0xFF42D6C5)))
+                Box(Modifier.align(Alignment.BottomStart).size(15.dp).clip(CircleShape).background(Color(0xFFFFC857)))
+                Box(Modifier.align(Alignment.BottomEnd).size(15.dp).clip(CircleShape).background(Color(0xFF9B8CFF)))
+            }
+        } else {
+            Icon(icon, null, tint = if (selected) palette.highlight else Color.White.copy(alpha = .85f), modifier = Modifier.size(26.dp))
+        }
         Spacer(Modifier.width(10.dp))
         Column {
             Text(label, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
