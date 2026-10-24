@@ -127,18 +127,14 @@ of these repositories.
   first item focus, never let the game `SurfaceView` take key focus, and let Android turn hat-axis D-pads into D-pad keys
   while a menu is open.
 - Home screen: `HomeTopBar` (app icon, app name with a menu arrow, clock, battery icon; a tap opens the menu) and
-  `HomeLibrary` in the layout picked in Extras → Layout (`HomeThemeSettings`): **Showcase** (default: selected game large
-  on top, one-line title that scrolls when long, shelf below; Recent shows save-state screenshots
-  in the same layout), **Grid** (grid of 3D boxes drawn from the 2D covers: `BoxArt3D`) and **All in One** (latest save states first, then all games). The main menu is `HomeMenuPanel`: it slides in from the left (X, or a tap on the
-  top bar) with the library view (All games / Recent, with counts), the settings as icon tiles and Quit; it stays open
-  while a settings page is shown, so Back returns to it on the same entry.
+  `HomeLibrary` in one of three layouts: **Showcase** (default: selected game large on top, one-line title that scrolls when long, shelf below; Recent shows save-state screenshots in the same layout), **Grid** (grid of 3D boxes drawn from the 2D covers: `BoxArt3D`) and **All in One** (latest save states first, then all games). Theme cycling and library fullscreen are exclusively in the `HomeMenuPanel` LIBRARY → Theme and FullScreen tiles; they are not settings pages. The main menu slides in from the left (X, or a tap on the top bar) with the library view (All games / Recent, with counts), settings as icon tiles and Quit; it stays open while a settings page is shown, so Back returns to it on the same entry.
 - Use `setControllerContent` instead of `setContent`: after a touch, Android spends the first D-pad press leaving touch
   mode, so moving needed two presses; it sends D-pad keys in touch mode straight to the Activity.
 - X (menu) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys
   while something is focused; `HomeLibrary(refocus = …)` puts the focus back on the library.
 - The button help bar is shown only when a physical controller is connected and `HomeTheme.buttonHelp` (Extras → Layout → Button help) is on.
 - Programmatic focus (first game, first menu entry, refocus after a tap) only happens with a physical controller (`rememberHasGamepad`); a menu opened by touch also selects its first entry then, after `requestFocusFromTouch()` leaves touch mode.
-- Changing the home layout (`HomeThemeSettings(onLayoutChanged)`) closes settings and the menu and shows the library.
+- The legacy `HomeThemeSettings(onLayoutChanged)` entry point is intentionally empty for compatibility; layout and fullscreen are controlled from the main menu, not Settings.
 - The game picture is aligned to the top of the screen: when the screen is narrower than the picture (square, 5:4, a
   16:9 mode on 4:3) all the black bars go below it; side bars stay centered.
 - Touch controls are hidden automatically while a physical controller is connected (handhelds' built-in controls count).
