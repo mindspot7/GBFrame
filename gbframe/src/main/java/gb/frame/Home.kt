@@ -600,12 +600,13 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
                 LazyRow(contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(if (fullscreen) 20.dp else 16.dp)) {
                     items(latest.size, key = { latest[it].key }) { i ->
                         val e = latest[i]
-                        ResumeCard(e, Modifier.width(thumbW).then(if (i == 0) Modifier.focusRequester(first) else Modifier)) { actions.resume(e) }
+                        ResumeCard(e, Modifier.width(thumbW).then(if (games.isEmpty() && i == 0) Modifier.focusRequester(first) else Modifier)) { actions.resume(e) }
                     }
                 }
             }
             SectionLabel(if (games.isEmpty()) "ALL GAMES" else "ALL GAMES · ${games.size}", Color.White.copy(alpha = .75f))
-            Shelf(games, version, cardH * 0.72f, cardH, if (hasStates) null else first, reflection = false, focusScale = 1.1f,
+            // Prefer the last selected game whenever games exist. Save-state cards are only the fallback when the library is empty.
+            Shelf(games, version, cardH * 0.72f, cardH, first, reflection = false, focusScale = 1.1f,
                 actions = actions, startPad = if (fullscreen) 28.dp else 8.dp, edge = if (fullscreen) 28.dp else null) { _, _ -> }
         }
     }
