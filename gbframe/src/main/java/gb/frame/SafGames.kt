@@ -166,10 +166,9 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         }
         if (ext == "mds") siblings.filter { it.name.endsWith(".mdf", true) }.forEach { wanted += it.name.lowercase() }
 
-        // Single-file images can be opened directly through the SAF file descriptor.
-        // /proc/self/fd keeps the descriptor owned by OpenDisc alive for native path-based loaders;
-        // unlike the old CHD cache, this does not copy the image into app storage.
-        // This requires the document provider to expose a seekable descriptor (as internal storage does).
+        // Keep the original extension because LoadDisc dispatches loaders by path extension.
+        // The staged entry is only a symlink to the open SAF descriptor; disc bytes are never copied.
+        // The descriptor remains open for the full lifetime of the game.
         if (ext == "chd" || ext == "iso") {
             val source = DocumentsContract.buildDocumentUriUsingTree(tree, main.docId)
             val pfd = runCatching {
@@ -179,7 +178,20 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
                 pfd.close()
                 return null
             }
-            return OpenDisc("/proc/self/fd/${pfd.fd}", listOf(pfd))
+            val stage = File(appContext.cacheDir, "disc-direct").apply {
+                deleteRecursively()
+                mkdirs()
+            }
+            val stagedPath = File(stage, main.name)
+            val linked = runCatching {
+                Os.symlink("/proc/self/fd/${pfd.fd}", stagedPath.path)
+            }.isSuccess
+            if (!linked) {
+                pfd.close()
+                stage.deleteRecursively()
+                return null
+            }
+            return OpenDisc(stagedPath.path, listOf(pfd))
         }
 
         val stage = File(appContext.cacheDir, "disc").apply { deleteRecursively(); mkdirs() }
