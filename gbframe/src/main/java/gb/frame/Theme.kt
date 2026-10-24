@@ -69,7 +69,7 @@ data class EmuPalette(
 }
 
 object EmuPalettes {
-    /** GBSat: dark purple with violet accent and gold highlights. */
+    /** Legacy violet palette retained for apps that explicitly choose it. */
     val Violet = EmuPalette(
         accent = Color(0xFFB9A6FF),
         onAccent = Color(0xFF1A1433),
@@ -81,6 +81,20 @@ object EmuPalettes {
         dim = Color.White.copy(alpha = 0.65f),
         warn = Color(0xFFFF8A65),
         surface = Color(0xFF221B3F),
+    )
+
+    /** Classic Console: charcoal hardware surfaces, Saturn indigo controls, and restrained warm highlights. */
+    val ClassicConsole = EmuPalette(
+        accent = Color(0xFF8798D0),
+        onAccent = Color(0xFF10131B),
+        highlight = Color(0xFFE5C56A),
+        background = listOf(Color(0xFF11131A), Color(0xFF202431), Color(0xFF0B0D12)),
+        panel = Color(0xFF1A1D27).copy(alpha = 0.96f),
+        card = Color(0xFF1A1D27).copy(alpha = 0.96f),
+        border = Color.White.copy(alpha = 0.17f),
+        dim = Color(0xFFB9BECA),
+        warn = Color(0xFFFF8A65),
+        surface = Color(0xFF181B24),
     )
 }
 

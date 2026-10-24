@@ -88,16 +88,7 @@ object Covers {
             if (result !== decoded) decoded.recycle()
         }
 
-        // Standard portrait box art is about 2:3. Stretch only unusually narrow portrait covers horizontally;
-        // leave square and landscape artwork untouched, and never enlarge the height.
-        if (result.height > result.width) {
-            val standardWidth = (result.height * 2 + 2) / 3
-            if (result.width < standardWidth) {
-                val stretched = android.graphics.Bitmap.createScaledBitmap(result, standardWidth, result.height, true)
-                if (stretched !== result) result.recycle()
-                result = stretched
-            }
-        }
+        // Keep each Saturn cover's source aspect ratio. Shelf presentation handles modest visual standardization.
         return result.asImageBitmap()
     }
 

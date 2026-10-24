@@ -289,11 +289,11 @@ fun CoverCard(
         ) {
             if (cover != null) {
                 val sourceRatio = cover.width.toFloat() / cover.height
-                // Standardize portrait US-style box art only. Square and landscape artwork retain their original sizing.
-                // FillBounds intentionally stretches non-standard portrait covers (e.g. Nights Into Dreams...) into this frame.
-                val ratio = if (sourceRatio < 0.90f) 0.66f else sourceRatio.coerceIn(0.66f, 1.25f)
+                // Keep a consistent Saturn shelf silhouette while preserving the artwork's original proportions.
+                // The modest ratio clamp prevents very narrow/square scans from dominating the shelf without stretching them.
+                val ratio = sourceRatio.coerceIn(0.58f, 0.72f)
                 Image(cover, title, Modifier.fillMaxWidth().aspectRatio(ratio).clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, Color.White.copy(alpha = .18f), RoundedCornerShape(10.dp)), contentScale = ContentScale.FillBounds)
+                    .border(1.dp, Color.White.copy(alpha = .18f), RoundedCornerShape(10.dp)), contentScale = ContentScale.Fit)
             } else {
                 CoverPlaceholder(title, Modifier.size(width, height))
             }
@@ -301,7 +301,7 @@ fun CoverCard(
         if (reflection) {
             if (cover != null) {
                 val sourceRatio = cover.width.toFloat() / cover.height
-                val ratio = if (sourceRatio < 0.90f) 0.66f else sourceRatio.coerceIn(0.66f, 1.25f)
+                val ratio = sourceRatio.coerceIn(0.58f, 0.72f)
                 // Mirror of the cover's bottom part, fading out, baked once into a small bitmap when the cover loads and drawn
                 // as a plain image. Drawing it live was slow on the Mali-G52 while scrolling: an offscreen layer per cover (to
                 // fade with DstIn) cost GPU time on every frame, and a combined bitmap+gradient shader made the draw commands
