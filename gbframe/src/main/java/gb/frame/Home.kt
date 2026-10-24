@@ -82,7 +82,7 @@ import kotlinx.coroutines.withContext
 
 enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), Continue("All in One") }
 
-/** Home layout chosen by the user (Settings → Extras → Layout), remembered between sessions. */
+/** Home layout chosen by cycling the Theme tile in the main menu, remembered between sessions. */
 object HomeTheme {
     private const val KEY = "gbframe.homeStyle"
     private var prefs: SharedPreferences? = null
@@ -585,7 +585,7 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
     }
 }
 
-// ---- C: Classic Console -----------------------------------------------------------------------------------------------
+// ---- Continue / All in One --------------------------------------------------------------------------------------------
 
 @Composable
 private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean = false) {
@@ -674,14 +674,13 @@ fun HomeMenuPanel(
                     header()
                     val selectedItem = items.indexOfFirst { it.selected }
                     // Focus: the settings page just closed, else the first settings entry
-                    val viewFocus = items.none { it.selected } && extras.none { it.selected }
                     val itemFocus = if (selectedItem >= 0) selectedItem else if (extras.none { it.selected }) 0 else -1
-                    // Quick library presentation controls
+                    // Quick library presentation controls. Theme changes never move focus to a different tile.
                     MenuSection("LIBRARY")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ViewTile(Icons.Default.Palette, "Theme", themeLabel, false,
-                            Modifier.weight(1f).then(if (viewFocus) Modifier.focusRequester(focus) else Modifier), onCycleTheme, colorfulIcon = true)
-                        ViewTile(Icons.Default.Fullscreen, "Layout", if (fullscreen) "FullScreen" else "Default", fullscreen,
+                            Modifier.weight(1f), onCycleTheme, colorfulIcon = true)
+                        ViewTile(Icons.Default.Fullscreen, "Fullscreen", if (fullscreen) "On" else "Off", fullscreen,
                             Modifier.weight(1f), onToggleFullscreen)
                     }
                     // Settings
