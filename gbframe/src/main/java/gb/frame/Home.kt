@@ -552,7 +552,7 @@ private fun ShowcaseRecent(games: List<HomeGame>, latest: List<ResumeEntry>, act
                             Text(formatPlayTime(g.playSeconds), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
                         }
                     }
-                    if (!compact && !fullscreen) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!compact) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(if (fullscreen) 14.dp else 10.dp)) {
                         PillButton("Continue", true, Icons.Default.PlayArrow) { actions.resume(e) }
                         if (g != null) {
                             PillButton("Start fresh", false) { actions.fresh(g) }
