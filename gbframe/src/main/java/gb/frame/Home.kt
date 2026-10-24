@@ -646,7 +646,7 @@ fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
 fun HomeMenuPanel(
     open: Boolean, onDismiss: () -> Unit, focus: FocusRequester,
     appIcon: Painter, appName: String,
-    recent: Boolean, gamesCount: Int, recentCount: Int, onShowRecent: (Boolean) -> Unit,
+    themeLabel: String, fullscreen: Boolean, onCycleTheme: () -> Unit, onToggleFullscreen: () -> Unit,
     items: List<HomeMenuItem>, onQuit: () -> Unit,
     header: @Composable () -> Unit = {},
     /** Smaller entries shown as compact tiles next to Quit (e.g. About). */
@@ -690,13 +690,13 @@ fun HomeMenuPanel(
                     // Focus: the settings page just closed, else the first settings entry
                     val viewFocus = items.none { it.selected } && extras.none { it.selected }
                     val itemFocus = if (selectedItem >= 0) selectedItem else if (extras.none { it.selected }) 0 else -1
-                    // Library view
+                    // Quick library presentation controls
                     MenuSection("LIBRARY")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ViewTile(Icons.Default.GridView, "All games", if (gamesCount == 1) "1 game" else "$gamesCount games", !recent,
-                            Modifier.weight(1f).then(if (viewFocus && !recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(false) }
-                        ViewTile(Icons.Default.History, "Recent", if (recentCount == 1) "1 save state" else "$recentCount save states", recent,
-                            Modifier.weight(1f).then(if (viewFocus && recent) Modifier.focusRequester(focus) else Modifier)) { onShowRecent(true) }
+                        ViewTile(Icons.Default.Palette, "Theme", themeLabel, false,
+                            Modifier.weight(1f).then(if (viewFocus) Modifier.focusRequester(focus) else Modifier), onCycleTheme)
+                        ViewTile(Icons.Default.Fullscreen, "Layout", if (fullscreen) "FullScreen" else "Default", fullscreen,
+                            Modifier.weight(1f), onToggleFullscreen)
                     }
                     // Settings
                     MenuSection("SETTINGS")
