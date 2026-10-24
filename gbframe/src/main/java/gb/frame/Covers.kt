@@ -89,15 +89,16 @@ object Covers {
             if (result !== decoded) decoded.recycle()
         }
 
-        // Every Saturn box art uses the same 2:3-ish canvas. Fit the original art inside it without stretching or
-        // cropping, so shelf, grid, and AIO have consistent cover widths/heights even when scans vary in shape.
+        // Portrait Saturn box scans are stretched to the shared 2:3-ish frame, as requested, so their
+        // height and width match across Showcase, Grid, and All in One. Square/landscape art keeps its proportions.
         val frameWidth = (maxDimension * COVER_RATIO).toInt().coerceAtLeast(1)
         val frameHeight = maxDimension
         val frame = android.graphics.Bitmap.createBitmap(frameWidth, frameHeight, android.graphics.Bitmap.Config.ARGB_8888)
         frame.eraseColor(android.graphics.Color.rgb(17, 19, 26))
+        val portrait = result.height > result.width
         val scale = minOf(frameWidth.toFloat() / result.width, frameHeight.toFloat() / result.height)
-        val drawWidth = result.width * scale
-        val drawHeight = result.height * scale
+        val drawWidth = if (portrait) frameWidth.toFloat() else result.width * scale
+        val drawHeight = if (portrait) frameHeight.toFloat() else result.height * scale
         val left = (frameWidth - drawWidth) / 2f
         val top = (frameHeight - drawHeight) / 2f
         android.graphics.Canvas(frame).drawBitmap(
