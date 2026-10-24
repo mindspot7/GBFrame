@@ -407,7 +407,7 @@ private fun Shelf(
     val rowState = remember(games.isEmpty()) { LazyListState((start - 1).coerceAtLeast(0)) }
     var focusIndex by remember { mutableIntStateOf(-1) }
     val pace = remember { RowPace() }
-    val gap = 18.dp
+    val gap = if (HomeTheme.fullscreen.value) 28.dp else 18.dp
     val slotPx = with(LocalDensity.current) { (cardW + gap).roundToPx() }
     LaunchedEffect(focusIndex) { if (focusIndex >= 0) pace.scroll(rowState, focusIndex, -slotPx) }
     LazyRow(
@@ -470,7 +470,7 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
     var selected by remember(games) { mutableStateOf(games.getOrNull(LibraryView.gameIndex(games))) }
     val bg = p.background.last()
     BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
-        // Short screens (e.g. 640x480 at hdpi): smaller title, no buttons (tap or A plays, long press or Y opens the options)
+        // Short screens (e.g. 640x480 at hdpi): smaller title; buttons are hidden only when the layout is genuinely too short.
         val compact = maxHeight < 300.dp
         Column(Modifier.fillMaxSize()) {
             selected?.let { g ->
@@ -479,7 +479,7 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
                     verticalArrangement = Arrangement.spacedBy(if (compact || fullscreen) 4.dp else 8.dp)) {
                     HeroTitle(g.title, compact)
                     GameInfo(g, st != null)
-                    if (!compact && !fullscreen) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!compact) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(if (fullscreen) 14.dp else 10.dp)) {
                         PillButton(if (st != null) "Continue" else "Play", true, Icons.Default.PlayArrow) { if (st != null) actions.resume(st) else actions.play(g) }
                         PillButton("Start fresh", false) { actions.fresh(g) }
                         PillButton("Options", false) { actions.options(g) }
