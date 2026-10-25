@@ -20,7 +20,12 @@ import java.net.URL
  * (thumbnails.libretro.com, matched by the disc image's file name) -> placeholder.
  */
 object Covers {
-    private const val COVER_RATIO = 0.66f
+    /** Default frame ratio retained for apps whose system profile has not changed. */
+    const val DEFAULT_FRAME_ASPECT_RATIO = 0.66f
+
+    /** Width divided by height, selected from the majority box-art format for the active system. */
+    var frameAspectRatio: Float = DEFAULT_FRAME_ASPECT_RATIO
+        private set
     private lateinit var dir: File
     // Bound the cache by bytes, not entry count: a handful of tall covers can otherwise exhaust low-memory devices.
     private val cacheKb = (Runtime.getRuntime().maxMemory() / 1024L / 40L).toInt().coerceIn(2048, 8 * 1024)
@@ -38,10 +43,21 @@ object Covers {
     /**
      * @param system libretro-thumbnails system name (folder of https://thumbnails.libretro.com)
      * @param aliases extra title aliases (normalized western title -> normalized name used by the thumbnails)
+     * @param frameAspectRatio target width/height ratio selected from the majority of this system's box-art images
      */
-    fun init(dataDir: File, system: String, aliases: Map<String, String> = emptyMap()) {
+    fun init(
+        dataDir: File,
+        system: String,
+        aliases: Map<String, String> = emptyMap(),
+        frameAspectRatio: Float = DEFAULT_FRAME_ASPECT_RATIO,
+    ) {
+        require(frameAspectRatio.isFinite() && frameAspectRatio in 0.35f..2.5f) {
+            "Box-art frame aspect ratio must be between 0.35 and 2.5"
+        }
         this.system = system
         this.extraAliases = aliases
+        this.frameAspectRatio = frameAspectRatio
+        memory.evictAll()
         dir = File(dataDir, "covers").apply { mkdirs(); File(this, "custom").mkdirs() }
     }
 
@@ -89,9 +105,9 @@ object Covers {
             if (result !== decoded) decoded.recycle()
         }
 
-        // Every cover is stretched to the whole shared 2:3-ish frame, so all of them have the same width and height across
-        // Showcase, Grid, and All in One: square (jewel case) and landscape art is not letterboxed any more.
-        val frameWidth = (maxDimension * COVER_RATIO).toInt().coerceAtLeast(1)
+        // Normalize every downloaded or custom cover to the system's shared majority-aspect frame so each library layout
+        // receives one consistent size.
+        val frameWidth = (maxDimension * frameAspectRatio).toInt().coerceAtLeast(1)
         val frameHeight = maxDimension
         val frame = android.graphics.Bitmap.createBitmap(frameWidth, frameHeight, android.graphics.Bitmap.Config.ARGB_8888)
         frame.eraseColor(android.graphics.Color.rgb(17, 19, 26))
