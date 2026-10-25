@@ -14,7 +14,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `PerfOverlay.kt` | Monitoring overlay (FPS, speed, CPU/GPU, renderer, resolution, frame time): FPS and speed green from 95% of full speed, yellow from 80%, red below (`speedColor`); GPU usage from the app's own GPU time (`gpuLoad`: timer/timestamp queries), else the driver's sysfs load |
 | `Controller.kt` | `rememberHasGamepad()` |
 | `Wizard.kt` | First-run `SetupWizard` (steps with gradient badges), `WizardStatus`, `PresetPicker` |
-| `Covers.kt` | Box art: custom image → cache → libretro-thumbnails download with fuzzy title matching (`Covers.init(dataDir, system = "Sega - Saturn")`) |
+| `Covers.kt` | Box art: custom image → cache → libretro-thumbnails download with fuzzy title matching; normalize to the system's majority aspect ratio (`Covers.init(..., frameAspectRatio = ...)`) |
 | `RetroAchievements.kt` | RetroAchievements client logic (login, hardcore, notifications, per-game achievement lists); the app implements `RaBackend` with its native rcheevos client |
 | `RaOffline.kt` | Offline achievements (casual only): caches login/game/session answers while online, queues offline unlocks and syncs them later with the real unlock time |
 | `PlayTime.kt` | Play time (`PlayTime.update(game, counting)`), `formatPlayTime` |
@@ -99,12 +99,13 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 - [docs/LESSONS.md](docs/LESSONS.md): lessons learned (performance, GPU renderers, controller, storage, Play, CI).
 - [docs/QUICK_MENU_STANDARD.md](docs/QUICK_MENU_STANDARD.md): mandatory GBSat-based in-game quick-menu layout, options, navigation and focus behavior.
 - [docs/APP_README_TEMPLATE.md](docs/APP_README_TEMPLATE.md): every app has its own README, written from this template (same sections in every app).
-- [docs/APP_INTEGRATION_STANDARD.md](docs/APP_INTEGRATION_STANDARD.md): mandatory app identity, launcher icon reuse, development/release APK naming, library input/Back lifecycle, game-launch callbacks and the five-slot manual save-state limit.
+- [docs/APP_INTEGRATION_STANDARD.md](docs/APP_INTEGRATION_STANDARD.md): mandatory app identity, launcher icon reuse, development/release APK naming, library input/Back lifecycle, game-launch callbacks, five-slot manual save-state limit and box-art sizing.
+- [docs/BOXART_STANDARD.md](docs/BOXART_STANDARD.md): measure a system's majority cover ratio and use one shared frame in every library layout.
 
 ## Rules
 
 - Only emulator-independent code lives here: no core, JNI or console-specific options.
-- **All GB-family Android apps must follow the [app integration standard](docs/APP_INTEGRATION_STANDARD.md)** for package identity, use of the app's same launcher icon in the top bar, main menu and About page, APK/artifact names, library input/navigation lifecycle, `HomeActions` launch semantics, SAF disc lifetime, and the shared five-slot manual save-state limit.
+- **All GB-family Android apps must follow the [app integration standard](docs/APP_INTEGRATION_STANDARD.md)** for package identity, use of the app's same launcher icon in the top bar, main menu and About page, APK/artifact names, library input/navigation lifecycle, `HomeActions` launch semantics, SAF disc lifetime, the shared five-slot manual save-state limit, and system-majority box-art sizing.
 - **Every GB-family Android app must follow the [GBSat-based quick-menu standard](docs/QUICK_MENU_STANDARD.md)** for layout, item hierarchy, submenu/back behavior and controller focus. Options are capability-aware: never expose inert or unsupported controls.
 - **Cheats and achievements are standard features across the GB app family.** Use GBFrame's `CheatsScreen` with a core-specific `CheatsBackend`, and `AchievementsScreen` with the shared `RetroAchievements` client plus an app-specific `RaBackend`. Reuse these UIs; do not fork per-app versions.
 - Use the shared `QuickMenuHost`, `QuickMenuPage`, `QuickMenuScope`, `QuickMenuItemRow` and `QuickMenuItemContainer` implementation in `gbframe/QuickMenu.kt`; do not re-create the panel/navigation/focus primitives in each app.
