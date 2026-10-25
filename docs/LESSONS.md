@@ -79,10 +79,11 @@ line here whenever a new app teaches something that would have saved time.
   working with `/proc/self/fd/N` symlinks in a staging folder.
 - Reopening a `/proc/self/fd/N` link *by path* (fopen/ifstream/mmap of the path) is refused on some devices (Anbernic
   RG DS: `stat` works, `fopen` fails, libchdr says "file not found"). Copying the file to the cache worked around it but
-  costs minutes and gigabytes. A loader that can take a descriptor avoids it: the CHD loader detects the staging symlink
-  (`readlink` -> `/proc/self/fd/N`) and reads through the descriptor itself (`chd_open_core_file_callbacks` + `pread`),
-  with no reopen. The copy stays only as a fallback (`SafGames.open(path, stageCopy = true)`, the app retries with it
-  when loading fails); ISO and BIN/CUE loaders still open by path.
+  costs minutes and gigabytes. The core's loaders therefore read the staging symlinks through the descriptor itself
+  (`readlink` -> `/proc/self/fd/N`, in gbsat-core `ymir/media/proc_fd.hpp`): CHD via `chd_open_core_file_callbacks` + `pread`,
+  ISO/CUE/MDS/CCD text and headers via `InputFile` (an istream over the descriptor), file mappings via `mio` on the
+  descriptor. The copy of a CHD/ISO stays only as a fallback (`SafGames.open(path, stageCopy = true)`; the app retries with it
+  when loading fails). Not covered: the wide-char MDS filename read.
 - Export (saves + save states only) / Import, game-named save folders.
 - Give games a save (backup memory) cartridge when they don't need a RAM cartridge: some games ask for one.
 - Google Play: targetSdk 36, 16 KB pages, AAB in the build artifacts only, edge-to-edge, privacy policy, no console

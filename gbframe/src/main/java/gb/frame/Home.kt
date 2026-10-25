@@ -188,6 +188,7 @@ fun HomeLibrary(
     var libraryFocused by remember { mutableStateOf(false) } // something in the library has the focus
     // The selection only exists with a physical controller (handhelds' built-in controls count)
     val hasPad = rememberHasGamepad()
+    val view = androidx.compose.ui.platform.LocalView.current
     // [style] is a key too: switching layout disposes the selected cover, so the new layout must take the focus back
     LaunchedEffect(games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad, style, focusEnabled) {
         if (empty == null && hasPad && focusEnabled) {
@@ -195,7 +196,12 @@ fun HomeLibrary(
             // until its requester is attached. One try after 60 ms often missed it, nothing kept the focus and the first
             // D-pad press then picked the first visible cover (the one before the selected game). Retry for up to ~2 s.
             delay(60)
+            val wanted = LibraryView.lastGame
             repeat(40) {
+                // After a touch (e.g. leaving a game through its touch menu) Android is still in touch mode and Compose
+                // doesn't focus clickable covers there: leave it first. The view taking the focus may put it on another
+                // cover for a moment, so the selected game is written back before the request.
+                if (view.isInTouchMode) { view.requestFocusFromTouch(); LibraryView.lastGame = wanted }
                 // Done once the request went through (the requester was attached) and the focus is in the library
                 if (runCatching { first.requestFocus() }.isSuccess && libraryFocused) return@LaunchedEffect
                 delay(50)
@@ -215,7 +221,7 @@ fun HomeLibrary(
 // ---- Top bar ----------------------------------------------------------------------------------------------------------
 
 /**
- * Home top bar: app icon, [label] with a menu arrow, clock and battery. Touch only (the controller opens the menu with B);
+ * Home top bar: app icon, [label] with a menu arrow, clock and battery. Touch only (the controller opens the menu with X);
  * a tap anywhere on it opens the menu ([HomeMenuPanel]).
  */
 @Composable
@@ -643,7 +649,7 @@ fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
 
 /**
  * Main menu of the home screen: a panel that slides in from the left over the library (like the in-game menu), opened by
- * B or a tap on the top bar. From top to bottom: the app and a close button, an optional [header] (e.g. the
+ * X or a tap on the top bar. From top to bottom: the app and a close button, an optional [header] (e.g. the
  * RetroAchievements user), settings as icon tiles and Quit.
  * The focus starts on the settings entry marked [HomeMenuItem.selected] (the page just closed), else on the first one.
  */

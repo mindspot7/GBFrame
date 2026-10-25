@@ -120,19 +120,20 @@ of these repositories.
 - Settings the user changes through the interface are remembered between sessions, including UI state such as the
   selected game (`LibraryView`) and the game selected last (the library
   opens on it again after a game, a menu or a settings page, and at the next start), so the app reopens the way it was left.
-- Controller: **A** confirms, **B** opens the main menu from the library (and closes it; inside a settings page it goes
-  back to the menu, on the entry that was opened), **X** cycles the library theme Showcase/Grid/All in One
-  (`HomeTheme.cycleStyle()`, same as the menu's **Theme** tile), **Y** opens the game options, **Select** toggles library
-  fullscreen (handled in the Activity so it works without focus), and the menu's **Fullscreen** tile toggles the library
-  display (also available via Select). There is no separate Recent mode. **Start** does nothing in the library. The top bar is touch-only.
+- Controller: **A** confirms, **B** goes back (Exit dialog in the library; inside a settings page it returns to the menu,
+  on the entry that was opened), **X** opens/closes the main menu, **Start** cycles the library theme
+  Showcase/Grid/All in One (`HomeTheme.cycleStyle()`, same as the menu's **Theme** tile), **Y** opens the game options,
+  **Select** toggles library fullscreen (handled in the Activity so it works without focus), and the menu's **Fullscreen**
+  tile toggles the library display (also available via Select). There is no separate Recent mode. The top bar is touch-only.
+  The help bar lists the buttons from the right as A, Y, X, B.
 - Every dialog and menu must work with the controller from the first press: draw dialogs in the app window, give the
   first item focus, never let the game `SurfaceView` take key focus, and let Android turn hat-axis D-pads into D-pad keys
   while a menu is open.
 - Home screen: `HomeTopBar` (app icon, app name with a menu arrow, clock, battery icon; a tap opens the menu) and
-  `HomeLibrary` has three layouts: **Showcase** (default: selected game large on top, one-line title that scrolls when long, shelf below), **Grid** (grid of 3D boxes drawn from the 2D covers: `BoxArt3D`) and **All in One** (latest save states first, then all games). Theme cycling and library fullscreen are exclusively in the `HomeMenuPanel` LIBRARY tiles; they are not settings pages. The main menu slides in from the left (B, or a tap on the top bar), with settings as icon tiles and Quit; it stays open while a settings page is shown, so Back returns to it on the same entry.
+  `HomeLibrary` has three layouts: **Showcase** (default: selected game large on top, one-line title that scrolls when long, shelf below), **Grid** (grid of 3D boxes drawn from the 2D covers: `BoxArt3D`) and **All in One** (latest save states first, then all games). Theme cycling and library fullscreen are exclusively in the `HomeMenuPanel` LIBRARY tiles; they are not settings pages. The main menu slides in from the left (X, or a tap on the top bar), with settings as icon tiles and Quit; it stays open while a settings page is shown, so Back returns to it on the same entry.
 - Use `setControllerContent` instead of `setContent`: after a touch, Android spends the first D-pad press leaving touch
   mode, so moving needed two presses; it sends D-pad keys in touch mode straight to the Activity.
-- X (theme) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys
+- X (menu), Start (theme) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys
   while something is focused; `HomeLibrary(refocus = …)` puts the focus back on the library.
 - While the main menu is open the app passes `HomeLibrary(focusEnabled = false)`, so the library never competes with the
   menu for the focus (that race made the menu lose its selected entry when returning from a settings page); when the menu

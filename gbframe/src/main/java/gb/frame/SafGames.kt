@@ -22,8 +22,8 @@ import java.security.MessageDigest
  * working as keys (play time, save state folders, widescreen hacks). To load a disc, its files are opened as file
  * descriptors and exposed to the emulator core as symlinks to `/proc/self/fd/N` in a staging folder, so the core's
  * path-based loaders (including CUE sheets that name their BIN files) work unchanged. A loader that reads through the
- * descriptor itself (the app's CHD loader) never reopens the link by path, which some devices refuse; ISO files are still
- * copied to the cache.
+ * descriptor itself (the app's CHD, ISO and CUE/BIN loaders) never reopens the link by path, which some devices refuse; a
+ * CHD or ISO is copied to the cache only as a fallback.
  */
 /** A game found in the games folder: [path] is a virtual `saf:/` path (or a plain file path). */
 data class Game(val title: String, val path: String)
@@ -136,8 +136,8 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
 
     /**
      * Opens a game's disc image and the files it references (BIN tracks, IMG/SUB, MDF).
-     * A CHD is read by the core straight through the descriptor (no copy). [stageCopy] makes it copy the CHD to the app
-     * cache instead, for devices whose core can't read that way (the caller retries with it when loading fails).
+     * The core reads every format straight through the descriptor (no copy). [stageCopy] makes a CHD or ISO be copied to the
+     * app cache instead, for devices where that fails (the caller retries with it when loading fails).
      */
     fun open(path: String, stageCopy: Boolean = false): OpenDisc? {
         Log.i("GBSat-SAF", "open start path=" + path + "; folderConfigured=" + gamesDir().startsWith("content://"))
@@ -177,11 +177,10 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         }
         if (ext == "mds") siblings.filter { it.name.endsWith(".mdf", true) }.forEach { wanted += it.name.lowercase() }
 
-        // ISO loaders open their input with native path-based APIs, and reopening a /proc/self/fd symlink by path is
-        // refused on some devices (Anbernic RG DS: "file not found"). Stage a real file in the app cache, retaining the
-        // original extension for loader selection. A CHD doesn't need it: the core reads it through the descriptor
-        // itself (no reopen), so it is copied only when [stageCopy] asks for it (fallback).
-        if (ext == "iso" || (ext == "chd" && stageCopy)) {
+        // Reopening a /proc/self/fd symlink by path is refused on some devices (Anbernic RG DS: "file not found"), so the
+        // core's loaders read these links through the descriptor itself (no reopen). A real file in the app cache,
+        // retaining the original extension for loader selection, is only the fallback when [stageCopy] asks for it.
+        if (stageCopy && (ext == "chd" || ext == "iso")) {
             val source = DocumentsContract.buildDocumentUriUsingTree(tree, main.docId)
             val digest = MessageDigest.getInstance("SHA-256")
                 .digest(path.toByteArray(Charsets.UTF_8))
@@ -231,13 +230,15 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
     }
 
     /**
-     * Deletes the CHD copies earlier versions kept in the app cache (they can be gigabytes). Call it once a CHD has loaded
-     * through its descriptor, i.e. when the copies are known to be unnecessary on this device.
+     * Deletes the CHD/ISO copies earlier versions kept in the app cache (they can be gigabytes). Call it once a disc has
+     * loaded through its descriptor, i.e. when the copies are known to be unnecessary on this device.
      */
-    fun clearChdCopies() {
+    fun clearDiscCopies() {
         runCatching {
-            File(appContext.cacheDir, "disc-cache").listFiles { f -> f.name.endsWith(".chd") || f.name.endsWith(".chd.tmp") }
-                ?.forEach { it.delete() }
+            File(appContext.cacheDir, "disc-cache").listFiles { f ->
+                val name = f.name.lowercase()
+                name.endsWith(".chd") || name.endsWith(".iso") || name.endsWith(".chd.tmp") || name.endsWith(".iso.tmp")
+            }?.forEach { it.delete() }
         }
     }
 }

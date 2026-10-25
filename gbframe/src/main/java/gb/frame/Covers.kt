@@ -89,21 +89,15 @@ object Covers {
             if (result !== decoded) decoded.recycle()
         }
 
-        // Portrait Saturn box scans are stretched to the shared 2:3-ish frame, as requested, so their
-        // height and width match across Showcase, Grid, and All in One. Square/landscape art keeps its proportions.
+        // Every cover is stretched to the whole shared 2:3-ish frame, so all of them have the same width and height across
+        // Showcase, Grid, and All in One: square (jewel case) and landscape art is not letterboxed any more.
         val frameWidth = (maxDimension * COVER_RATIO).toInt().coerceAtLeast(1)
         val frameHeight = maxDimension
         val frame = android.graphics.Bitmap.createBitmap(frameWidth, frameHeight, android.graphics.Bitmap.Config.ARGB_8888)
         frame.eraseColor(android.graphics.Color.rgb(17, 19, 26))
-        val portrait = result.height > result.width
-        val scale = minOf(frameWidth.toFloat() / result.width, frameHeight.toFloat() / result.height)
-        val drawWidth = if (portrait) frameWidth.toFloat() else result.width * scale
-        val drawHeight = if (portrait) frameHeight.toFloat() else result.height * scale
-        val left = (frameWidth - drawWidth) / 2f
-        val top = (frameHeight - drawHeight) / 2f
         android.graphics.Canvas(frame).drawBitmap(
             result, null,
-            android.graphics.RectF(left, top, left + drawWidth, top + drawHeight),
+            android.graphics.RectF(0f, 0f, frameWidth.toFloat(), frameHeight.toFloat()),
             android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG)
         )
         result.recycle()
