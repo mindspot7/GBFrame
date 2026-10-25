@@ -229,6 +229,47 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         return OpenDisc(stagedMain, fds)
     }
 
+    /** Result of [openAndLoad]: the open disc when loading worked (the caller closes it when the game ends), else the error. */
+    class DiscLoad(val disc: OpenDisc?, val error: String?)
+
+    /**
+     * Opens [path] and hands the disc to the core with [load] (it returns an error message, or null when the core loaded
+     * it). The core reads straight through the descriptor; if that fails for a CHD or ISO, loading is retried once from a
+     * copy in the app cache (devices whose core can't read that way), and when it works without the copy, copies kept by
+     * earlier versions are deleted. The same for every app: only [load] is the app's own.
+     */
+    fun openAndLoad(path: String, load: (OpenDisc) -> String?): DiscLoad {
+        var disc = open(path)
+            ?: return DiscLoad(null, "Unable to open ${fileName(path)}. Check games folder permission and logcat.")
+        var error = load(disc)
+        val copyable = isCopyable(path)
+        var copied = false
+        if (error != null && copyable) {
+            android.util.Log.w("GBFrame-Disc", "Descriptor read failed; retrying from a cached copy: $path")
+            disc.close()
+            open(path, stageCopy = true)?.let { copy ->
+                disc = copy
+                copied = true
+                error = load(copy)
+            }
+        }
+        if (error == null && copyable && !copied) clearDiscCopies()
+        if (error != null) {
+            disc.close()
+            return DiscLoad(null, error)
+        }
+        return DiscLoad(disc, null)
+    }
+
+    /** Runs [attempt] on the opened disc and closes it; like [openAndLoad], a CHD/ISO that yields null is retried from a copy. */
+    fun <T : Any> useDisc(path: String, attempt: (OpenDisc) -> T?): T? {
+        open(path)?.use(attempt)?.let { return it }
+        if (!isCopyable(path)) return null
+        return open(path, stageCopy = true)?.use(attempt)
+    }
+
+    private fun isCopyable(path: String) = path.endsWith(".chd", ignoreCase = true) || path.endsWith(".iso", ignoreCase = true)
+
     /**
      * Deletes the CHD/ISO copies earlier versions kept in the app cache (they can be gigabytes). Call it once a disc has
      * loaded through its descriptor, i.e. when the copies are known to be unnecessary on this device.

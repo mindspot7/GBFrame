@@ -125,7 +125,10 @@ of these repositories.
   Showcase/Grid/All in One (`HomeTheme.cycleStyle()`, same as the menu's **Theme** tile), **Y** opens the game options,
   **Select** toggles library fullscreen (handled in the Activity so it works without focus), and the menu's **Fullscreen**
   tile toggles the library display (also available via Select). There is no separate Recent mode. The top bar is touch-only.
-  The help bar lists the buttons from the right as A, Y, X, B.
+  The help bar lists the buttons from the right as A, Y, X, B. This is the kit's behavior, the same in every app:
+  `MenuState` (menu/quit/focus state), `HomeKeys.dispatch(event, enabled)` (X, Start, Select, A on the quit dialog, lost
+  focus; call it first in the Activity's `dispatchKeyEvent`, with `enabled = false` while a game runs or a button is being
+  captured), `LibraryBack.handle { … }` (from the app's `BackHandler`) and `HomeHelpBar()`. Apps do not reimplement them.
 - Every dialog and menu must work with the controller from the first press: draw dialogs in the app window, give the
   first item focus, never let the game `SurfaceView` take key focus, and let Android turn hat-axis D-pads into D-pad keys
   while a menu is open.

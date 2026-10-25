@@ -16,3 +16,10 @@ function(gb_native_add target)
     target_compile_definitions(${target} PRIVATE GB_APP_ID="${GBN_APP_ID}")
     target_link_libraries(${target} PRIVATE android log EGL GLESv3 nativewindow)
 endfunction()
+
+# Lets a console core (the app's emulation library) use the kit's header-only helpers, e.g. gb_proc_fd.hpp: read the
+# /proc/self/fd/N links the app stages for disc files through the descriptor, since reopening them by path is refused on
+# some devices. PUBLIC, so everything that links the core sees the same definitions.
+function(gb_native_core target)
+    target_include_directories(${target} PUBLIC "${GB_NATIVE_DIR}")
+endfunction()

@@ -80,10 +80,11 @@ line here whenever a new app teaches something that would have saved time.
 - Reopening a `/proc/self/fd/N` link *by path* (fopen/ifstream/mmap of the path) is refused on some devices (Anbernic
   RG DS: `stat` works, `fopen` fails, libchdr says "file not found"). Copying the file to the cache worked around it but
   costs minutes and gigabytes. The core's loaders therefore read the staging symlinks through the descriptor itself
-  (`readlink` -> `/proc/self/fd/N`, in gbsat-core `ymir/media/proc_fd.hpp`): CHD via `chd_open_core_file_callbacks` + `pread`,
-  ISO/CUE/MDS/CCD text and headers via `InputFile` (an istream over the descriptor), file mappings via `mio` on the
-  descriptor. The copy of a CHD/ISO stays only as a fallback (`SafGames.open(path, stageCopy = true)`; the app retries with it
-  when loading fails). Not covered: the wide-char MDS filename read.
+  (`readlink` -> `/proc/self/fd/N`) with the kit's `native/gb_proc_fd.hpp` (`gb::ProcFdOf`, `gb::InputFile`, an istream over
+  the descriptor; a core gets the include path with `gb_native_core(<core target>)`): GBSat's CHD loader uses
+  `chd_open_core_file_callbacks` + `pread`, ISO/CUE/MDS/CCD text and headers use `InputFile`, file mappings use `mio` on the
+  descriptor. The copy of a CHD/ISO stays only as a fallback, and `SafGames.openAndLoad` / `useDisc` do the retry for every
+  app (the app only supplies the core's load call). Not covered: GBSat's wide-char MDS filename read.
 - Export (saves + save states only) / Import, game-named save folders.
 - Give games a save (backup memory) cartridge when they don't need a RAM cartridge: some games ask for one.
 - Google Play: targetSdk 36, 16 KB pages, AAB in the build artifacts only, edge-to-edge, privacy policy, no console
