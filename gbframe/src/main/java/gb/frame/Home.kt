@@ -594,7 +594,7 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
     Column(Modifier.zIndex(if (focused) 1f else 0f).graphicsLayer { scaleX = scale; scaleY = scale }) {
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(
-            modifier.fillMaxWidth().aspectRatio(0.72f)
+            modifier.fillMaxWidth().aspectRatio(Covers.frameAspectRatio)
                 .onFocusChanged { focused = it.isFocused; if (it.isFocused) { LibraryView.lastGame = g.key; onSelected() } }
                 .optionsKey { actions.options(g) }
                 .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
