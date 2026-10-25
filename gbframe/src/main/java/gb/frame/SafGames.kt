@@ -21,7 +21,9 @@ import java.security.MessageDigest
  * Games are identified by a virtual path, `saf:/<folders>/<file name>` relative to the games folder, so file names keep
  * working as keys (play time, save state folders, widescreen hacks). To load a disc, its files are opened as file
  * descriptors and exposed to the emulator core as symlinks to `/proc/self/fd/N` in a staging folder, so the core's
- * path-based loaders (including CUE sheets that name their BIN files) work unchanged.
+ * path-based loaders (including CUE sheets that name their BIN files) work unchanged. A loader that reads through the
+ * descriptor itself (the app's CHD loader) never reopens the link by path, which some devices refuse; ISO files are still
+ * copied to the cache.
  */
 /** A game found in the games folder: [path] is a virtual `saf:/` path (or a plain file path). */
 data class Game(val title: String, val path: String)
@@ -132,8 +134,12 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
     }
 
 
-    /** Opens a game's disc image and the files it references (BIN tracks, IMG/SUB, MDF). */
-    fun open(path: String): OpenDisc? {
+    /**
+     * Opens a game's disc image and the files it references (BIN tracks, IMG/SUB, MDF).
+     * A CHD is read by the core straight through the descriptor (no copy). [stageCopy] makes it copy the CHD to the app
+     * cache instead, for devices whose core can't read that way (the caller retries with it when loading fails).
+     */
+    fun open(path: String, stageCopy: Boolean = false): OpenDisc? {
         Log.i("GBSat-SAF", "open start path=" + path + "; folderConfigured=" + gamesDir().startsWith("content://"))
         if (!path.startsWith(PREFIX) && File(path).canRead()) return OpenDisc(path, emptyList())
         val tree = tree() ?: run { Log.e("GBSat-SAF", "no SAF tree URI"); return null }
@@ -171,10 +177,11 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         }
         if (ext == "mds") siblings.filter { it.name.endsWith(".mdf", true) }.forEach { wanted += it.name.lowercase() }
 
-        // CHD/ISO loaders open their input with native path-based APIs. A /proc/self/fd symlink is
-        // not reliable for all Android document providers and libchdr can report it as "file not found".
-        // Stage a real file in the app cache, retaining the original extension for loader selection.
-        if (ext == "chd" || ext == "iso") {
+        // ISO loaders open their input with native path-based APIs, and reopening a /proc/self/fd symlink by path is
+        // refused on some devices (Anbernic RG DS: "file not found"). Stage a real file in the app cache, retaining the
+        // original extension for loader selection. A CHD doesn't need it: the core reads it through the descriptor
+        // itself (no reopen), so it is copied only when [stageCopy] asks for it (fallback).
+        if (ext == "iso" || (ext == "chd" && stageCopy)) {
             val source = DocumentsContract.buildDocumentUriUsingTree(tree, main.docId)
             val digest = MessageDigest.getInstance("SHA-256")
                 .digest(path.toByteArray(Charsets.UTF_8))
@@ -221,5 +228,16 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         val stagedMain = File(stage, main.name).path
         Log.i("GBSat-SAF", "staged path=" + stagedMain + "; openedDescriptors=" + fds.size + "; mainExists=" + File(stage, main.name).exists())
         return OpenDisc(stagedMain, fds)
+    }
+
+    /**
+     * Deletes the CHD copies earlier versions kept in the app cache (they can be gigabytes). Call it once a CHD has loaded
+     * through its descriptor, i.e. when the copies are known to be unnecessary on this device.
+     */
+    fun clearChdCopies() {
+        runCatching {
+            File(appContext.cacheDir, "disc-cache").listFiles { f -> f.name.endsWith(".chd") || f.name.endsWith(".chd.tmp") }
+                ?.forEach { it.delete() }
+        }
     }
 }
