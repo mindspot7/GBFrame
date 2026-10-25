@@ -65,6 +65,15 @@ Use `SafGames.scan` for the shared SAF library. For a synchronous core load call
 
 The shared manual save-state limit is `SaveData.MANUAL_SAVE_STATE_SLOTS = 5`. Use that constant instead of app-local counts and expose at most five numbered slots per core. Quick-save, auto-save, and other automatic states are separate features and do not increase the numbered-slot limit.
 
+## Box-art dimensions
+
+Follow [BOXART_STANDARD.md](BOXART_STANDARD.md) when initializing GBFrame's shared covers:
+
+- Determine the dominant width-to-height ratio of the system's named box-art images, using a full catalog when practical or a representative sample stratified across regions and titles.
+- Pass that ratio as `frameAspectRatio` to `Covers.init`. GBFrame normalizes downloaded and user-selected art to this shared frame.
+- Let GBFrame's `HomeLibrary` and `CoverCard` use the same ratio in Showcase, Grid, and All in One. Do not add app-local dimensions or stretch a second time.
+- Keep the existing Saturn frame ratio at `0.66f`; systems whose box-art majority differs must use their measured ratio.
+
 ## Shared versus app-owned code
 
 Reuse GBFrame components and helpers for shared screens, menu state, navigation, controller capture, library shortcuts, and Back behavior. The app supplies real core actions, persistence, metadata, its launcher icon resources, and adapters such as `RaBackend` or `CheatsBackend`. When a shared helper documents dispatch order or lifecycle, follow that contract rather than adding a parallel app-local state machine.
