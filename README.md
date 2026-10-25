@@ -93,12 +93,14 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 ## Documentation for apps
 
 - [docs/LESSONS.md](docs/LESSONS.md): lessons learned (performance, GPU renderers, controller, storage, Play, CI).
+- [docs/QUICK_MENU_STANDARD.md](docs/QUICK_MENU_STANDARD.md): mandatory GBSat-based in-game quick-menu layout, options, navigation and focus behavior.
 - [docs/APP_README_TEMPLATE.md](docs/APP_README_TEMPLATE.md): every app has its own README, written from this template (same sections in every app).
 
 ## Rules
 
 - Only emulator-independent code lives here: no core, JNI or console-specific options.
 - **All new GB-family Android apps must use the `app.<app-slug>.emulator` applicationId convention** documented above.
+- **Every GB-family Android app must follow the [GBSat-based quick-menu standard](docs/QUICK_MENU_STANDARD.md)** for layout, item hierarchy, submenu/back behavior and controller focus. Options are capability-aware: never expose inert or unsupported controls.
 - A change here reaches every app when it updates the submodule (`git submodule update --remote libs/gbframe`).
 
 ## License
