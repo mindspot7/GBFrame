@@ -16,7 +16,7 @@ Do not treat an app-specific implementation as a standard when it conflicts with
 ## App identity
 
 - Use the same lowercase stable slug for Android `applicationId` and Gradle `namespace`: `app.<slug>.emulator`.
-- Use GBFrame's `emulatorLabel(manufacturer, console)` and shared `AboutPage`; do not fork the About layout.
+- Use GBFrame's `emulatorLabel(manufacturer, console)` and shared `AboutPage`; do not fork the About layout. The package identity line must read `appid: <applicationId>` (not `Application id`).
 - Provide app-specific credits and license text to `AboutPage`.
 
 ## App icon and in-app identity
@@ -25,6 +25,7 @@ The consuming app owns its launcher icon in its own Android resources; GBFrame m
 
 - Use the app's launcher icon artwork in `HomeTopBar`, `HomeMenuPanel`, and `AboutPage`. These three places must show the same icon identity as the installed app.
 - Pass the same icon resource/painter to all three components when possible. If an adaptive launcher asset cannot render inline, use an inline-compatible asset derived from the exact same icon artwork; do not substitute a different logo or core icon.
+- Render shared UI instances through GBFrame `AppIcon`, which adds the standard dark keyline and active-palette outline while preserving the supplied artwork. This treatment is mandatory in the top bar, main menu, and About page. The launcher asset itself must use the same outlined artwork so Android's launcher icon matches the in-app icon.
 - Keep the displayed app name consistent across the top bar, main menu, and About page.
 - GBSat uses `R.mipmap.ic_launcher` for all three. Each app owns and supplies its own icon resource.
 - Do not omit the app icon from the top bar or About page.
