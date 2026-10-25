@@ -62,6 +62,7 @@ dependencies { implementation(project(":gbframe")) }
 Use the following Android package identity convention for every new GB-family app:
 
 - Set the app's **`applicationId`** to `app.<app-slug>.emulator`, all lowercase. Use the stable product slug, not a console name that may later change. Examples: GBSat → `app.gbsat.emulator`; GBCast → `app.gbcast.emulator`.
+- Describe the app with the standard label **`<Manufacturer> <Console> Emulator for Android`**, e.g. `Sega Saturn Emulator for Android` (`emulatorLabel(manufacturer, console)`). The kit's `AboutPage(appName, manufacturer, console, icon, credits, license)` (Settings → About) shows it under the app name, followed by the version and the **Application id**, then Credits and License; apps do not build their own About page.
 - Keep **`namespace`** and the source-code package separate from `applicationId`. They may remain app-specific implementation namespaces (for example, `app.gbsat.android`); do not globally rename Java/Kotlin packages just to match the install ID.
 - Before changing an ID after public distribution, remember that Android treats it as a different app: it won't update the old package in place or automatically migrate its private data. Choose the ID before the first release.
 - Audit manifest authorities, deep links, backup rules and any hard-coded package references when choosing or changing the ID. Prefer authorities derived from `${applicationId}` when appropriate.

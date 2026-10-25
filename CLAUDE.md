@@ -99,12 +99,12 @@ of these repositories.
 - With targetSdk 36 (predictive back), map the controller's B straight to `onBackPressedDispatcher.onBackPressed()`
   instead of synthesizing `KEYCODE_BACK`.
 - Privacy policy file (`PRIVACY.md`) in the repo; no ads, no analytics.
-- No BIOS or games included; no console maker trademarks in the app name, icon or subtitle.
+- No BIOS or games included; no console maker trademarks in the app name or icon. The About label (`emulatorLabel`: `<Manufacturer> <Console> Emulator for Android`, e.g. "Sega Saturn Emulator for Android") only names the console the app emulates, and the license text keeps the "not affiliated with <Manufacturer>" notice.
 
 ## Interface and controller behavior
 
 - Use this kit (`gb.frame`): `EmuTheme` with the app's palette (GBSat: `EmuPalettes.Violet`; new apps:
-  `EmuPalette.fromAccent(color)`), settings blocks, `ConfirmDialog`, `MenuIconView`, `PerfOverlay`, `rememberHasGamepad`, the first-run `SetupWizard`
+  `EmuPalette.fromAccent(color)`), settings blocks, the standard `AboutPage` (label, version, Application id, credits, license), `ConfirmDialog`, `MenuIconView`, `PerfOverlay`, `rememberHasGamepad`, the first-run `SetupWizard`
   (no preset question: the preset is chosen from `DeviceTier`, and Settings → Performance shows the device class and it), box art (`Covers`, libretro-thumbnails), the home screen (`HomeTopBar`, `HomeLibrary`, `HomeTheme`, `HomeMenuPanel`) and RetroAchievements
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`, offline
   casual unlocks through `RaOffline`), the games folder (`SafGames`), hotkeys (`Hotkeys`), per-game recommended
