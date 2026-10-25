@@ -77,3 +77,5 @@ Follow [BOXART_STANDARD.md](BOXART_STANDARD.md) when initializing GBFrame's shar
 ## Shared versus app-owned code
 
 Reuse GBFrame components and helpers for shared screens, menu state, navigation, controller capture, library shortcuts, and Back behavior. The app supplies real core actions, persistence, metadata, its launcher icon resources, and adapters such as `RaBackend` or `CheatsBackend`. When a shared helper documents dispatch order or lifecycle, follow that contract rather than adding a parallel app-local state machine.
+
+- **Touch controls:** hide/disable on-screen touch controls whenever a non-virtual physical gamepad or joystick is connected, including built-in handheld controls. Detect devices by `SOURCE_GAMEPAD` or `SOURCE_JOYSTICK` and ignore virtual devices. Re-evaluate on device add/change/remove so touch controls reappear when the last physical controller disconnects. The user's touch-controls preference is still respected when no physical controller is connected.
