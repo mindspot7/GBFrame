@@ -4,6 +4,8 @@ All GB-family Android emulators must use the **GBSat in-game quick menu as the r
 
 This standard describes a shared user experience, not a requirement to expose unsupported core features. Keep the layout and navigation consistent; include a setting only when the app/core can actually implement it.
 
+The reference implementation lives in [`gbframe/src/main/java/gb/frame/QuickMenu.kt`](https://github.com/mindspot7/GBFrame/blob/main/gbframe/src/main/java/gb/frame/QuickMenu.kt). Apps should construct `QuickMenuPage` objects and use `QuickMenuHost`, `QuickMenuItemRow` and `QuickMenuItemContainer`; do not create a separate panel or Back/focus stack in each app. The app still owns each real core action and builds a capability-aware set of pages and rows.
+
 ## Visual layout
 
 Use the same basic GBSat arrangement:
@@ -120,6 +122,27 @@ This behavior is mandatory:
 - D-pad navigation, confirm, Back, touch and keyboard access must work consistently. Avoid arbitrary one-off delays as the only focus-restoration mechanism; follow GBFrame's existing focus-retry patterns.
 - Closing the menu resumes emulation exactly once. Repeated or synthetic Back events must not accidentally close multiple navigation levels or resume twice.
 
+## Shared API usage
+
+The minimal shape is:
+
+```kotlin
+val videoPage = QuickMenuPage("video", "Video") {
+    QuickMenuItemRow(
+        id = "renderer", icon = Icons.Default.Tv,
+        label = "Renderer", value = core.rendererLabel,
+    ) { core.cycleRenderer() }
+}
+val rootPage = QuickMenuPage("root", "Paused") {
+    QuickMenuItemRow(id = "video", icon = Icons.Default.Tv, label = "Video", hasSubmenu = true) {
+        openPage(videoPage, returnFocusItemId = "video")
+    }
+    QuickMenuItemRow(id = "resume", icon = Icons.Default.PlayArrow, label = "Resume") { dismiss() }
+}
+QuickMenuHost(rootPage, gameTitle = currentGameTitle, onDismiss = resumeGame)
+```
+
+In real code, keep the standard root order from this document, and create submenu entries only when the app capability model confirms that the action is implemented. Use `fullScreen = true` for existing full-window subpages such as cheat/achievement screens that still need to participate in the same Back stack.
 ## Implementation contract
 
 The quick-menu visuals may be shared in GBFrame, but console/core operations belong to the app's adapter layer. Keep the separation clear:
