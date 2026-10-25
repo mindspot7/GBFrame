@@ -58,7 +58,7 @@ fun AboutPage(
             Spacer(Modifier.height(4.dp))
             Text("Version $version", color = p.highlight, style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(2.dp))
-            Text("Application id ${ctx.packageName}", color = p.dim, style = MaterialTheme.typography.labelMedium)
+            Text("appid: ${ctx.packageName}", color = p.dim, style = MaterialTheme.typography.labelMedium)
         }
     }
     SettingsGroup("Credits", Icons.Default.Favorite) {
