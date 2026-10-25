@@ -68,6 +68,7 @@ line here whenever a new app teaches something that would have saved time.
   menu is open, and handle global buttons (Select, B in dialogs) in the Activity.
 - With targetSdk 36 (predictive back), map the controller's B to `onBackPressedDispatcher.onBackPressed()`.
 - When a screen leaves composition, clear any focus flags stored outside Compose state. A stale `hasFocus=true` can make focus restoration skip the requester and leave selection behind an overlay. Do not attach one `FocusRequester` to multiple controls when only one should receive initial focus.
+- Standardize the in-game quick menu across GB-family apps against GBSat: left-side dimmed panel, same root item order, matching submenu hierarchy, system Back/B stack behavior, pause/resume semantics, and return focus to the item that opened a submenu. Keep the visuals themed and expose only capabilities actually implemented by the app/core; see [QUICK_MENU_STANDARD.md](QUICK_MENU_STANDARD.md).
 
 ## Storage, saves and Play
 
