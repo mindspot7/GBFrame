@@ -46,7 +46,10 @@ of these repositories.
 
 ## Device tests (test script)
 
-- The owner tests with the app's copy of `tools/emu-test.bat` (GBSat: `tools/gbsat.bat`) in the adb platform-tools
+- Scripted device tests (Claude Code on the owner's PC) use the app's copy of `tools/emu-test.ps1` (GBSat: `tools/gbsat.ps1`):
+  non-interactive commands that write to a git-ignored `test-output/` folder. `tools/check-app-id.sh` (run by a small CI workflow)
+  keeps the applicationId, namespace, CMake `APP_ID`, manifest activity and the device tools in agreement; an app's `CLAUDE.md`
+  lists the commands. The owner tests with the app's copy of `tools/emu-test.bat` (GBSat: `tools/gbsat.bat`) in the adb platform-tools
   folder on his Windows PC, connected to the session: 1 install the latest build (deletes the APK after installing),
   2 performance log, 3 CPU profile, 4 library scroll measurement, 5 PGO data, 6 A/B diagnostic switches, 7 wake the
   device, 8 screen capture. Files are named after the game (`<app>-perf-log_<GAME>.csv`, `<app>-profile_<GAME>.txt`,

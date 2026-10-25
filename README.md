@@ -40,6 +40,8 @@ Also shared beyond Kotlin:
 | `native/diag_props.hpp` | A/B diagnostic switches read from adb-set properties (`debug.<app>.<name>`, `gb::DiagOn`), shown in the performance log |
 | `Shaders.kt` | The presenter's shader and colour correction ids, names and menu order (`Shaders.menuOrder`, `name`, `next`, `sanitize`) |
 | `tools/emu-test.bat` | One Windows menu for device tests over USB (copy it to the app and set the block at the top): download/install the latest build, performance log, CPU profile (simpleperf with the profiling build, generated when older than the normal build), library scroll measurement, PGO data, A/B diagnostic switches, wake the device, screen capture. Output files are named after the game |
+| `tools/emu-test.ps1` | The same device tests as non-interactive PowerShell commands (for scripted runs by Claude Code): results go to `test-output/`, git-ignored. Copy it to the app and set the block at the top. |
+| `tools/check-app-id.sh` | CI guard: applicationId, namespace, CMake `APP_ID`, launcher activity and the device tools must agree. Copy it to the app and adjust the paths. |
 
 ## Using it in an app
 
