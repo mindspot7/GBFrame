@@ -20,6 +20,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `PlayTime.kt` | Play time (`PlayTime.update(game, counting)`), `formatPlayTime` |
 | `SaveData.kt` | Game-named save folders (`gameFolderName`), Export (saves + save states) / Import |
 | `ResumeEntry.kt` | Save-state entry model (`ResumeEntry`) used by the All in One layout; there is no separate Recent library mode |
+| `QuickMenu.kt` | Shared in-game menu host (`QuickMenuHost`), page/Back stack (`QuickMenuPage`, `QuickMenuScope`), capability-aware action rows and custom focusable rows with focus restoration |
 | `Home.kt` | Home screen: `HomeTopBar` (icon, label, clock, battery) and `HomeLibrary` in three layouts (Showcase, Grid, All in One). The main menu's LIBRARY tiles cycle Theme (Showcase/Grid/All in One) and toggle Fullscreen; there is no separate All games/Recent mode. `HomeThemeSettings` remains as an empty compatibility entry point. `HomeMenuPanel` main menu (library view, settings tiles, quit); `HomeTheme` remembers the selected theme; `CoverCard` box art |
 | `LibraryView.kt` | Last selected game/save state remembered between sessions (`LibraryView.init(prefs)`, `lastGame`, `lastState`) |
 | `DeviceTier.kt` | Device class from CPU core types and the GPU: Entry (little cores only, RK3566), Low (≤2 fast cores or A73-class cores: T618, Snapdragon G1 Gen 2, 662), Mid (modest GPU, T820), High (strong GPU: Snapdragon 865+, Dimensity 8300); picks the recommended preset |
@@ -93,6 +94,7 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 ## Documentation for apps
 
 - [docs/LESSONS.md](docs/LESSONS.md): lessons learned (performance, GPU renderers, controller, storage, Play, CI).
+- [docs/QUICK_MENU_STANDARD.md](docs/QUICK_MENU_STANDARD.md): standard quick-menu behavior and integration guide, based on GBSat.
 - [docs/QUICK_MENU_STANDARD.md](docs/QUICK_MENU_STANDARD.md): mandatory GBSat-based in-game quick-menu layout, options, navigation and focus behavior.
 - [docs/APP_README_TEMPLATE.md](docs/APP_README_TEMPLATE.md): every app has its own README, written from this template (same sections in every app).
 
@@ -101,6 +103,7 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 - Only emulator-independent code lives here: no core, JNI or console-specific options.
 - **All new GB-family Android apps must use the `app.<app-slug>.emulator` applicationId convention** documented above.
 - **Every GB-family Android app must follow the [GBSat-based quick-menu standard](docs/QUICK_MENU_STANDARD.md)** for layout, item hierarchy, submenu/back behavior and controller focus. Options are capability-aware: never expose inert or unsupported controls.
+- Use the shared `QuickMenuHost`, `QuickMenuPage`, `QuickMenuScope`, `QuickMenuItemRow` and `QuickMenuItemContainer` implementation in `gbframe/QuickMenu.kt`; do not re-create the panel/navigation/focus primitives in each app.
 - A change here reaches every app when it updates the submodule (`git submodule update --remote libs/gbframe`).
 
 ## License
