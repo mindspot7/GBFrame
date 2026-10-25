@@ -303,7 +303,8 @@ fun CoverCard(
     val scale by animateFloatAsState(if (focused) focusScale else 1f, label = "scale")
     val reflH = if (reflection) height * 0.16f else 0.dp
     // The cover area is tall enough for the tallest covers (ratio 0.66), so no cover is ever cut; covers sit on its bottom
-    val boxH = width / 0.66f
+    val ratio = Covers.frameAspectRatio
+    val boxH = width / ratio
     Column(modifier.zIndex(if (focused) 1f else 0f).width(width)
         .graphicsLayer { scaleX = scale; scaleY = scale; transformOrigin = TransformOrigin(0.5f, boxH / (boxH + reflH)) }) {
         Box(
@@ -317,7 +318,7 @@ fun CoverCard(
         ) {
             if (cover != null) {
                 // Covers are normalized to one fixed frame ratio by Covers.decode().
-                val ratio = 0.66f
+                val ratio = Covers.frameAspectRatio
                 Image(cover, title, Modifier.fillMaxWidth().aspectRatio(ratio).clip(RoundedCornerShape(10.dp))
                     .border(1.dp, palette.border, RoundedCornerShape(10.dp)), contentScale = ContentScale.Fit)
             } else {
@@ -523,7 +524,7 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
                 val withRefl = !compact && room / 1.44f >= 110.dp
                 val k = if (withRefl) 1.44f else 1.26f // (growth + cover box + reflection) per dp of card height
                 val cardH = (room / k).coerceIn(64.dp, 260.dp)
-                val boxH = cardH * 0.72f / 0.66f
+                val boxH = cardH * 0.72f / Covers.frameAspectRatio
                 Shelf(games, version, cardH * 0.72f, cardH, first, reflection = withRefl, focusScale = s, actions = actions, startPad = 20.dp,
                     topRoom = boxH * (s - 1f) + if (fullscreen) 8.dp else 12.dp, edge = if (fullscreen) 32.dp else 24.dp) { g, _ -> selected = g } // lined up with the title
             }
