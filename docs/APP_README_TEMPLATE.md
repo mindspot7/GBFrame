@@ -60,6 +60,8 @@ with the same key, so updates install over each other.
 
 ## Building
 
+Android package convention: set both Gradle `namespace` and `applicationId` to the same `app.<app-slug>.emulator` value. Source-code package declarations may differ; in that case use fully qualified component class names in the manifest and keep JNI entry points aligned with the actual source package.
+
 | Path | Contents |
 | --- | --- |
 | `apps/android` | Android app: Kotlin/Compose UI and the JNI bridge |

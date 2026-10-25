@@ -63,16 +63,16 @@ dependencies { implementation(project(":gbframe")) }
 
 Use the following Android package identity convention for every new GB-family app:
 
-- Set the app's **`applicationId`** to `app.<app-slug>.emulator`, all lowercase. Use the stable product slug, not a console name that may later change. Examples: GBSat → `app.gbsat.emulator`; GBCast → `app.gbcast.emulator`.
+- Set both **`applicationId` and Gradle `namespace` to the exact same value**: `app.<app-slug>.emulator`, all lowercase. Use the stable product slug, not a console name that may later change. Examples: GBSat → `app.gbsat.emulator`; GBCast → `app.gbcast.emulator`.
 - Describe the app with the standard label **`<Manufacturer> <Console> Emulator for Android`**, e.g. `Sega Saturn Emulator for Android` (`emulatorLabel(manufacturer, console)`). The kit's `AboutPage(appName, manufacturer, console, icon, credits, license)` (Settings → About) shows it under the app name, followed by the version and the **Application id**, then Credits and License; apps do not build their own About page.
-- Keep **`namespace`** and the source-code package separate from `applicationId`. They may remain app-specific implementation namespaces (for example, `app.gbsat.android`); do not globally rename Java/Kotlin packages just to match the install ID.
+- The Java/Kotlin source package may remain implementation-specific and different from that shared ID; changing the `namespace` does not automatically rename source classes or JNI entry points. If a source package differs from the namespace, use fully qualified class names in the manifest (for example, `app.gbsat.android.MainActivity`) and keep JNI symbols aligned with the actual source package. Paths under `Android/media` follow the `applicationId`.
 - Before changing an ID after public distribution, remember that Android treats it as a different app: it won't update the old package in place or automatically migrate its private data. Choose the ID before the first release.
-- Audit manifest authorities, deep links, backup rules and any hard-coded package references when choosing or changing the ID. Prefer authorities derived from `${applicationId}` when appropriate.
+- Audit manifest component names, authorities, deep links, backup rules, external-media paths and hard-coded package references when changing the ID or namespace. Prefer authorities derived from `${applicationId}` when appropriate.
 
 ```kotlin
 // apps/android/app/build.gradle.kts (example)
 android {
-    namespace = "app.gbsat.android" // implementation namespace
+    namespace = "app.gbsat.emulator" // must equal applicationId
     defaultConfig {
         applicationId = "app.gbsat.emulator" // stable Android app identity
     }
@@ -102,7 +102,7 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 ## Rules
 
 - Only emulator-independent code lives here: no core, JNI or console-specific options.
-- **All new GB-family Android apps must use the `app.<app-slug>.emulator` applicationId convention** documented above.
+- **All GB-family Android apps must set both `applicationId` and Gradle `namespace` to the same `app.<app-slug>.emulator` value** documented above.
 - **Every GB-family Android app must follow the [GBSat-based quick-menu standard](docs/QUICK_MENU_STANDARD.md)** for layout, item hierarchy, submenu/back behavior and controller focus. Options are capability-aware: never expose inert or unsupported controls.
 - **Cheats and achievements are standard features across the GB app family.** Use GBFrame's `CheatsScreen` with a core-specific `CheatsBackend`, and `AchievementsScreen` with the shared `RetroAchievements` client plus an app-specific `RaBackend`. Reuse these UIs; do not fork per-app versions.
 - Use the shared `QuickMenuHost`, `QuickMenuPage`, `QuickMenuScope`, `QuickMenuItemRow` and `QuickMenuItemContainer` implementation in `gbframe/QuickMenu.kt`; do not re-create the panel/navigation/focus primitives in each app.

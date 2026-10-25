@@ -9,7 +9,9 @@ set TITLE=GBSat
 set NAME=gbsat
 set REPO=mindspot7/GBSat
 set BRANCH=android-port
-set APP=app.gbsat.android
+set APP=app.gbsat.emulator
+rem APP is both applicationId and namespace; ACTIVITY is the fully qualified source class (it may use a different package).
+set ACTIVITY=app.gbsat.android.MainActivity
 rem Workflow da build de profiling, tag do log do Android com a linha "Game: <nome>" e thread de emulacao (profile)
 set PROFILE_WF=profile.yml
 set LOGTAG=GBSat
@@ -59,7 +61,7 @@ rem ----------------------------------------------------------------------------
 :perflog
 call :aparelho || goto menu
 adb shell rm -f %MEDIA%/perf-log.csv
-adb shell am start -n %APP%/.MainActivity >nul
+adb shell am start -n %APP%/%ACTIVITY% >nul
 echo.
 echo No aparelho: jogue o jogo por ~1 minuto ^(luta/fase, nao so menus^).
 echo Para comparar uma opcao ^(renderer, audio em thread^), troque pelo menu do jogo e jogue mais na mesma cena.
@@ -118,7 +120,7 @@ goto menu
 rem ---------------------------------------------------------------------------------------------------------------------
 :rolagem
 call :aparelho || goto menu
-adb shell am start -n %APP%/.MainActivity >nul
+adb shell am start -n %APP%/%ACTIVITY% >nul
 echo.
 echo Deixe o %TITLE% na biblioteca ^(fora de um jogo^). Ao apertar uma tecla, segure direita ~10 s e depois esquerda,
 echo sem tocar na tela; aperte outra tecla quando terminar.
@@ -264,7 +266,7 @@ if not "%ERR%"=="0" (
 )
 echo == Compilando o app no aparelho ^(~30 s^)...
 adb shell cmd package compile -m speed-profile -f %APP% >nul
-adb shell am start -n %APP%/.MainActivity >nul
+adb shell am start -n %APP%/%ACTIVITY% >nul
 echo Instalado.
 exit /b 0
 

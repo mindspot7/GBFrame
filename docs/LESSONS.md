@@ -94,6 +94,7 @@ line here whenever a new app teaches something that would have saved time.
 
 ## CI
 
+- For every GB-family Android app, set Gradle `namespace` equal to `applicationId` (`app.<app-slug>.emulator`). Source Kotlin/Java packages may differ, but manifest component names must then be fully qualified and JNI export names must follow the real source package. Android external-media paths follow `applicationId`, not the source package.
 - Build only on GitHub Actions; watch every run and fix warnings too (deprecated actions included).
 - Shared submodules (like this kit) must be public, or the app's CI can't clone them.
 - Counting fast cores is not enough to classify a device: chips with equal little cores (RK3566, 4x A55) look like
