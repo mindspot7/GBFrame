@@ -302,7 +302,7 @@ fun CoverCard(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) focusScale else 1f, label = "scale")
     val reflH = if (reflection) height * 0.16f else 0.dp
-    // The cover area is tall enough for the tallest covers (ratio 0.66), so no cover is ever cut; covers sit on its bottom
+    // The cover area uses the system's selected frame ratio, so covers sit on its bottom without being cut
     val ratio = Covers.frameAspectRatio
     val boxH = width / ratio
     Column(modifier.zIndex(if (focused) 1f else 0f).width(width)
@@ -327,7 +327,7 @@ fun CoverCard(
         }
         if (reflection) {
             if (cover != null) {
-                val ratio = 0.66f
+                val ratio = Covers.frameAspectRatio
                 // Mirror of the cover's bottom part, fading out, baked once into a small bitmap when the cover loads and drawn
                 // as a plain image. Drawing it live was slow on the Mali-G52 while scrolling: an offscreen layer per cover (to
                 // fade with DstIn) cost GPU time on every frame, and a combined bitmap+gradient shader made the draw commands
@@ -822,8 +822,8 @@ fun BoxArt3D(cover: ImageBitmap, modifier: Modifier = Modifier) {
     val bmp = remember(cover) { cover.asAndroidBitmap() }
     androidx.compose.foundation.Canvas(modifier) {
         val W = size.width; val H = size.height
-        // Covers.decode() normalizes all artwork to the same ratio; keep the 3D face fixed regardless of source scan.
-        val ratio = 0.66f
+        // Covers.decode() normalizes all artwork to the same ratio; keep the 3D face aligned to the system's shared box-art frame.
+        val ratio = Covers.frameAspectRatio
         val depth = W * 0.11f                    // visible spine width
         val faceW = W - depth
         val faceH = (faceW / ratio).coerceAtMost(H * 0.97f)
