@@ -79,3 +79,14 @@ Follow [BOXART_STANDARD.md](BOXART_STANDARD.md) when initializing GBFrame's shar
 Reuse GBFrame components and helpers for shared screens, menu state, navigation, controller capture, library shortcuts, and Back behavior. The app supplies real core actions, persistence, metadata, its launcher icon resources, and adapters such as `RaBackend` or `CheatsBackend`. When a shared helper documents dispatch order or lifecycle, follow that contract rather than adding a parallel app-local state machine.
 
 - **Touch controls:** hide/disable on-screen touch controls whenever a non-virtual physical gamepad or joystick is connected, including built-in handheld controls. Detect devices by `SOURCE_GAMEPAD` or `SOURCE_JOYSTICK` and ignore virtual devices. Re-evaluate on device add/change/remove so touch controls reappear when the last physical controller disconnects. The user's touch-controls preference is still respected when no physical controller is connected.
+
+
+## Color and theme contract
+
+Every consumer must use GBFrame's `EmuTheme` as the single root theme provider. Do not create a parallel app-local Material color scheme or fork shared component styling. App-specific screens must read `palette` / `MaterialTheme.colorScheme` instead of hard-coding decorative colors.
+
+- **Consistency:** all shared and app-owned screens (library, settings, quick menu, dialogs, wizard, About and gameplay overlays) must use the active `EmuPalette` and Material color scheme. Palette changes must propagate through the entire UI, not only the library.
+- **No arbitrary decorative colors:** shared components must use palette tokens for accents, highlights, surfaces, panels, cards, borders and secondary text. Fixed colors are reserved for semantic statuses (for example, warning/error) or for artwork/content that is not UI chrome; semantic colors must remain consistent and legible across palettes.
+- **Contrast and disabled states:** text and icons must remain distinguishable from their surfaces. Use `MaterialTheme.colorScheme` and component color APIs, including explicit disabled-content/container colors when a component does not provide a suitable accessible default. Do not simulate disabled controls only by lowering opacity to an unreadable level. Keep warning/error colors distinguishable from normal accents.
+- **One root provider:** select the app palette exactly once at the root with `EmuTheme(palette = ...)`. Do not nest a second `MaterialTheme`, maintain a duplicate palette, or set local hard-coded backgrounds that visually override the active theme. New shared components must obtain the current palette through `palette` and use Material colors for standard controls.
+- **Review rule:** changes to shared UI must be checked against at least the default palette and a contrasting alternative palette, including enabled, selected, warning and disabled states.
