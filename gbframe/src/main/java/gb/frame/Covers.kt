@@ -21,7 +21,7 @@ import java.net.URL
  */
 object Covers {
     /** Width divided by height, explicitly selected by the consuming app for its system. */
-    var frameAspectRatio: Float = 1.0f
+    var frameAspectRatio: Float = Float.NaN
         private set
     private lateinit var dir: File
     // Bound the cache by bytes, not entry count: a handful of tall covers can otherwise exhaust low-memory devices.
