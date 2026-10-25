@@ -29,6 +29,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
@@ -141,7 +143,10 @@ fun QuickMenuHost(
         repeat(40) {
             val target = focusScope.target()
             if (target != null) {
-                val focused = runCatching { target.requestFocus() }.getOrDefault(false)
+                val focused = runCatching {
+                    target.requestFocus()
+                    true
+                }.getOrDefault(false)
                 if (focused) return@LaunchedEffect
             }
             delay(50)
