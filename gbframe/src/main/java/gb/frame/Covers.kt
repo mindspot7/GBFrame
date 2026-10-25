@@ -20,11 +20,8 @@ import java.net.URL
  * (thumbnails.libretro.com, matched by the disc image's file name) -> placeholder.
  */
 object Covers {
-    /** Default frame ratio retained for apps whose system profile has not changed. */
-    const val DEFAULT_FRAME_ASPECT_RATIO = 0.66f
-
-    /** Width divided by height, selected from the majority box-art format for the active system. */
-    var frameAspectRatio: Float = DEFAULT_FRAME_ASPECT_RATIO
+    /** Width divided by height, explicitly selected by the consuming app for its system. */
+    var frameAspectRatio: Float = 1.0f
         private set
     private lateinit var dir: File
     // Bound the cache by bytes, not entry count: a handful of tall covers can otherwise exhaust low-memory devices.
@@ -49,7 +46,7 @@ object Covers {
         dataDir: File,
         system: String,
         aliases: Map<String, String> = emptyMap(),
-        frameAspectRatio: Float = DEFAULT_FRAME_ASPECT_RATIO,
+        frameAspectRatio: Float,
     ) {
         require(frameAspectRatio.isFinite() && frameAspectRatio in 0.35f..2.5f) {
             "Box-art frame aspect ratio must be between 0.35 and 2.5"
