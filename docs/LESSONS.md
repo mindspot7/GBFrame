@@ -67,6 +67,7 @@ line here whenever a new app teaches something that would have saved time.
   first item, never let the game `SurfaceView` take key focus, let Android map hat-axis D-pads to D-pad keys while a
   menu is open, and handle global buttons (Select, B in dialogs) in the Activity.
 - With targetSdk 36 (predictive back), map the controller's B to `onBackPressedDispatcher.onBackPressed()`.
+- Cheats and achievements are shared GBFrame UI components, not app-specific screens: `CheatsScreen` receives a core-specific `CheatsBackend`, while `AchievementsScreen` uses the common `RetroAchievements` client with an app-specific `RaBackend`. Keep parsing, save/apply APIs and hashing in the app/core adapter; standardize presentation and navigation in GBFrame.
 - When a screen leaves composition, clear any focus flags stored outside Compose state. A stale `hasFocus=true` can make focus restoration skip the requester and leave selection behind an overlay. Do not attach one `FocusRequester` to multiple controls when only one should receive initial focus.
 - Standardize the in-game quick menu across GB-family apps against GBSat: left-side dimmed panel, same root item order, matching submenu hierarchy, system Back/B stack behavior, pause/resume semantics, and return focus to the item that opened a submenu. Keep the visuals themed and expose only capabilities actually implemented by the app/core; see [QUICK_MENU_STANDARD.md](QUICK_MENU_STANDARD.md).
 

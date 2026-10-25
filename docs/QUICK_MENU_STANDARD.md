@@ -102,10 +102,10 @@ Use the GBSat pattern for session/game-specific actions:
 
 - **Reset** — reset the current game after performing any required confirmation.
 - **Disc tray** — expose real open/close or disc-switching behavior when the core supports a disc tray or equivalent multi-disc operation.
-- **Cheats** — open the app's actual cheat UI only if supported.
-- **Achievements** — open the app's actual achievement UI only if supported.
+- **Cheats** — use the shared GBFrame `CheatsScreen` with an app/core-specific `CheatsBackend`. Every GB-family app should use this component; the adapter owns code validation/parsing, database lookup, per-game persistence and applying cheats to the core. If the core cannot apply cheats, keep the shared screen and clearly report the limitation rather than exposing fake controls.
+- **Achievements** — use the shared GBFrame `AchievementsScreen` and `RetroAchievements` UI with the app's `RaBackend` adapter. Keep the menu entry available when the app has initialized the backend, even if RetroAchievements is disabled or the user is not logged in; the screen/settings should explain how to enable or sign in rather than hiding the feature.
 
-Keep nested screens such as Cheats and Achievements inside the quick-menu navigation stack. Back from a nested screen must return to the Game submenu, not dismiss the whole quick menu.
+These are standard GB-family features, not opportunities to create separate per-app UI. The specific native/core implementation still belongs to the app. Keep nested screens inside the quick-menu navigation stack. Back from Cheats or Achievements must return to the Game submenu and restore focus to the row that opened it.
 
 ## Navigation and controller contract
 
@@ -141,6 +141,19 @@ val rootPage = QuickMenuPage("root", "Paused") {
 }
 QuickMenuHost(rootPage, gameTitle = currentGameTitle, onDismiss = resumeGame)
 ```
+
+For Cheats and Achievements, create app-level pages that call the shared screens:
+
+```kotlin
+val cheatsPage = QuickMenuPage("cheats", "Cheats", fullScreen = true) {
+    CheatsScreen(backend = appCheatsBackend, onBack = { back() })
+}
+val achievementsPage = QuickMenuPage("achievements", "Achievements", fullScreen = true) {
+    AchievementsScreen(onBack = { back() })
+}
+```
+
+The app must initialize `RetroAchievements` with its `RaBackend` adapter and provide `appCheatsBackend` as a `CheatsBackend` implementation. The backend handles core-specific code formats and native calls; the shared screen handles presentation, editing flow, file selection, controller-compatible navigation and feedback.
 
 In real code, keep the standard root order from this document, and create submenu entries only when the app capability model confirms that the action is implemented. Use `fullScreen = true` for existing full-window subpages such as cheat/achievement screens that still need to participate in the same Back stack.
 ## Implementation contract

@@ -24,6 +24,7 @@ Keep the section order; drop a row or section only when the app really doesn't h
 | 🎮 **Built for handhelds** | Full controller navigation, remapping on a drawing of the console's controller, touch controls |
 | 💾 **Save states** | Slots with screenshots, auto save/load, "Resume" view with the latest state of each game |
 | 🏆 **RetroAchievements** | Login, hardcore mode, notifications, achievement list |
+| 🎯 **Cheats** | Per-game cheat list, custom codes and file import; core-specific code formats and databases where available |
 | 🖼️ **Game library** | Box art from libretro-thumbnails, custom covers, play time |
 | ⚡ **Quick presets** | High / Mid / Low in the setup wizard |
 
@@ -36,6 +37,8 @@ Keep the section order; drop a row or section only when the app really doesn't h
 - <Feature list by area: emulation, video, audio, input, saves, library, settings>
 
 **In-game quick menu:** follow the shared [GBFrame quick-menu standard](https://github.com/mindspot7/GBFrame/blob/main/docs/QUICK_MENU_STANDARD.md), based on GBSat. Keep the standard layout and navigation; list only options that the app/core really supports.
+
+**Cheats and achievements:** reuse the GBFrame `CheatsScreen`/`CheatsBackend` and `AchievementsScreen`/`RaBackend` components. Document any core-specific limitation; do not fork the shared UI.
 
 ## Requirements
 
