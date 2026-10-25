@@ -18,7 +18,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `RetroAchievements.kt` | RetroAchievements client logic (login, hardcore, notifications, per-game achievement lists); the app implements `RaBackend` with its native rcheevos client |
 | `RaOffline.kt` | Offline achievements (casual only): caches login/game/session answers while online, queues offline unlocks and syncs them later with the real unlock time |
 | `PlayTime.kt` | Play time (`PlayTime.update(game, counting)`), `formatPlayTime` |
-| `SaveData.kt` | Game-named save folders (`gameFolderName`), Export (saves + save states) / Import |
+| `SaveData.kt` | Game-named save folders (`gameFolderName`), the shared five-slot manual save-state limit (`MANUAL_SAVE_STATE_SLOTS`), Export (saves + save states) / Import |
 | `ResumeEntry.kt` | Save-state entry model (`ResumeEntry`) used by the All in One layout; there is no separate Recent library mode |
 | `QuickMenu.kt` | Shared in-game menu host (`QuickMenuHost`), page/Back stack (`QuickMenuPage`, `QuickMenuScope`), capability-aware action rows and custom focusable rows with focus restoration |
 | `Home.kt` | Home screen: `HomeTopBar` (icon, label, clock, battery) and `HomeLibrary` in three layouts (Showcase, Grid, All in One). The main menu's LIBRARY tiles cycle Theme (Showcase/Grid/All in One) and toggle Fullscreen; there is no separate All games/Recent mode. `HomeThemeSettings` remains as an empty compatibility entry point. `HomeMenuPanel` main menu (library view, settings tiles, quit); `HomeTheme` remembers the selected theme; `CoverCard` box art |
@@ -99,12 +99,12 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 - [docs/LESSONS.md](docs/LESSONS.md): lessons learned (performance, GPU renderers, controller, storage, Play, CI).
 - [docs/QUICK_MENU_STANDARD.md](docs/QUICK_MENU_STANDARD.md): mandatory GBSat-based in-game quick-menu layout, options, navigation and focus behavior.
 - [docs/APP_README_TEMPLATE.md](docs/APP_README_TEMPLATE.md): every app has its own README, written from this template (same sections in every app).
-- [docs/APP_INTEGRATION_STANDARD.md](docs/APP_INTEGRATION_STANDARD.md): mandatory app identity, launcher icon reuse, development/release APK naming, library input dispatch and Back lifecycle.
+- [docs/APP_INTEGRATION_STANDARD.md](docs/APP_INTEGRATION_STANDARD.md): mandatory app identity, launcher icon reuse, development/release APK naming, library input/Back lifecycle, game-launch callbacks and the five-slot manual save-state limit.
 
 ## Rules
 
 - Only emulator-independent code lives here: no core, JNI or console-specific options.
-- **All GB-family Android apps must follow the [app integration standard](docs/APP_INTEGRATION_STANDARD.md)** for package identity, use of the app's same launcher icon in the top bar, main menu and About page, APK/artifact names, and library input/navigation lifecycle.
+- **All GB-family Android apps must follow the [app integration standard](docs/APP_INTEGRATION_STANDARD.md)** for package identity, use of the app's same launcher icon in the top bar, main menu and About page, APK/artifact names, library input/navigation lifecycle, `HomeActions` launch semantics, SAF disc lifetime, and the shared five-slot manual save-state limit.
 - **Every GB-family Android app must follow the [GBSat-based quick-menu standard](docs/QUICK_MENU_STANDARD.md)** for layout, item hierarchy, submenu/back behavior and controller focus. Options are capability-aware: never expose inert or unsupported controls.
 - **Cheats and achievements are standard features across the GB app family.** Use GBFrame's `CheatsScreen` with a core-specific `CheatsBackend`, and `AchievementsScreen` with the shared `RetroAchievements` client plus an app-specific `RaBackend`. Reuse these UIs; do not fork per-app versions.
 - Use the shared `QuickMenuHost`, `QuickMenuPage`, `QuickMenuScope`, `QuickMenuItemRow` and `QuickMenuItemContainer` implementation in `gbframe/QuickMenu.kt`; do not re-create the panel/navigation/focus primitives in each app.
