@@ -104,7 +104,7 @@ of these repositories.
 ## Interface and controller behavior
 
 - Use this kit (`gb.frame`): `EmuTheme` with the app's palette (GBSat: `EmuPalettes.Violet`; new apps:
-  `EmuPalette.fromAccent(color)`), settings blocks, the standard `AboutPage` (label, version, Application id, credits, license), `ConfirmDialog`, `MenuIconView`, `PerfOverlay`, `rememberHasGamepad`, the first-run `SetupWizard`
+  `EmuPalette.fromAccent(color)`), settings blocks, the standard `AboutPage` (label, version, Application id, credits, license), the standard `ControlsPage(host)` (Controller / Hotkeys / Touch tabs, the console's controller drawing, button mapping, hotkeys), `ConfirmDialog`, `MenuIconView`, `PerfOverlay`, `rememberHasGamepad`, the first-run `SetupWizard`
   (no preset question: the preset is chosen from `DeviceTier`, and Settings → Performance shows the device class and it), box art (`Covers`, libretro-thumbnails), the home screen (`HomeTopBar`, `HomeLibrary`, `HomeTheme`, `HomeMenuPanel`) and RetroAchievements
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`, offline
   casual unlocks through `RaOffline`), the games folder (`SafGames`), hotkeys (`Hotkeys`), per-game recommended
@@ -138,6 +138,11 @@ of these repositories.
   mode, so moving needed two presses; it sends D-pad keys in touch mode straight to the Activity.
 - X (menu), Start (theme) and getting the focus back after a tap are handled in the Activity, since Compose key handlers only see keys
   while something is focused; `HomeLibrary(refocus = …)` puts the focus back on the library.
+- Controls page (Settings → Controls): an app implements `ControlsHost` (its console name, `PadLayout`, `ControlButton` list,
+  where bindings/hotkeys/options are stored; see GBSat's `SaturnControls`) and shows `ControlsPage(host) { console-specific rows }`
+  plus `ControlsCapturePrompts(host)` over the settings screen. `ControlsCapture.dispatch(event, host)` (first in the
+  Activity's `dispatchKeyEvent`, and `ControlsCapture.active(host)` as `HomeKeys.dispatch`'s `enabled` condition) turns the
+  next presses into bindings. Tabs, controller drawing, mapping rows, hotkey rows, prompts and texts are the kit's.
 - While the main menu is open the app passes `HomeLibrary(focusEnabled = false)`, so the library never competes with the
   menu for the focus (that race made the menu lose its selected entry when returning from a settings page); when the menu
   closes (or the layout changes) the library takes the focus back on the game selected last. The focus requester sits on the
