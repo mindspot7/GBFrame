@@ -25,7 +25,7 @@ The consuming app owns its launcher icon in its own Android resources; GBFrame m
 
 - Use the app's launcher icon artwork in `HomeTopBar`, `HomeMenuPanel`, and `AboutPage`. These three places must show the same icon identity as the installed app.
 - Pass the same icon resource/painter to all three components when possible. If an adaptive launcher asset cannot render inline, use an inline-compatible asset derived from the exact same icon artwork; do not substitute a different logo or core icon.
-- Render shared UI instances through GBFrame `AppIcon`, which adds the standard dark keyline and active-palette outline while preserving the supplied artwork. This treatment is mandatory in the top bar, main menu, and About page. The launcher asset itself must use the same outlined artwork so Android's launcher icon matches the in-app icon.
+- Use the app's original launcher artwork in the top bar, main menu, and About page. Keep icon presentation consistent across these locations without adding a GBFrame-specific outline.
 - Keep the displayed app name consistent across the top bar, main menu, and About page.
 - GBSat uses `R.mipmap.ic_launcher` for all three. Each app owns and supplies its own icon resource.
 - Do not omit the app icon from the top bar or About page.
