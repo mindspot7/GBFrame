@@ -1,8 +1,13 @@
 name: Build GBFrame
 
-# Manual build gate: batch source changes first, then run one validation build.
+# Keep builds controlled: manual dispatch or an explicit trigger-file commit.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/run-build.trigger
 
 jobs:
   build:
