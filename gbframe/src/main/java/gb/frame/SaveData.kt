@@ -12,6 +12,9 @@ import java.io.File
  *   folder (also one level down).
  */
 object SaveData {
+    /** Maximum number of numbered/manual save-state slots exposed by GB-family apps. */
+    const val MANUAL_SAVE_STATE_SLOTS = 5
+
     /** Folder name for a game: its file name without extension, minus characters folders can't hold. */
     fun gameFolderName(gamePath: String): String =
         gamePath.substringAfterLast('/').substringBeforeLast('.').replace(Regex("[\\\\/:*?\"<>|]"), "_").trim().ifEmpty { "game" }
