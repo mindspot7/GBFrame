@@ -35,6 +35,8 @@ Keep the section order; drop a row or section only when the app really doesn't h
 
 - <Feature list by area: emulation, video, audio, input, saves, library, settings>
 
+**In-game quick menu:** follow the shared [GBFrame quick-menu standard](QUICK_MENU_STANDARD.md), based on GBSat. Keep the standard layout and navigation; list only options that the app/core really supports.
+
 ## Requirements
 
 - Android <min> or newer, 64-bit ARM (arm64-v8a)
