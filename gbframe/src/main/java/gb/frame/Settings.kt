@@ -32,7 +32,7 @@ fun SettingsGroup(title: String?, icon: ImageVector?, content: @Composable Colum
 }
 
 @Composable
-fun SettingsDivider() = HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = Color.White.copy(alpha = .08f))
+fun SettingsDivider() = HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = palette.border.copy(alpha = .55f))
 
 @Composable
 fun RowIcon(icon: ImageVector, warn: Boolean = false) {
@@ -48,7 +48,7 @@ fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, on
         RowIcon(icon)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = Color.White)
+            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             if (sub != null) Text(sub, style = MaterialTheme.typography.bodySmall, color = palette.dim)
         }
         Spacer(Modifier.width(12.dp))
@@ -62,8 +62,8 @@ fun ActionRow(icon: ImageVector, title: String, sub: String?, action: String, on
         RowIcon(icon, warn)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = Color.White)
-            if (sub != null) Text(sub, style = MaterialTheme.typography.bodySmall, color = if (warn) Color(0xFFFFB199) else palette.dim,
+            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+            if (sub != null) Text(sub, style = MaterialTheme.typography.bodySmall, color = if (warn) palette.warn else palette.dim,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(12.dp))
@@ -82,9 +82,9 @@ fun ChoiceRow(title: String, sub: String?, options: List<String>, selected: Int,
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { i, label ->
                 SegmentedButton(selected = i == selected, onClick = { onSelect(i) }, shape = SegmentedButtonDefaults.itemShape(i, options.size),
-                    colors = SegmentedButtonDefaults.colors(activeContainerColor = p.highlight.copy(alpha = .25f), activeContentColor = Color.White,
+                    colors = SegmentedButtonDefaults.colors(activeContainerColor = p.highlight.copy(alpha = .25f), activeContentColor = MaterialTheme.colorScheme.onSecondary,
                         inactiveContainerColor = Color.Transparent, inactiveContentColor = p.dim, activeBorderColor = p.highlight.copy(alpha = .6f),
-                        inactiveBorderColor = Color.White.copy(alpha = .2f)),
+                        inactiveBorderColor = p.border),
                 ) { Text(label, maxLines = 1) }
             }
         }
