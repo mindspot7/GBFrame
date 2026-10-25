@@ -1,8 +1,7 @@
 name: Build GBFrame
 
+# Manual build gate: batch source changes first, then run one validation build.
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 jobs:
