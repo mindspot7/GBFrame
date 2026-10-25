@@ -1,16 +1,12 @@
 package gb.frame
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Gavel
@@ -20,8 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +49,7 @@ fun AboutPage(
     val p = palette
     SettingsGroup(null, null) {
         Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            AppIcon(icon, Modifier.size(72.dp))
+            Image(icon, null, Modifier.size(72.dp))
             Spacer(Modifier.height(12.dp))
             Text(appName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(emulatorLabel(manufacturer, console), color = p.dim)
@@ -73,23 +67,5 @@ fun AboutPage(
     }
     SettingsGroup("License", Icons.Default.Gavel) {
         Text(license, style = MaterialTheme.typography.bodySmall, color = p.dim, modifier = Modifier.padding(16.dp))
-    }
-}
-
-
-/**
- * Shared app-brand icon treatment. Keeps the app's original artwork and adds the same dark keyline plus palette-colored
- * outer outline anywhere GBFrame displays the app icon (top bar, main menu and About).
- */
-@Composable
-fun AppIcon(icon: Painter, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(18.dp)
-    Box(
-        modifier.clip(shape)
-            .border(2.dp, Color(0xFF171321), shape)
-            .border(1.dp, palette.highlight, shape)
-            .padding(3.dp),
-    ) {
-        Image(icon, null, Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)))
     }
 }
