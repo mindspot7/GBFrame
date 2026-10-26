@@ -61,11 +61,18 @@ Use GBFrame's `HomeLibrary` and `HomeActions` for the library selection UI. Pres
 - `fresh(game)` starts the game without loading a saved state.
 - `options(game)` opens the per-game options from Y/long-press.
 - `resume(entry)` loads the exact selected `ResumeEntry` state.
-- Save the selected game before launching so the library can restore its selection when the user returns. For asynchronous core startup, prevent duplicate launch requests and provide progress/failure feedback so the user is not left with a blocked library.
+- Save the selected game before launching so the library can restore its selection when the user returns. For asynchronous core startup, prevent duplicate launch requests, show GBFrame's `LaunchLoadingOverlay` until the handoff finishes, and provide failure feedback so the user is not left with a blocked library.
 
 Use `SafGames.scan` for the shared SAF library. For a synchronous core load callback, use `SafGames.openAndLoad`; it retains opened disc resources for the session and applies the shared CHD/ISO copy fallback. Close `OpenDisc` on load failure or when the game session ends. An asynchronous/path-based core may use `SafGames.open` and its own adapter, but must preserve the same open lifetime and error handling. If the core reopens referenced tracks by path, materialize the staged descriptors into usable files before releasing them; keep this core-specific staging in the app adapter.
 
 The shared manual save-state limit is `SaveData.MANUAL_SAVE_STATE_SLOTS = 5`. Use that constant instead of app-local counts and expose at most five numbered slots per core. Quick-save, auto-save, and other automatic states are separate features and do not increase the numbered-slot limit.
+
+## Google Play readiness
+
+- Use the Storage Access Framework and app-private storage. Do not request broad read/write external-storage permissions or legacy external-storage behavior.
+- Keep automatic cover downloads and every fallback provider optional and replaceable. Before enabling a provider in a Play build, document its API authorization, attribution and media-licensing terms; an open-source API client does not by itself license the returned cover artwork.
+- Do not bundle BIOS files, games, console logos or third-party cover art. Store-listing screenshots and promotional art must use material the publisher is authorized to distribute.
+- Keep a repository privacy policy synchronized with every network endpoint, credential/token, crash-report option and Android permission used by the app.
 
 ## Gameplay pause and Android foreground lifecycle
 
