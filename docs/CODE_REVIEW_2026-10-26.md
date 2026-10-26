@@ -312,3 +312,13 @@ Commits on GBCast android-port:
 This policy is scoped to the offline-proxy host override, not the normal/online RetroAchievements flow. It is intentionally device-loopback-only: if the offline proxy runs on a separate LAN device or on the development host via 10.0.2.2, that is not supported by this policy.
 
 Remaining checks: run the standard GBCast build/unit tests/release packaging/16 KB validation and Android Lint on the resulting branch head, then verify SET/CLEAR and normal online behavior on-device. The exported receiver still does not authenticate the broadcast sender, and RAOfflineProxy's package/component mismatch remains a separate open integration issue.
+
+### Validation result — loopback-only offline proxy policy (2026-10-26)
+
+The latest GBCast CI runs for the local-only offline proxy override completed successfully:
+- Android build/test/package workflow on commit `2ac7f2bfdb9570396ff3f88bd5d5cfb479eaaf4e`: [run #40370599373](https://github.com/mindspot7/GBCast/actions/runs/40370599373) — success.
+- Android Lint on commit `2f12d83de960e5c7a8da04cd13515ada7f1afe9b`: [run #40370532437](https://github.com/mindspot7/GBCast/actions/runs/40370532437) — success.
+
+RAOfflineProxy's current Flycast configuration was re-read. It only lists `com.flycast.emulator` as the Flycast package candidate and targets `com.flycast.emulator.RetroAchievementsHostOverrideReceiver`. GBCast retains that receiver class name but its installed application ID is `app.gbcast.emulator`, so RAOfflineProxy will not automatically discover GBCast until its Flycast package-candidate mapping is updated upstream. A request to document this compatibility gap on RAOfflineProxy's integration-tracking issue could not be posted because the GitHub integration returned HTTP 403 (resource not accessible); no upstream file or issue was changed.
+
+Still unverified: on-device SET/CLEAR behavior, actual offline achievement queueing and upload after reconnect, and confirmation that ordinary online RetroAchievements works unchanged. The exported receiver sender-authentication concern also remains open. CI success confirms build/lint/unit-test gates only, not the full device integration.
