@@ -113,7 +113,28 @@ The user installed and tested the resulting GBSat build #361 and GBCast build #5
 
 ### Next implementation sequence
 
-1. Add a small, independently testable GBSat menu/pause transition policy without changing the native explicit-state setter's semantics; wire it into the UI adapter and run JVM tests.
-2. Keep the GBCast native toggle fallback unchanged until transition/event ordering is covered by targeted device checks. Its pure Back-decision tests run in CI, but they do not test JNI lifecycle timing.
-3. Extend the device regression matrix to rapid repeated Back, root versus nested Back, scrim/close, hotkey open, background/foreground, native-settings return, Reset/Restart, and Exit.
-4. Run dependency-aware lint/static diagnostics before deleting any suspected unused Kotlin declarations. Do not treat text-only reference scans as proof of dead code.
+The user reports that the quick menus appear to work correctly in device testing. Avoid changing menu behavior without a reproducible defect. Priorities for the next static-analysis pass are:
+
+1. Run Android Lint/Gradle diagnostics in each consumer repository where the environment and workflow permit; separate pre-existing baseline findings from regressions and do not delete symbols based on text search alone.
+2. Review workflow triggers and validation parity, especially whether GBCast checks should run on relevant source changes rather than only the dedicated build trigger file.
+3. Verify the app-ID consistency scripts against their manifests, Gradle configuration, and device tools, and ensure the GBFrame script remains explicitly documented as a GBSat-oriented template.
+4. Keep native-core audit and broader device lifecycle scenarios out of the “verified” category unless those checks are actually run.
+
+
+### Follow-up — foreground lifecycle behavior validated (2026-10-26)
+
+The Android foreground/background resume fix was committed to GBSat and GBCast and the user manually tested both apps, reporting that the behavior worked. CI builds also succeeded:
+
+- GBSat commit `fe47aceb79f81dcda9e3e1e6989dcb8bc19b31d8`; build #369: https://github.com/mindspot7/GBSat/actions/runs/40349125808
+- GBCast commit `09d46c52c0fbb71267ca379e765e5cb8a532cabe`; build #59: https://github.com/mindspot7/GBCast/actions/runs/40348820064
+
+GBFrame's integration, lessons, and quick-menu standards were updated to describe the lifecycle contract and regression cases. The menu code itself was not changed in this documentation follow-up.
+
+### Follow-up — static review continuation (2026-10-26)
+
+- Confirmed both consumer Gradle files declare `namespace == applicationId`.
+- Confirmed both repositories have a dedicated app-ID consistency workflow.
+- GBSat's checker is intentionally path-specific; GBFrame's copy is labeled as a template that must be adapted rather than copied unchanged.
+- Re-read the GBCast Android workflow and Gradle file: CI passes version/signing values through Gradle properties and no longer edits the tracked build script with text substitutions.
+- Repository code search did not provide reliable results for a comprehensive unused-symbol or hard-coded media-path audit. No code was removed based on these searches.
+- Android Lint has **not yet been executed** in this pass. The workflows currently run targeted JVM tests/build/package checks; those results must not be represented as Lint results. The next implementation task is to introduce a controlled Lint validation step, first observing its findings before considering any automated cleanup.
