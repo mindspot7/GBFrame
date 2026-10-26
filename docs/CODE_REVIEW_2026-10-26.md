@@ -149,3 +149,15 @@ Added manual-only Lint workflows so baseline diagnostics can be collected withou
 Both workflows are triggered only via GitHub Actions Run workflow (`workflow_dispatch`) and do not alter the normal build/release path. They install the Android SDK packages declared by each app and upload reports even if Lint fails.
 
 **Status:** the workflows have been committed, but no run has been started from this session; therefore there are no Lint findings or pass/fail result yet. The next step is to dispatch each workflow, inspect the report artifacts, triage baseline findings, and only then decide whether fixes are warranted.
+
+
+### Follow-up — first Android Lint baseline collected (2026-10-26)
+
+Both manual workflows executed and uploaded HTML/XML reports. The workflow jobs failed because Android Lint reports existing errors; this is a useful baseline, not a release-build regression. GBFrame itself produced warnings/hints only in both consumers, with no Lint errors in its reports.
+
+- GBSat Lint run: https://github.com/mindspot7/GBSat/actions/runs/40356376343 — app module: **7 errors, 18 warnings, 9 hints**; GBFrame module: **0 errors, 23 warnings, 2 hints**. All 7 app errors are `RestrictedApi` reports for `ComponentActivity.dispatchKeyEvent` calls in `MainActivity.kt` (lines 94, 169, 173, 197). These calls are used to remap gamepad key events; review whether narrowly scoped lint suppression is justified or a supported dispatch strategy can replace the direct super calls. Do not change input behavior without controller regression tests.
+- GBCast Lint run: https://github.com/mindspot7/GBCast/actions/runs/40356405485 — app module: **13 errors, 88 warnings**; GBFrame module: **0 errors, 22 warnings**. Errors include `MissingPermission` for microphone capture in `SipEmulator.java:35`, `GestureBackNavigation` in `BaseGLActivity.java:392`, `AppLinkUrlError` for a manifest intent filter without a host, and `RestrictedApi` reports for `dispatchKeyEvent` remapping in `LibraryActivity.kt` and `NativeGLActivity.java`. The microphone issue needs tracing through the permission/request flow before changing behavior; the manifest issue needs checking against the intended deep-link contract; the Back warning needs a predictive-Back compatibility review.
+
+Lint report artifacts were uploaded by the runs (`gbsat-android-lint-reports` and `gbcast-android-lint-reports`) and were inspected in XML form to enumerate the error IDs. Many remaining warnings concern dependency updates, KTX suggestions, SDK checks, static context references, resource usage, and view accessibility. Do not batch-upgrade dependencies or delete resources from Lint suggestions alone; classify each finding and check runtime/manifest/JNI/reflection usage first.
+
+**Next safe action:** address security/behavior-sensitive findings individually, starting with the GBCast microphone permission path and manifest intent-filter contract, then assess the dispatchKeyEvent findings. Keep the manual Lint workflows as diagnostic-only until the baseline is triaged; normal APK build workflows remain unchanged.
