@@ -370,3 +370,10 @@ CI orchestration correction: the emulator runner executes its script from the re
 The first managed-AVD attempt, [GBCast Android run #69](https://github.com/mindspot7/GBCast/actions/runs/40379956091), failed before creating or booting the emulator. The logs identify the cause as `android-actions/setup-android@v3` trying to install the removed SDK package `tools` (warning: “Failed to find package 'tools'”), so the ADB recovery and instrumentation steps were skipped. This was an SDK bootstrap failure, not evidence of an ADB device-offline failure or a test failure.
 
 Corrected the workflow to explicitly request only `platform-tools` from setup-android; the following step installs the required platform, system image, and emulator packages through `sdkmanager`. A new run was queued as [GBCast Android run #70](https://github.com/mindspot7/GBCast/actions/runs/40381298679). Its outcome must be checked before treating the instrumentation suite as executed or passing. The workflow still uses bounded ADB/device and Android boot waits and emits emulator diagnostics on failure.
+
+
+#### Second managed-emulator bootstrap finding (2026-10-26)
+
+[GBCast Android run #70](https://github.com/mindspot7/GBCast/actions/runs/40381298679) passed SDK setup and the Gradle build, but failed in the license-acceptance shell pipeline before installing the emulator image. With `set -o pipefail`, `yes | sdkmanager --licenses` returned failure because `yes` received SIGPIPE after sdkmanager had consumed the required input. This is a shell pipeline-handling defect, not an SDK package or ADB failure.
+
+Adjusted the license step to temporarily disable `pipefail` only for the `yes | sdkmanager --licenses` pipeline, then re-enable it for subsequent commands. New validation run triggered after commit `458f5ed63ad5e85d37307b3ce7f5a415f2e42d86`; the latest workflow run must be checked before claiming emulator startup or instrumentation success.
