@@ -137,3 +137,15 @@ GBFrame's integration, lessons, and quick-menu standards were updated to describ
 - Re-read the GBCast Android workflow and Gradle file: CI passes version/signing values through Gradle properties and no longer edits the tracked build script with text substitutions.
 - Repository code search did not provide reliable results for a comprehensive unused-symbol or hard-coded media-path audit. No code was removed based on these searches.
 - Android Lint has **not yet been executed** in this pass. The workflows currently run targeted JVM tests/build/package checks; those results must not be represented as Lint results. The next implementation task is to introduce a controlled Lint validation step, first observing its findings before considering any automated cleanup.
+
+
+### Follow-up — isolated Android Lint workflows added (2026-10-26)
+
+Added manual-only Lint workflows so baseline diagnostics can be collected without changing or blocking the existing release/build workflows:
+
+- GBSat: `.github/workflows/android-lint.yml`, commit `5d113be7c56901fc18538f1cf6285f735360cbc0`. Runs `:app:lintDebug` and `:gbframe:lintDebug`, with HTML/XML report artifacts.
+- GBCast: `.github/workflows/android-lint.yml`, commit `f84a5d0e42116caf3e38a9f33eeb5cefe283efba`. Runs `:flycast:lintDebug` and `:gbframe:lintDebug`, with HTML/XML report artifacts.
+
+Both workflows are triggered only via GitHub Actions Run workflow (`workflow_dispatch`) and do not alter the normal build/release path. They install the Android SDK packages declared by each app and upload reports even if Lint fails.
+
+**Status:** the workflows have been committed, but no run has been started from this session; therefore there are no Lint findings or pass/fail result yet. The next step is to dispatch each workflow, inspect the report artifacts, triage baseline findings, and only then decide whether fixes are warranted.
