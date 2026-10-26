@@ -363,3 +363,10 @@ The sender-authentication issue remains intentionally unresolved: a loopback des
 
 
 CI orchestration correction: the emulator runner executes its script from the repository root, while Gradle's wrapper is under `shell/android-studio`. Corrected the script to `cd shell/android-studio && ./gradlew :flycast:connectedDebugAndroidTest --stacktrace` and retriggered the workflow. The current run is [Android #67](https://github.com/mindspot7/GBCast/actions/runs/40374818723) (pending at the time of this update); do not interpret the earlier #66 run as proof of instrumentation execution.
+
+
+### Managed ADB emulator follow-up — SDK setup failure and correction (2026-10-26)
+
+The first managed-AVD attempt, [GBCast Android run #69](https://github.com/mindspot7/GBCast/actions/runs/40379956091), failed before creating or booting the emulator. The logs identify the cause as `android-actions/setup-android@v3` trying to install the removed SDK package `tools` (warning: “Failed to find package 'tools'”), so the ADB recovery and instrumentation steps were skipped. This was an SDK bootstrap failure, not evidence of an ADB device-offline failure or a test failure.
+
+Corrected the workflow to explicitly request only `platform-tools` from setup-android; the following step installs the required platform, system image, and emulator packages through `sdkmanager`. A new run was queued as [GBCast Android run #70](https://github.com/mindspot7/GBCast/actions/runs/40381298679). Its outcome must be checked before treating the instrumentation suite as executed or passing. The workflow still uses bounded ADB/device and Android boot waits and emits emulator diagnostics on failure.
