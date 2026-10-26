@@ -68,3 +68,14 @@ A source-level trace of the current app adapters and shared host found:
 
 Do not change pause semantics blindly. Add a small adapter-level transition guard and focused tests only after verifying the native contracts for `nativeSetPaused` and `guiTogglePause`. Cover rapid repeated Back, root Back versus nested Back, scrim/close, hotkey open, activity background/foreground, native settings return, Reset/Restart, and game exit. In GBSat, consider short-circuiting `pause(p)` when `paused == p` only after confirming there are no required side effects in `nativeSetPaused`; the current code is explicit-state, not toggle-based.
 
+
+### Follow-up — GBCast native toggle contract verified
+
+The native source trace is now complete for the GBCast pause toggle:
+
+- `shell/android-studio/flycast/src/main/java/com/flycast/emulator/emu/JNIdc.java` declares `guiTogglePause()` as a native method.
+- `shell/android-studio/flycast/src/main/jni/src/gbcast_jni.cpp` implements that JNI method as a direct call to `gui_togglePause()`; `guiState()` returns the current `gui_state`, and `guiSetState()` directly calls `gui_setState()`.
+- `core/ui/gui.cpp` shows `gui_togglePause()` is a true toggle: when state is `Closed`, it stops the emulator and enters `Pause`; when state is `Pause`, it enters `Closed` and calls `emu.start()`. The function holds `guiMutex`, but the mutex serializes calls; it does not make duplicate sequential calls idempotent. Other states do not trigger either transition in this function.
+- The Kotlin Back handler's fallback branch calls the toggle and then displays Compose. A repeated event can therefore be hazardous if the state/visibility transition is not synchronized as expected. This is a confirmed risk in the contract, not a confirmed reproduction of a user-visible bug.
+
+**Decision:** no pause logic was changed in this pass. A blanket debounce or replacing the toggle with state writes would be unsafe without tracing every native GUI transition and lifecycle path. Next implementation step should make the Kotlin adapter's transition policy explicit (single owner of pause/resume, state checked before each action) and add testable decision logic for Back/state transitions; device testing is still required for native integration.
