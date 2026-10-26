@@ -161,3 +161,19 @@ Both manual workflows executed and uploaded HTML/XML reports. The workflow jobs 
 Lint report artifacts were uploaded by the runs (`gbsat-android-lint-reports` and `gbcast-android-lint-reports`) and were inspected in XML form to enumerate the error IDs. Many remaining warnings concern dependency updates, KTX suggestions, SDK checks, static context references, resource usage, and view accessibility. Do not batch-upgrade dependencies or delete resources from Lint suggestions alone; classify each finding and check runtime/manifest/JNI/reflection usage first.
 
 **Next safe action:** address security/behavior-sensitive findings individually, starting with the GBCast microphone permission path and manifest intent-filter contract, then assess the dispatchKeyEvent findings. Keep the manual Lint workflows as diagnostic-only until the baseline is triaged; normal APK build workflows remain unchanged.
+
+
+### Follow-up — Android Lint fixes validated (2026-10-26)
+
+The follow-up pushes triggered the isolated Lint workflows and the normal GBSat APK build. All four runs completed successfully:
+
+- GBSat Android Lint: https://github.com/mindspot7/GBSat/actions/runs/40358844654 — **0 errors**, app module: 18 warnings and 9 hints; GBFrame module: 23 warnings and 2 hints.
+- GBCast Android Lint: https://github.com/mindspot7/GBCast/actions/runs/40358857898 — **0 errors**, app module: 88 warnings; GBFrame module: 22 warnings.
+- GBSat release APK build: https://github.com/mindspot7/GBSat/actions/runs/40358780338 — succeeded, including the shared 16 KB APK compatibility validation.
+- GBCast application-ID consistency check: https://github.com/mindspot7/GBCast/actions/runs/40358805172 — succeeded.
+
+The initial Lint errors were addressed narrowly: gamepad key-event redispatch uses local suppressions; microphone setup remains behind the existing RECORD_AUDIO permission-result grant path; the legacy file/content URI filter is documented as not being a verified web App Link; and existing controller/hardware Back routing is retained. The GestureBackNavigation suppression is a temporary compatibility decision; predictive-Back behavior still needs dedicated testing. No controller behavior, manifest exported state, or permissions were silently changed to make Lint green.
+
+Remaining warnings were reviewed by category rather than bulk-fixed. GBCast reports StaticFieldLeak warnings for process-level emulator/UI/storage references and ExportedReceiver for RetroAchievementsHostOverrideReceiver, which intentionally accepts broadcasts from external proxy tooling and writes the RetroAchievements host override. These need a separate lifecycle/security review before changing ownership or restricting the broadcast contract. UnusedResources warnings are not sufficient evidence to delete resources without checking theme/dynamic/JNI usage. Dependency and SDK update suggestions should be handled in a separate compatibility-tested update pass.
+
+**Status:** targeted Lint errors resolved and the normal GBSat release build passed. The broad code review is not fully closed: next priorities are the exported receiver trust boundary, static context lifetime, predictive Back, and the remaining warning/resource inventory. GBFrame itself continues to report warnings/hints only and no Lint errors in both consumers.
