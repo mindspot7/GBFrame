@@ -413,3 +413,66 @@ Updated the workflow to pass `-Pandroid.testInstrumentationRunnerArguments.class
 [GBCast Android run #75](https://github.com/mindspot7/GBCast/actions/runs/40390247448) completed with overall conclusion `success`. This run executed `:flycast:connectedDebugAndroidTest` against the managed API 34 emulator, using the focused `com.flycast.emulator.RetroAchievementsHostOverrideReceiverTest` class. Gradle logged `Starting 3 tests on emulator-5554 - 14` and `BUILD SUCCESSFUL in 21m 36s`; the instrumentation step's conclusion is `success`. Thus the three receiver tests passed: SET persistence plus preservation of unrelated settings, CLEAR removal plus preservation of unrelated settings, and rejection of a non-loopback host without overwriting the existing URL.
 
 The workflow also passed release APK naming, the shared GBFrame 16 KB compatibility validator, and artifact upload. Artifact: `GBCast-vdb6eb772a-build75` (44,999,614 bytes), available from the [run's artifacts section](https://github.com/mindspot7/GBCast/actions/runs/40390247448). The managed AVD setup failures are resolved for this run. The unrelated `AndroidStorageTest.test` remains a separate full-suite CI gap because it requires a pre-granted SAF tree URI and test data not provisioned on a clean emulator; the workflow deliberately filters this validation job to the receiver class, rather than treating the unrelated test as part of this feature's gate.
+
+#### Local full-suite validation, SAF fixture correction, and ABI scope (2026-10-26)
+
+The GBCast storage instrumentation test is now self-contained. Its test-only `DocumentsProvider` lives in the app's `debug` source set, declares the Android-required `MANAGE_DOCUMENTS` provider permission, and exposes a controlled directory/file tree. This avoids a personal hard-coded SAF URI while keeping the provider out of release APKs. The complete device run on the connected RG Rotate (Android 12) passed all four instrumentation tests, and `:flycast:testDebugUnitTest` passed in the same Gradle invocation.
+
+GBCast's native ABI set was narrowed without deleting shared Flycast core code:
+
+- debug: `arm64-v8a` for physical devices plus `x86_64` for the managed CI emulator;
+- release: `arm64-v8a` only, matching the supported modern Android hardware target.
+
+Local build results for commit `3c5537a3fcdb2c48880bf458f0845eb0f856e724`:
+
+- debug APK: 73.7 MiB, containing only `arm64-v8a` and `x86_64` (previous four-ABI debug APK was approximately 98.5 MiB);
+- release APK: 50.4 MiB, containing only `arm64-v8a`;
+- release APK installed over the existing app with the same signing key while preserving data; `MainActivity` routed to `LibraryActivity` and remained alive with no fatal exception in the post-launch log;
+- `git diff --check` passed.
+
+The first full-suite CI attempt, [run #76](https://github.com/mindspot7/GBCast/actions/runs/40398380731), failed because the provider was still located in the test APK and lacked `MANAGE_DOCUMENTS`. This failure was reproduced locally and corrected before commit `3c5537a3f`; replacement GitHub runs are pending and must complete successfully before remote validation is claimed.
+
+#### Offline achievements responsibility and in-app implementation finding (2026-10-26)
+
+Local source inspection and tests established the responsibility split rather than inferring it from the host-override receiver:
+
+- RAOfflineProxy owns its Room-backed pending-award queue, hash-chain integrity/repair, deduplication, live-patch refresh, and reconnect upload. Its local `:app:testDebugUnitTest` suite passed 531 tests across 28 suites with zero failures or skips.
+- GBFrame already contains an independent in-app casual-mode implementation in `RaOffline.kt`: cached startup/session responses, a persistent offline unlock queue, deduplication, elapsed-time (`o`) replay, and reconnect synchronization. This code was introduced independently in GBFrame commit `a635675`; RAOfflineProxy is GPLv3, so no proxy source should be copied unless the resulting licensing consequences are intentionally accepted.
+- GBSat routes native rcheevos HTTP through `RetroAchievements.httpRequest`, so it already uses the GBFrame offline layer.
+- GBCast initializes the shared GBFrame RetroAchievements UI/state, but `GBCastRaBackend` explicitly leaves HTTP in Flycast's native rcheevos client and its `httpResponse` callback is a no-op. Therefore GBCast does not currently use `RaOffline`, even though the code is present in its GBFrame submodule.
+
+Recommended GBCast direction: add an asynchronous JNI bridge from Flycast's native `clientServerCall` request/completion contract to `RetroAchievements.httpRequest` and `GBCastRaBackend.httpResponse`. This would reuse the console-neutral GBFrame queue/cache, eliminate the external package-discovery dependency described in issue #2, and let GBCast and GBSat share one tested policy while each app retains its native rcheevos adapter. It requires dedicated unit and device integration tests before the external receiver/proxy path can be deprecated. Sender authentication issue #1 remains relevant as long as that legacy exported receiver is retained.
+
+#### Full SAF suite and Android ABI validation passed (2026-10-26)
+
+Replacement validation for GBCast commit `3c5537a3fcdb2c48880bf458f0845eb0f856e724` completed successfully:
+
+- Android build, unit tests, all four managed-emulator instrumentation tests, release packaging, 16 KB ELF validation, and artifact upload: [run #77](https://github.com/mindspot7/GBCast/actions/runs/40404207159) — success.
+- Android Lint: [run #18](https://github.com/mindspot7/GBCast/actions/runs/40404207261) — success.
+- App ID consistency: [run #40404207097](https://github.com/mindspot7/GBCast/actions/runs/40404207097) — success.
+
+This closes the environment-specific `AndroidStorageTest` gap recorded after runs #74–#76. The sender-authentication and external RAOfflineProxy package-mapping findings remain open and are unrelated to this storage/ABI validation.
+
+#### GBCast icon identity and Android naming audit (2026-10-26)
+
+Confirmed a GBFrame contract violation: the installed launcher uses the Dreamcast-controller artwork, while `HomeTopBar`, `HomeMenuPanel`, and `AboutPage` loaded the old purple Flycast swirl from `R.drawable.ic_launcher`. GBCast now passes the existing raster `R.drawable.ic_launcher_foreground`—the same controller artwork used by the adaptive launcher—to all three GBFrame surfaces. Device screenshots on the connected RG Rotate confirmed the controller icon in both the top bar and the open main menu.
+
+The Android product layer was also renamed where no compatibility contract required the Flycast name:
+
+- `FlycastBridge` → `GBCastBridge`;
+- `FlycastBackupAgent` → `GBCastBackupAgent`;
+- Gradle root project `Flycast` → `GBCast`, logical app module `:flycast` → `:gbcast`;
+- app-facing error, setup, cheat, data-folder, renderer, advanced-settings, user-agent, multicast-lock, log, and issue-template labels now use GBCast or neutral wording;
+- obsolete localized `flycast_error` resources were removed after replacement by `gbcast_error`.
+
+Deliberately retained references are compatibility or attribution boundaries: Java package/JNI names under `com.flycast.emulator`, native library/target `flycast`, `emu.cfg`, legacy RAOfflineProxy broadcast action names, Flycast core-specific technical comments, upstream copyright/license notices, and the About-page Flycast core credit. The physical Android module directory remains `shell/android-studio/flycast` to preserve the upstream-derived source/build layout; Gradle and CI expose it as `:gbcast`.
+
+Local validation for GBCast commit `58e8817d241f7987332a0ad28ffe535262ac088f` passed `:gbcast:testDebugUnitTest`, Android-test compilation, debug/release APK assembly, and all four connected-device instrumentation tests. The first remote lint run exposed one branding-resource issue: `gbcast_error` was incorrectly treated as requiring translations. Commit `ff09b6abf1e93eb7fc43c3a869af654c78f2b875` marks this fixed brand title as non-translatable; `:gbcast:lintDebug` then passed locally.
+
+Remote validation is complete:
+
+- [Android run #40406745542](https://github.com/mindspot7/GBCast/actions/runs/40406745542) — success; build, all four managed-emulator instrumentation tests, release naming, 16 KB ELF validation, and artifact upload passed.
+- [Android Lint run #40407697271](https://github.com/mindspot7/GBCast/actions/runs/40407697271) — success for the follow-up fix.
+- [App ID consistency run #40406745544](https://github.com/mindspot7/GBCast/actions/runs/40406745544) — success.
+
+The GBCast icon/identity update is therefore locally and remotely validated. The remaining Flycast identifiers listed above are retained intentionally for JNI/native/config/protocol compatibility or upstream attribution, not as unfinished product-facing renames.
