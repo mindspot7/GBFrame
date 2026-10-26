@@ -8,14 +8,14 @@ GBFrame owns this shared policy and its documentation. Each consumer repository 
 
 ## Shared validator
 
-Use `tools/check-android-16kb.sh <final-apk-path>` from this repository. Consumer workflows should pin the download to an immutable GBFrame commit (or update their GBFrame submodule pointer) rather than follow a floating branch. The script performs both ZIP alignment and ELF `LOAD` alignment checks across all packaged ABIs and exits nonzero on missing tools, missing native libraries, unreadable alignment data, or a 4 KB `LOAD` alignment.
+Use `tools/check-android-16kb.sh <final-apk-path>` from this repository. Consumer workflows should pin the download to an immutable GBFrame commit (or update their GBFrame submodule pointer) rather than follow a floating branch. The script performs both ZIP alignment and ELF `LOAD` alignment checks across all packaged ABIs and exits nonzero on missing tools, missing native libraries, unreadable alignment data, or any `LOAD` alignment below 16 KB.
 
 ## Required CI gates
 
 1. Build the APK and run the app's configured unit tests.
 2. Run Android `zipalign -c -P 16 -v 4` against the exact APK that will be uploaded as the CI artifact.
 3. Extract every packaged native library (`lib/*/*.so`) from that APK and inspect ELF program headers with NDK `llvm-objdump -p`, across all shipped ABIs.
-4. Fail the job if any inspected ELF `LOAD` segment reports `2**12` alignment, if a required inspection tool is missing, if the APK has no native libraries, or if no LOAD alignment can be parsed.
+4. Fail the job if any inspected ELF `LOAD` segment reports alignment below `2**14` (16 KB), if a required inspection tool is missing, if the APK has no native libraries, or if no LOAD alignment can be parsed.
 5. Upload the same APK that passed the checks. Do not rebuild or replace it after validation.
 
 These gates must be blocking failures, not warnings. If an app intentionally ships no native shared libraries, document and implement an explicit app-specific exception rather than allowing an accidental empty glob to pass.
@@ -39,3 +39,6 @@ These gates must be blocking failures, not warnings. If an app intentionally shi
 When an app's own Android native targets fail the ELF gate, configure the Android linker to emit 16 KB-compatible LOAD segment alignment (for example, with the NDK/LLD option `-Wl,-z,max-page-size=16384`, or the equivalent CMake `add_link_options("LINKER:-z,max-page-size=16384")`). Keep the setting scoped to Android builds. This only affects targets linked with that option: prebuilt third-party `.so` files must be upgraded or rebuilt from source with compatible linker settings. Re-run the all-ABI validator on the final APK; do not assume the setting fixed prebuilts.
 
 GBCast applied the Android-scoped CMake linker option in commit `dc9f601537851f318f88426140108857b1be94ec`, fixed a CMake whitespace/escape syntax issue in `a3fa766f8d82461ca9d228ab50fcfed185d0b7b5`, and passed the shared all-ABI gate in build #56 on 2026-10-26 (16 libraries checked; zero failures).
+
+
+The validator enforces a minimum of `2**14` for every parsed `LOAD` segment, rather than rejecting only the common `2**12` case. This also catches intermediate alignments (for example, `2**13`) and unsupported alignment formats.
