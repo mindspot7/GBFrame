@@ -291,3 +291,11 @@ A further receiver review found that `nativeSetHostOverride()` was called even a
 - Fix commit: `9e7e5c209639cbedd8ed385b9a42e80fe6fb533c`
 - The CI results above predate this final consistency fix; validation of the fix itself is still outstanding.
 - Security trust policy and RAOfflineProxy package compatibility remain open and are not resolved by this change.
+### Validation result — config-write consistency fix (2026-10-26)
+
+The follow-up validation for commit `9e7e5c209639cbedd8ed385b9a42e80fe6fb533c` completed successfully:
+
+- Android Lint: [run #40368339898](https://github.com/mindspot7/GBCast/actions/runs/40368339898) — success.
+- Android build, `:flycast:testDebugUnitTest`, release APK packaging, and shared 16 KB APK validation: [run #40368530356](https://github.com/mindspot7/GBCast/actions/runs/40368530356) — success.
+
+This verifies CI on the config-write consistency fix. It does not replace an installed-device SET/CLEAR test and does not resolve the exported receiver's trust policy or RAOfflineProxy's package mapping.
