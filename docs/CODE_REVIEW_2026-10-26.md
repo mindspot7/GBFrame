@@ -4,9 +4,8 @@ Scope: static review of the shared GBFrame Kotlin UI and build configuration, pl
 
 ## Findings requiring attention
 
-### P1 — GBCast build workflow edits Gradle source with exact text substitutions
-`GBCast/.github/workflows/android.yml` uses `sed` to replace the literal `signingConfigs.getByName("release")` and `versionCode = 8` in `flycast/build.gradle.kts`. The version substitution silently stops applying when the version code changes in source; it also couples CI to exact Kotlin DSL formatting. Prefer a Gradle property/environment variable for CI version code and a dedicated CI signing configuration/property instead of rewriting tracked build files in-place.
-
+### RESOLVED — GBCast CI no longer rewrites Gradle source
+The Android workflow now passes `-PgbcastVersionCode` and `-PgbcastCiDebugSigning=true` to Gradle. The build script retains version code 8 as its local default and selects debug signing only when the CI property is explicitly enabled. This removes the brittle `sed` rewrites of tracked Gradle source. The workflow/build configuration was re-read during the 2026-10-26 follow-up; no new build was triggered solely for this documentation refresh.
 ### P1 — Quick-menu pause/resume behavior is implemented separately in each app
 GBSat's `GameScreen.kt` and GBCast's `GbcastGameUi.kt` both compose the GBFrame `QuickMenuHost` and use `QuickMenuPage`, `QuickMenuItemRow`, and full-screen Cheats/Achievements pages. They still own separate root page IDs, page lists, pause state transitions, and core actions. Keep core-specific JNI/actions in each app, but move any genuinely identical generic page/interaction primitives to GBFrame only when both adapters can express them without conditionals tied to a console.
 
