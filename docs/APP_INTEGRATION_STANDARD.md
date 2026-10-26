@@ -67,6 +67,20 @@ Use `SafGames.scan` for the shared SAF library. For a synchronous core load call
 
 The shared manual save-state limit is `SaveData.MANUAL_SAVE_STATE_SLOTS = 5`. Use that constant instead of app-local counts and expose at most five numbered slots per core. Quick-save, auto-save, and other automatic states are separate features and do not increase the numbered-slot limit.
 
+## Gameplay pause and Android foreground lifecycle
+
+Every consumer must preserve the distinction between **a pause requested by the player** (for example, the in-game menu) and **a pause imposed by Android lifecycle** (the activity leaving the foreground). Returning to the app must not leave gameplay accidentally paused, and must not dismiss or override an intentional pause.
+
+- In `Activity.onPause()`, capture whether a game is running and gameplay was active **before** the lifecycle handler pauses it. Store this as a one-shot resume intent; do not infer the previous state later from a paused flag that the lifecycle callback itself has already changed.
+- Pause the running core when the activity leaves the foreground, using the core adapter's explicit pause API where available.
+- In `Activity.onResume()` (or the equivalent foreground callback for the core's rendering activity), consume and clear the one-shot resume intent. Resume only if the intent was recorded and the game session is still running.
+- If gameplay was already paused when Android backgrounded the app, preserve that pause. In particular, do not automatically close the quick menu or resume a core that the player intentionally paused.
+- Prefer idempotent explicit state setters such as `pause(false)` over native toggle operations. If a core exposes only a toggle, inspect its current state and invoke the toggle only when the state is known to be opposite the desired state; never use an unguarded toggle as a lifecycle recovery action.
+- Keep the core-specific lifecycle adapter in the app, but document this behavior here and apply it consistently to every GBFrame consumer. GBFrame's shared UI cannot infer or control the native core's lifecycle by itself.
+- Validate on a real Android device: (1) background and return during active gameplay; (2) background and return while the in-game menu is open; (3) background and return after explicitly pausing by another supported route; (4) repeat the cycle and verify no duplicate pause/resume or stuck state. Confirm the game resumes in case (1), while intentional pauses remain paused in cases (2) and (3).
+
+The GBFrame integration contract is considered device-validated for GBSat and GBCast after the October 2026 lifecycle fix and successful user testing in both apps. New consumers must still run the same checks on their own core/activity integration.
+
 ## Box-art dimensions
 
 Follow [BOXART_STANDARD.md](BOXART_STANDARD.md) when initializing GBFrame's shared covers:
