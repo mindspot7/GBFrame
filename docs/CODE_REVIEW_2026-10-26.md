@@ -40,3 +40,18 @@ No source files or functions were deleted during this static pass. Simple text-b
 - GitHub source and workflow configuration were inspected statically.
 - Build status is available separately in GitHub Actions; a successful build does not prove runtime behavior on a device.
 - This pass did not execute an emulator/device session, native runtime tests, full lint, or a full dependency-aware dead-code analysis.
+
+## Follow-up — CI property refactor validated
+
+The GBCast workflow was updated to pass `-PgbcastVersionCode` and `-PgbcastCiDebugSigning=true` rather than editing `build.gradle.kts` with `sed`. The Gradle script keeps version code 8 as its default for ordinary builds and switches to the debug signing config only when the CI property is explicitly true.
+
+Validation completed successfully:
+- GBCast build run #43: https://github.com/mindspot7/GBCast/actions/runs/40314936050
+- GBCast App ID consistency check: https://github.com/mindspot7/GBCast/actions/runs/40314871597
+
+A lightweight import-reference scan across the two game-screen and two library-screen files produced candidates, but some are false positives for Kotlin delegated-property operators (`getValue`/`setValue`) and symbols used indirectly or through extension syntax. No imports were removed based on that scan alone. Use Android Lint/compiler diagnostics or IDE semantic analysis before committing dead-code cleanup.
+
+## Additional parity observation
+
+Both game menus implement the same generic save/load slot page pattern with GBFrame's `QuickMenuPage` and `QuickMenuItemRow`, but the backing operations and state-file conventions differ. This is a candidate for a GBFrame slot-page abstraction only if it can accept app-provided slot availability, save/load callbacks, labels, and error handling; do not move native file-path assumptions into GBFrame. Both also expose renderer/resolution/audio/performance toggles, but their supported values and core APIs differ, so standardize row presentation and focus/navigation behavior rather than forcing identical settings models.
+
