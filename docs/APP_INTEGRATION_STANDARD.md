@@ -24,10 +24,11 @@ Do not treat an app-specific implementation as a standard when it conflicts with
 The consuming app owns its launcher icon in its own Android resources; GBFrame must not embed a particular app's logo.
 
 - Use the app's launcher icon artwork in `HomeTopBar`, `HomeMenuPanel`, and `AboutPage`. These three places must show the same icon identity as the installed app.
-- Pass the same icon resource/painter to all three components when possible. If an adaptive launcher asset cannot render inline, use an inline-compatible asset derived from the exact same icon artwork; do not substitute a different logo or core icon.
-- Use the app's original launcher artwork in the top bar, main menu, and About page. Keep icon presentation consistent across these locations without adding a GBFrame-specific outline.
-- Keep the displayed app name consistent across the top bar, main menu, and About page.
-- GBSat uses `R.mipmap.ic_launcher` for all three. Each app owns and supplies its own icon resource.
+- Pass an inline-compatible raster `Painter` to `HomeTopBar`, `HomeMenuPanel`, and `AboutPage`. Prefer the app-owned raster resource (for example, `painterResource(R.drawable.ic_launcher)`) for all three.
+- **Do not pass an adaptive launcher XML resource** (typically `mipmap-anydpi-v26/ic_launcher.xml`) to Compose `painterResource()`: it may fail at runtime because it is not a supported Compose painter resource. Android may still use that adaptive resource for the launcher; the in-app UI must use a raster-compatible resource.
+- If the app's launcher resource is adaptive or otherwise unsupported inline, provide a raster resource derived from the exact same icon artwork. Do not substitute a different logo or core icon.
+- Keep the icon artwork and displayed app name consistent across the top bar, main menu, and About page. Do not add a GBFrame-specific outline.
+- Each app owns and supplies its own icon resources; GBFrame accepts a `Painter` and must not resolve another app's resource IDs itself.
 - Do not omit the app icon from the top bar or About page.
 
 ## CI artifact names
