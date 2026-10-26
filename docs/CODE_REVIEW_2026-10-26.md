@@ -322,3 +322,26 @@ The latest GBCast CI runs for the local-only offline proxy override completed su
 RAOfflineProxy's current Flycast configuration was re-read. It only lists `com.flycast.emulator` as the Flycast package candidate and targets `com.flycast.emulator.RetroAchievementsHostOverrideReceiver`. GBCast retains that receiver class name but its installed application ID is `app.gbcast.emulator`, so RAOfflineProxy will not automatically discover GBCast until its Flycast package-candidate mapping is updated upstream. A request to document this compatibility gap on RAOfflineProxy's integration-tracking issue could not be posted because the GitHub integration returned HTTP 403 (resource not accessible); no upstream file or issue was changed.
 
 Still unverified: on-device SET/CLEAR behavior, actual offline achievement queueing and upload after reconnect, and confirmation that ordinary online RetroAchievements works unchanged. The exported receiver sender-authentication concern also remains open. CI success confirms build/lint/unit-test gates only, not the full device integration.
+
+
+### Follow-up — SET/CLEAR persistence tests and sender-authentication review (2026-10-26)
+
+Added Android instrumentation tests on GBCast branch `android-port` to send explicit SET and CLEAR broadcasts to the exported receiver and verify `emu.cfg` persistence. Coverage includes:
+- SET replaces the previous `[achievements] HostUrl` while preserving other settings and sections.
+- CLEAR removes `HostUrl` while preserving unrelated settings.
+- A remote/non-loopback SET is rejected without overwriting the persisted local host.
+- The Android CI workflow now compiles the Android instrumentation test source in addition to JVM unit tests and APK packaging.
+
+Commits:
+- Instrumentation tests: `09ebcf8a4337251e81de12486800e90d5d6e62b1`
+- CI compile-task and build trigger: `66d31857316e88b4087a56d92a314f669b454032`
+
+The Android build workflow #65 and Android Lint #15 were triggered and are pending at the time of this report update. These tests are not yet a device-level pass until CI compilation succeeds and the instrumentation suite is executed on an Android device/emulator.
+
+#### Sender authentication finding remains open
+
+Confirmed: loopback URL validation restricts the *destination*, not the *sender*. Because the receiver is exported and has no permission/caller verification, another installed app can still attempt SET or CLEAR. This is a separate trust-boundary issue from URL validation.
+
+A GBCast-only Android `signature` permission would block unauthorized callers but is not a safe drop-in integration fix: RAOfflineProxy is a separately distributed app, and shared signing-certificate compatibility has not been established. A normal/dangerous permission or explicit component targeting alone is not strong authentication. The security issue remains open pending a coordinated protocol with RAOfflineProxy (e.g. shared-signature permission if co-signing is feasible, or another caller-verification/explicit-authorization design that supports the app's Android API range).
+
+Tracked in [GBCast security issue #1](https://github.com/mindspot7/GBCast/issues/1). Do not treat sender authentication as fixed. Full device verification of SET/CLEAR, offline queue/sync after reconnect, and ordinary online RetroAchievements behavior is still outstanding.
