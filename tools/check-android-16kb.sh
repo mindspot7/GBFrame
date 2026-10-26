@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Validate the final APK's ZIP and native ELF alignment for 16 KB Android pages.
+# Every ELF LOAD segment must have alignment of at least 2**14 (16 KB).
 # Usage: tools/check-android-16kb.sh path/to/app-release.apk
 set -euo pipefail
 
@@ -43,8 +44,20 @@ for LIB in "${LIBS[@]}"; do
   if [[ -z "$ALIGNMENTS" ]]; then
     echo "::error title=16 KB ELF::Could not read LOAD alignment for ${LIB#"$WORK"/}"
     FAILURES=$((FAILURES + 1))
-  elif [[ "$ALIGNMENTS" == *"2**12"* ]]; then
-    echo "::error title=16 KB ELF::${LIB#"$WORK"/} has a LOAD segment aligned to 4 KB ($ALIGNMENTS)"
+  elif [[ "$(printf '%s\\n' "$ALIGNMENTS" | awk '
+      {
+        for (i = 1; i <= NF; i++) {
+          if ($i !~ /^2\\*\\*[0-9]+$/) {
+            bad = 1
+          } else {
+            split($i, parts, /\\*\\*/)
+            if ((parts[2] + 0) < 14) bad = 1
+          }
+        }
+      }
+      END { print bad + 0 }
+    ')" == "1" ]]; then
+    echo "::error title=16 KB ELF::${LIB#"$WORK"/} has a LOAD segment aligned below 16 KB or an unsupported alignment format ($ALIGNMENTS)"
     FAILURES=$((FAILURES + 1))
   else
     echo "::notice title=16 KB ELF::${LIB#"$WORK"/} LOAD alignment: $ALIGNMENTS"
