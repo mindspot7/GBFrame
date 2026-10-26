@@ -6,6 +6,10 @@ Status: required baseline for every Android app in the GB family.
 
 GBFrame owns this shared policy and its documentation. Each consumer repository (including GBSat and GBCast) must enforce the checks against its **final packaged APK** in its own CI workflow. A successful GBFrame library build cannot prove that an app's complete native dependency set is compatible.
 
+## Shared validator
+
+Use `tools/check-android-16kb.sh <final-apk-path>` from this repository. Consumer workflows should pin the download to an immutable GBFrame commit (or update their GBFrame submodule pointer) rather than follow a floating branch. The script performs both ZIP alignment and ARM64 ELF `LOAD` alignment checks and exits nonzero on missing tools, missing ARM64 libraries, unreadable alignment data, or a 4 KB `LOAD` alignment.
+
 ## Required CI gates
 
 1. Build the APK and run the app's configured unit tests.
@@ -25,7 +29,7 @@ These gates must be blocking failures, not warnings. If an app intentionally has
 
 ## Rollout checklist
 
-- [x] GBCast: ZIP check and mandatory ARM64 ELF gate.
-- [x] GBSat: ZIP check and mandatory ARM64 ELF gate.
+- [x] GBCast: ZIP check and mandatory ARM64 ELF gate; workflow now invokes the pinned shared validator.
+- [x] GBSat: ZIP check and mandatory ARM64 ELF gate; workflow now invokes the pinned shared validator.
 - [ ] Audit remaining GB family Android apps and apply the same contract.
 - [ ] Where feasible, add a scheduled/device test on a 16 KB-page Android environment.
