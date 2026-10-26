@@ -230,3 +230,16 @@ The latest CI gate therefore validates the URL-log redaction change at build/tes
 The receiver manifest still intentionally declares `android:exported="true"` and has no sender permission. Repository code search did not find a documented in-repository RAOfflineProxy implementation or additional caller, so compatibility with external proxy tooling cannot be inferred from this repo alone. Do not add a signature permission or disable export without confirming that the external tool can use it; that would otherwise break the integration. The trust-boundary decision remains open and should be explicit in integration documentation/release notes. URL validation and redacted logging reduce input-injection and accidental log-disclosure risks, but they do not make the caller trusted.
 
 **Current status:** latest GBCast CI build/test/package and Lint workflows passed. The review remains open pending the external-integration trust decision and on-device lifecycle regression tests for the UI-reference cleanup.
+
+
+### Follow-up — external RAOfflineProxy compatibility check
+
+Checked the public RAOfflineProxy source rather than assuming the external broadcast contract:
+
+- RAOfflineProxy's current `Emulator.Flycast` configuration lists only `com.flycast.emulator` as a package candidate and expects the receiver class `com.flycast.emulator.RetroAchievementsHostOverrideReceiver`: https://github.com/misantronic/RAOfflineProxy/blob/main/app/src/main/java/com/raofflineproxy/ui/Emulator.kt
+- Its broadcast patcher builds the action by concatenating the detected target package name with `.action.SET_RETROACHIEVEMENTS_HOST_OVERRIDE` / `.action.CLEAR_RETROACHIEVEMENTS_HOST_OVERRIDE`, and targets that package/component explicitly: https://github.com/misantronic/RAOfflineProxy/blob/main/app/src/main/java/com/raofflineproxy/ui/BroadcastCfgPatcher.kt
+- GBCast's Gradle namespace and application ID are `app.gbcast.emulator`, while its receiver currently declares the legacy `com.flycast.emulator.action.*` actions.
+
+**Confirmed integration gap:** current upstream RAOfflineProxy does not list GBCast's new application ID, so it will not discover/target this GBCast installation through its current Flycast entry. The legacy action names in GBCast's manifest do not solve that package-discovery mismatch. A receiver-only change in GBCast cannot fully fix this; RAOfflineProxy needs an explicit supported package/receiver mapping (or another supported manual setup path). The external repo's main branch is not writable from this integration, so no external changes were made.
+
+Security decision: the receiver remains exported because the integration contract requires cross-app broadcasts. The safer compatible long-term design is for RAOfflineProxy and GBCast to agree on an explicit permission/authentication mechanism and for RAOfflineProxy to target `app.gbcast.emulator`; simply adding a custom signature permission on GBCast alone would block RAOfflineProxy unless both apps are signed compatibly and declare/use that permission. Do not mark the integration fixed until the external package mapping and end-to-end SET/CLEAR flow are verified.
