@@ -33,3 +33,9 @@ These gates must be blocking failures, not warnings. If an app intentionally shi
 - [x] GBSat: ZIP check and mandatory all-ABI ELF gate; workflow now invokes the pinned shared validator.
 - [ ] Audit remaining GB family Android apps and apply the same contract.
 - [ ] Where feasible, add a scheduled/device test on a 16 KB-page Android environment.
+
+## Native linker remediation
+
+When an app's own Android native targets fail the ELF gate, configure the Android linker to emit 16 KB-compatible LOAD segment alignment (for example, with the NDK/LLD option `-Wl,-z,max-page-size=16384`, or the equivalent CMake `add_link_options("LINKER:-z,max-page-size=16384")`). Keep the setting scoped to Android builds. This only affects targets linked with that option: prebuilt third-party `.so` files must be upgraded or rebuilt from source with compatible linker settings. Re-run the all-ABI validator on the final APK; do not assume the setting fixed prebuilts.
+
+GBCast applied the Android-scoped CMake linker option in commit `dc9f601537851f318f88426140108857b1be94ec`, fixed a CMake whitespace/escape syntax issue in `a3fa766f8d82461ca9d228ab50fcfed185d0b7b5`, and passed the shared all-ABI gate in build #56 on 2026-10-26 (16 libraries checked; zero failures).
