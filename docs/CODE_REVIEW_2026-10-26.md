@@ -377,3 +377,9 @@ Corrected the workflow to explicitly request only `platform-tools` from setup-an
 [GBCast Android run #70](https://github.com/mindspot7/GBCast/actions/runs/40381298679) passed SDK setup and the Gradle build, but failed in the license-acceptance shell pipeline before installing the emulator image. With `set -o pipefail`, `yes | sdkmanager --licenses` returned failure because `yes` received SIGPIPE after sdkmanager had consumed the required input. This is a shell pipeline-handling defect, not an SDK package or ADB failure.
 
 Adjusted the license step to temporarily disable `pipefail` only for the `yes | sdkmanager --licenses` pipeline, then re-enable it for subsequent commands. New validation run triggered after commit `458f5ed63ad5e85d37307b3ce7f5a415f2e42d86`; the latest workflow run must be checked before claiming emulator startup or instrumentation success.
+
+#### Managed emulator executable path correction (2026-10-26)
+
+[GBCast Android run #71](https://github.com/mindspot7/GBCast/actions/runs/40382679128) passed SDK package installation and reached the managed-emulator boot step, but failed before launching an emulator process: `emulator: command not found`. The installed SDK's emulator directory was not guaranteed to be on `PATH`; this was a runner environment/path issue, not an ADB-offline diagnosis and not an instrumentation test result.
+
+Updated GBCast workflow commit `e03757a01becee6e41a26a5b44338e4c088941a4` to derive the SDK root from `ANDROID_HOME`/`ANDROID_SDK_ROOT` (with the hosted-runner SDK path as fallback), export emulator/platform-tools paths, check that the executable exists, and launch it by absolute path. Trigger commit `a250f617dd7eac68c77447463817506bdc5b639b` queued [GBCast Android run #72](https://github.com/mindspot7/GBCast/actions/runs/40384246047). The run is queued at the time of this update; emulator boot and device-level SET/CLEAR instrumentation remain unverified.
