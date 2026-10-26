@@ -281,3 +281,13 @@ Validation is running:
 - Android Lint workflow for the new validator: https://github.com/mindspot7/GBCast/actions/runs/40366835381
 
 **Important scope limit:** these tests validate URL syntax only. They do not decide whether remote proxy destinations are trusted, authenticate the sender, or prove that the emulator's RetroAchievements requests are safe when redirected. The trust-policy issue remains open at [GBCast #1](https://github.com/mindspot7/GBCast/issues/1); package discovery by upstream RAOfflineProxy remains open at [GBCast #2](https://github.com/mindspot7/GBCast/issues/2). Do not close either issue solely because the new tests/build pass.
+
+### Follow-up — CI passed and config-write consistency fix (2026-10-26)
+
+The proxy URL validator and its JVM tests passed the GitHub Actions Android build/test/package workflow (run [#40366860986](https://github.com/mindspot7/GBCast/actions/runs/40366860986)) and Android Lint for the test commit (run [#40366835381](https://github.com/mindspot7/GBCast/actions/runs/40366835381)). An older overlapping Lint run was cancelled when a newer run superseded it; it was not a test failure.
+
+A further receiver review found that `nativeSetHostOverride()` was called even after writing `emu.cfg` failed, allowing in-memory and persistent configuration to diverge. Updated `RetroAchievementsHostOverrideReceiver` to return after an `IOException`, so the in-memory override is not applied unless the persistent update succeeds.
+
+- Fix commit: `9e7e5c209639cbedd8ed385b9a42e80fe6fb533c`
+- The CI results above predate this final consistency fix; validation of the fix itself is still outstanding.
+- Security trust policy and RAOfflineProxy package compatibility remain open and are not resolved by this change.
