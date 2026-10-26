@@ -187,3 +187,20 @@ Remaining warnings were reviewed by category rather than bulk-fixed. GBCast repo
 - Reviewed remaining `StaticFieldLeak` reports: `Emulator.context` is set to the application context and is intentional; `Storage` also stores the application context; `GbcastGameUi` contains process-level UI references that now have explicit teardown. Android Lint cannot prove runtime lifecycle correctness, so test repeated game launch/exit, rotation/configuration handling as supported, background/foreground, and opening/closing the quick menu on-device.
 - `ExportedReceiver` is intentionally retained pending an explicit trust-boundary decision. `ObsoleteSdkInt` findings were not removed mechanically: SDK checks may be defensive or in code shared from upstream, and changing them needs compatibility review.
 - No device test or release APK build has yet been run for these newest commits. The review remains open. Next: run the standard GBCast build/unit-test/16 KB validation on the current `android-port` head, then inspect receiver integration documentation/callers and perform lifecycle/device regression tests before deciding whether to require a sender permission or change exported status.
+
+
+### Follow-up — GBCast standard build and unit tests passed (2026-10-26)
+
+The standard Android workflow completed successfully on GBCast commit `560f52ecbd8db15dffd04840d809f6f50f5ab89c`:
+
+- Run #40361771597: https://github.com/mindspot7/GBCast/actions/runs/40361771597
+- The Gradle step ran `:flycast:testDebugUnitTest` and `:flycast:assembleRelease`; both completed successfully.
+- The shared GBFrame 16 KB compatibility validator completed successfully against the packaged release APK.
+- The APK artifact was uploaded successfully.
+- The preceding Android Lint run #40360701149 remains green with 0 errors; the reports still contain 89 app warnings and 22 GBFrame warnings.
+
+This closes the CI build/test/package gate for the current GBCast changes, but not the overall review: device lifecycle scenarios have not been rerun specifically against this newest APK, and the exported RetroAchievements override receiver remains an open trust-boundary decision. The receiver intentionally supports external proxy integrations; because it has no sender permission, any installed app able to send the matching broadcast can set or clear the configured host. URL validation blocks malformed/control-character values but does not authenticate the sender or establish that the destination is trusted. Do not mark this risk resolved solely because the build and Lint pass.
+
+### Follow-up — build-trigger coverage gap confirmed
+
+The GBCast standard Android workflow is triggered by manual dispatch or a push to `.github/workflows/run-build.trigger` on `android-port`; ordinary source changes do not automatically run the release build/unit tests/16 KB validator. The isolated Lint workflow has broader path filters, but it is not a substitute for the build gate. This appears to be an intentional, manually controlled build strategy, so no trigger behavior was changed automatically. For ongoing protection against source regressions, either retain an explicit documented manual build requirement or add source-path triggers after considering the native build cost and submodule update flow.
