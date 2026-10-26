@@ -360,3 +360,6 @@ Commits:
 - Workflow trigger: `b2e45f0f717f90e69776fc3e388b43262b781d42`
 
 The sender-authentication issue remains intentionally unresolved: a loopback destination check is not sender authentication, and adding a signature permission without confirming a compatible shared signing identity for RAOfflineProxy risks breaking integration. Keep GBCast issue #1 open until an interoperable sender-trust design is established and tested.
+
+
+CI orchestration correction: the emulator runner executes its script from the repository root, while Gradle's wrapper is under `shell/android-studio`. Corrected the script to `cd shell/android-studio && ./gradlew :flycast:connectedDebugAndroidTest --stacktrace` and retriggered the workflow. The current run is [Android #67](https://github.com/mindspot7/GBCast/actions/runs/40374818723) (pending at the time of this update); do not interpret the earlier #66 run as proof of instrumentation execution.
