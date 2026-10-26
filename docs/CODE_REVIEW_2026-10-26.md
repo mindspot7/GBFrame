@@ -89,3 +89,14 @@ The native side of GBSat's pause contract was inspected in `apps/android/app/src
 - This further supports leaving the existing GBSat native behavior unchanged until lifecycle tests establish a need for a guard.
 
 The source-level contract checks for both apps are now complete. The next safe change is a small, independently testable Kotlin transition-policy layer plus tests, followed by the native/device lifecycle matrix; no runtime test has been performed in this review.
+
+### Follow-up — GBCast Back policy extracted and covered by unit tests
+
+A small refactor was committed to GBCast on `android-port`:
+
+- `GbcastBackPolicy.kt` isolates the state-to-action decision from Android/Compose and JNI side effects.
+- `GbcastGameUi.onAndroidBack()` now dispatches through that policy while retaining the existing action handlers and native toggle semantics.
+- `GbcastBackPolicyTest.kt` covers native submenus, command/settings/disk/cheat/achievement pages, Pause, Main, and unknown-state fallback.
+- CI was changed to run `testReleaseUnitTest` before `assembleRelease`, so the new JVM tests are part of the validation build.
+
+This is a decision-policy extraction, **not yet a duplicate-event debounce**. The existing toggle fallback is intentionally unchanged because the native GUI state contract is known but lifecycle/event ordering still needs device validation. GitHub Actions run #45 was queued at the time of this report update: https://github.com/mindspot7/GBCast/actions/runs/40318564412. Do not treat the tests or APK build as passed until that run completes successfully.
