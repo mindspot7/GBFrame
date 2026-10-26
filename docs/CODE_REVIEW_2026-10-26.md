@@ -251,6 +251,16 @@ A deeper review of `RetroAchievementsHostOverrideReceiver` found a residual secu
 
 Recommended follow-up is to decide whether arbitrary remote/custom proxy URLs are a supported use case. If only local proxy integrations are required, restrict allowed destinations to loopback and validate ports/URI authority rigorously. If arbitrary proxy URLs are required, document the trust boundary and adopt an interoperable sender-authentication mechanism with the external client. A signature-level permission on GBCast alone would block the existing RAOfflineProxy unless both apps can share compatible signing and permission declarations.
 
-An attempt to create a tracking issue in GBCast was rejected by GitHub because Issues are disabled for that repository (HTTP 410); no issue was created. The findings remain recorded in this review document.
+At the time of the initial attempt, GitHub rejected issue creation because Issues were disabled (HTTP 410). Issues have since been enabled, and two tracking issues were created in GBCast: [#1 — define the trust policy for the exported receiver](https://github.com/mindspot7/GBCast/issues/1) and [#2 — RAOfflineProxy compatibility after the application-ID change](https://github.com/mindspot7/GBCast/issues/2).
 
 **Action still required:** coordinate support for the new package ID `app.gbcast.emulator` with RAOfflineProxy upstream, then test SET/CLEAR against the installed GBCast build. The GBCast repository integration currently has read-only access to RAOfflineProxy, so no upstream changes were made.
+
+
+### Follow-up — GBCast issue tracking enabled (2026-10-26)
+
+After the repository owner enabled Issues, created two open tracking issues:
+
+- [GBCast #1 — Security: define trust policy for exported RetroAchievements host override receiver](https://github.com/mindspot7/GBCast/issues/1). Tracks the decision between a loopback-only policy and interoperable sender authentication, plus validation and runtime tests. No concrete credential exposure is claimed.
+- [GBCast #2 — Integration: make GBCast discoverable by RAOfflineProxy after application ID change](https://github.com/mindspot7/GBCast/issues/2). Tracks the `app.gbcast.emulator` package/component mismatch with upstream RAOfflineProxy and end-to-end SET/CLEAR verification.
+
+Both issues are open. Creating them does not resolve either finding; receiver policy, upstream integration, and device verification remain pending.
