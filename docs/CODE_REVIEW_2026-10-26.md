@@ -216,3 +216,17 @@ A focused security/privacy improvement was committed to GBCast `android-port`:
 - Validation was triggered: Android build run #40363852313 (queued at report time) and Android Lint run #40363821333 (in progress at report time). Do not mark this change CI-validated until both results are checked.
 
 This reduces accidental disclosure of proxy URL query values in logs. It does **not** authenticate the sender or resolve the existing exported-receiver trust-boundary decision.
+
+
+### Follow-up — GBCast privacy hardening CI validated (2026-10-26)
+
+The two workflows triggered after commit `9929728a7c54cf054287ca0614ed03cbc0a65b1e` completed successfully:
+
+- Android build run #40363852313: https://github.com/mindspot7/GBCast/actions/runs/40363852313 — Gradle build/tests, release APK packaging, shared 16 KB compatibility validator, and artifact upload all succeeded.
+- Android Lint run #40363821333: https://github.com/mindspot7/GBCast/actions/runs/40363821333 — Lint and report-artifact upload succeeded.
+
+The latest CI gate therefore validates the URL-log redaction change at build/test/package and Lint workflow level. It does not authenticate broadcast senders, prove runtime lifecycle correctness, or replace on-device testing.
+
+The receiver manifest still intentionally declares `android:exported="true"` and has no sender permission. Repository code search did not find a documented in-repository RAOfflineProxy implementation or additional caller, so compatibility with external proxy tooling cannot be inferred from this repo alone. Do not add a signature permission or disable export without confirming that the external tool can use it; that would otherwise break the integration. The trust-boundary decision remains open and should be explicit in integration documentation/release notes. URL validation and redacted logging reduce input-injection and accidental log-disclosure risks, but they do not make the caller trusted.
+
+**Current status:** latest GBCast CI build/test/package and Lint workflows passed. The review remains open pending the external-integration trust decision and on-device lifecycle regression tests for the UI-reference cleanup.
