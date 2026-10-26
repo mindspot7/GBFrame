@@ -345,3 +345,18 @@ Confirmed: loopback URL validation restricts the *destination*, not the *sender*
 A GBCast-only Android `signature` permission would block unauthorized callers but is not a safe drop-in integration fix: RAOfflineProxy is a separately distributed app, and shared signing-certificate compatibility has not been established. A normal/dangerous permission or explicit component targeting alone is not strong authentication. The security issue remains open pending a coordinated protocol with RAOfflineProxy (e.g. shared-signature permission if co-signing is feasible, or another caller-verification/explicit-authorization design that supports the app's Android API range).
 
 Tracked in [GBCast security issue #1](https://github.com/mindspot7/GBCast/issues/1). Do not treat sender authentication as fixed. Full device verification of SET/CLEAR, offline queue/sync after reconnect, and ordinary online RetroAchievements behavior is still outstanding.
+
+
+### CI follow-up — execute receiver instrumentation tests (2026-10-26)
+
+The earlier Android workflow #65 and Android Lint #15 both completed successfully:
+- [Android build/test/package #65](https://github.com/mindspot7/GBCast/actions/runs/40373074726) — success; this compiled `:flycast:compileDebugAndroidTestJavaWithJavac` but did not execute instrumentation tests.
+- [Android Lint #15](https://github.com/mindspot7/GBCast/actions/runs/40373000508) — success.
+
+To close that gap, the Android workflow now starts an API 35 Google APIs x86_64 emulator and runs `:flycast:connectedDebugAndroidTest`, which installs the app/test APK and executes SET/CLEAR persistence tests. The workflow was retriggered by updating `.github/workflows/run-build.trigger`; execution result is pending at this report update.
+
+Commits:
+- Emulator execution step: `1e112d1fd2f048b0bae577b737e23ebd632a5433`
+- Workflow trigger: `b2e45f0f717f90e69776fc3e388b43262b781d42`
+
+The sender-authentication issue remains intentionally unresolved: a loopback destination check is not sender authentication, and adding a signature permission without confirming a compatible shared signing identity for RAOfflineProxy risks breaking integration. Keep GBCast issue #1 open until an interoperable sender-trust design is established and tested.
