@@ -99,7 +99,7 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 - [docs/LESSONS.md](docs/LESSONS.md): lessons learned (performance, GPU renderers, controller, storage, Play, CI).
 - [docs/QUICK_MENU_STANDARD.md](docs/QUICK_MENU_STANDARD.md): mandatory GBSat-based in-game quick-menu layout, options, navigation and focus behavior.
 - [docs/APP_README_TEMPLATE.md](docs/APP_README_TEMPLATE.md): every app has its own README, written from this template (same sections in every app).
-- [docs/APP_INTEGRATION_STANDARD.md](docs/APP_INTEGRATION_STANDARD.md): mandatory app identity, launcher icon reuse, development/release APK naming, library input/Back lifecycle, game-launch callbacks, five-slot manual save-state limit and box-art sizing.
+- [docs/APP_INTEGRATION_STANDARD.md](docs/APP_INTEGRATION_STANDARD.md): mandatory app identity, Compose-safe raster icon reuse (never adaptive launcher XML in painterResource), development/release APK naming, library input/Back lifecycle, game-launch callbacks, five-slot manual save-state limit and box-art sizing.
 - [docs/BOXART_STANDARD.md](docs/BOXART_STANDARD.md): measure a system's majority cover ratio and use one shared frame in every library layout.
 
 ## Rules
