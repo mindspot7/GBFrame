@@ -204,3 +204,15 @@ This closes the CI build/test/package gate for the current GBCast changes, but n
 ### Follow-up — build-trigger coverage gap confirmed
 
 The GBCast standard Android workflow is triggered by manual dispatch or a push to `.github/workflows/run-build.trigger` on `android-port`; ordinary source changes do not automatically run the release build/unit tests/16 KB validator. The isolated Lint workflow has broader path filters, but it is not a substitute for the build gate. This appears to be an intentional, manually controlled build strategy, so no trigger behavior was changed automatically. For ongoing protection against source regressions, either retain an explicit documented manual build requirement or add source-path triggers after considering the native build cost and submodule update flow.
+
+
+### Follow-up — proxy URL logging hardening (2026-10-26)
+
+A focused security/privacy improvement was committed to GBCast `android-port`:
+
+- Commit `9929728a7c54cf054287ca0614ed03cbc0a65b1e`: https://github.com/mindspot7/GBCast/commit/9929728a7c54cf054287ca0614ed03cbc0a65b1e
+- `RetroAchievementsHostOverrideReceiver` no longer logs the full host override URL when a SET broadcast arrives or when `emu.cfg` is updated. The endpoint may include query parameters that should not be copied into Android logs.
+- The log now records only that the override was set/cleared; URL validation and the external broadcast contract are unchanged.
+- Validation was triggered: Android build run #40363852313 (queued at report time) and Android Lint run #40363821333 (in progress at report time). Do not mark this change CI-validated until both results are checked.
+
+This reduces accidental disclosure of proxy URL query values in logs. It does **not** authenticate the sender or resolve the existing exported-receiver trust-boundary decision.
