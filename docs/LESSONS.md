@@ -61,6 +61,12 @@ line here whenever a new app teaches something that would have saved time.
 - Fast forward should render ~60 frames per real second and skip the rest.
 - Present frames zero-copy through `AHardwareBuffer`.
 
+## Android foreground lifecycle
+
+- Distinguish a player-requested pause from the pause imposed when Android backgrounds the activity. Capture whether gameplay was active before pausing in `onPause()`; on `onResume()`, consume a one-shot flag and resume only if that same game session is still running. If the menu was already open, preserve the intentional pause.
+- Prefer explicit pause-state setters to native toggles. A toggle called twice can undo the intended state, so lifecycle recovery must inspect/know the current state and only transition when necessary.
+- The background/foreground regression was reproduced and then device-tested successfully in both GBSat and GBCast (October 2026). Keep active-gameplay return and intentionally-paused/menu-open return as mandatory regression cases for future family apps.
+
 ## Controller and menus
 
 - Every dialog/menu must work with the controller from the first press: draw dialogs in the app window, focus the
