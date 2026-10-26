@@ -299,3 +299,16 @@ The follow-up validation for commit `9e7e5c209639cbedd8ed385b9a42e80fe6fb533c` c
 - Android build, `:flycast:testDebugUnitTest`, release APK packaging, and shared 16 KB APK validation: [run #40368530356](https://github.com/mindspot7/GBCast/actions/runs/40368530356) — success.
 
 This verifies CI on the config-write consistency fix. It does not replace an installed-device SET/CLEAR test and does not resolve the exported receiver's trust policy or RAOfflineProxy's package mapping.
+
+### Follow-up — offline proxy mode restricted to device loopback (2026-10-26)
+
+The user clarified that local proxies are used by the offline mode, while the normal/online mode is different. GBCast's host override receiver is the integration point used by RAOfflineProxy to redirect RetroAchievements traffic to its local proxy; the normal online flow does not need this override. The validator now accepts only HTTP(S) URLs whose host is exactly localhost, 127.0.0.1, or IPv6 loopback ::1. Remote hosts, LAN IPs, the Android Emulator host alias 10.0.2.2, and other loopback-range addresses such as 127.0.0.2 are rejected. Existing local paths/query parameters remain permitted.
+
+Commits on GBCast android-port:
+- Validator + strict loopback policy: current file update based on previous validator commit.
+- Tests now cover accepted IPv4/IPv6/localhost endpoints and rejected public, LAN, emulator-host, and non-canonical loopback destinations.
+- Receiver rejection log updated to describe the actual local-only rule.
+
+This policy is scoped to the offline-proxy host override, not the normal/online RetroAchievements flow. It is intentionally device-loopback-only: if the offline proxy runs on a separate LAN device or on the development host via 10.0.2.2, that is not supported by this policy.
+
+Remaining checks: run the standard GBCast build/unit tests/release packaging/16 KB validation and Android Lint on the resulting branch head, then verify SET/CLEAR and normal online behavior on-device. The exported receiver still does not authenticate the broadcast sender, and RAOfflineProxy's package/component mismatch remains a separate open integration issue.
