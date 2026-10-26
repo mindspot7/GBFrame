@@ -18,7 +18,7 @@ Use `tools/check-android-16kb.sh <final-apk-path>` from this repository. Consume
 4. Fail the job if any inspected ELF `LOAD` segment reports `2**12` alignment, if a required inspection tool is missing, if the APK has no native libraries, or if no LOAD alignment can be parsed.
 5. Upload the same APK that passed the checks. Do not rebuild or replace it after validation.
 
-These gates must be blocking failures, not warnings. If an app intentionally has no ARM64 native libraries, document and implement an explicit app-specific exception rather than allowing an accidental empty glob to pass.
+These gates must be blocking failures, not warnings. If an app intentionally ships no native shared libraries, document and implement an explicit app-specific exception rather than allowing an accidental empty glob to pass.
 
 ## Scope and limits
 
