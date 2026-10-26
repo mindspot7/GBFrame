@@ -124,6 +124,15 @@ This behavior is mandatory:
 - D-pad navigation, confirm, Back, touch and keyboard access must work consistently. Avoid arbitrary one-off delays as the only focus-restoration mechanism; follow GBFrame's existing focus-retry patterns.
 - Closing the menu resumes emulation exactly once. Repeated or synthetic Back events must not accidentally close multiple navigation levels or resume twice.
 
+### Android background/foreground regression checks
+
+The quick-menu pause contract also applies when Android temporarily backgrounds the activity. Follow the lifecycle rules in [APP_INTEGRATION_STANDARD.md](APP_INTEGRATION_STANDARD.md); do not implement a separate quick-menu lifecycle policy.
+
+- With gameplay active and the quick menu closed, send the app to the background and return: gameplay must resume without requiring the user to open/close the menu.
+- With the quick menu open, send the app to the background and return: preserve the open menu and its intentional pause; do not resume gameplay behind it.
+- Repeat both scenarios several times, including a rapid app switch. There must be no stale resume flag, double toggle, duplicate resume, or permanently paused game after the menu is dismissed.
+- Also verify the normal dismissal paths listed above (Resume, root Back/B, scrim, close control) still resume exactly once. Lifecycle recovery must not alter the quick-menu navigation stack.
+
 ## Shared API usage
 
 The minimal shape is:
