@@ -79,3 +79,13 @@ The native source trace is now complete for the GBCast pause toggle:
 - The Kotlin Back handler's fallback branch calls the toggle and then displays Compose. A repeated event can therefore be hazardous if the state/visibility transition is not synchronized as expected. This is a confirmed risk in the contract, not a confirmed reproduction of a user-visible bug.
 
 **Decision:** no pause logic was changed in this pass. A blanket debounce or replacing the toggle with state writes would be unsafe without tracing every native GUI transition and lifecycle path. Next implementation step should make the Kotlin adapter's transition policy explicit (single owner of pause/resume, state checked before each action) and add testable decision logic for Back/state transitions; device testing is still required for native integration.
+
+### Follow-up — GBSat native pause setter verified
+
+The native side of GBSat's pause contract was inspected in `apps/android/app/src/main/cpp/gbsat_jni.cpp`:
+
+- `nativeSetPaused(paused)` assigns the requested value to the atomic `g->paused`, clears the audio ring when pausing, and notifies `g->cmdCv`.
+- This is an explicit-state setter, not a toggle. Repeated assignments do not invert the pause state, but they do repeat the audio-ring clear and condition-variable notification. Do not add an early return without checking whether repeated pause requests are expected to flush audio or wake the emulation thread.
+- This further supports leaving the existing GBSat native behavior unchanged until lifecycle tests establish a need for a guard.
+
+The source-level contract checks for both apps are now complete. The next safe change is a small, independently testable Kotlin transition-policy layer plus tests, followed by the native/device lifecycle matrix; no runtime test has been performed in this review.
