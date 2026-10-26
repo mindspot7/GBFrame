@@ -264,3 +264,20 @@ After the repository owner enabled Issues, created two open tracking issues:
 - [GBCast #2 — Integration: make GBCast discoverable by RAOfflineProxy after application ID change](https://github.com/mindspot7/GBCast/issues/2). Tracks the `app.gbcast.emulator` package/component mismatch with upstream RAOfflineProxy and end-to-end SET/CLEAR verification.
 
 Both issues are open. Creating them does not resolve either finding; receiver policy, upstream integration, and device verification remain pending.
+
+
+### Follow-up — isolated proxy URL validation and JVM tests (2026-10-26)
+
+GBCast `android-port` now separates URL syntax validation from the Android broadcast receiver:
+
+- `RetroAchievementsHostUrlValidator` uses pure Java `java.net.URI`, allowing the URL rules to be exercised by ordinary JVM unit tests without mocking Android's `Uri`.
+- The receiver delegates SET input validation to this helper; full proxy URLs remain redacted from logs.
+- New JUnit coverage checks valid HTTP/HTTPS URLs, missing/unsupported schemes and hosts, user-info, invalid/out-of-range ports, control characters, whitespace, and malformed URIs.
+- Commits: receiver refactor `d6b720ab0f7a3267b6b481087fda3e8f4ff5bff1`; validator `c99e0dbe9536092b0932cc92fcadf0323f245627`; tests `d65683e8dcbcd1209a4da600adbc1deeeda64ed9`; build trigger `9902a0ae5933cf000f222a9cb26211d32c4f38d2`.
+
+Validation is running:
+- Android build/test/package workflow: https://github.com/mindspot7/GBCast/actions/runs/40366860986
+- Android Lint workflow for the changed receiver: https://github.com/mindspot7/GBCast/actions/runs/40366810687
+- Android Lint workflow for the new validator: https://github.com/mindspot7/GBCast/actions/runs/40366835381
+
+**Important scope limit:** these tests validate URL syntax only. They do not decide whether remote proxy destinations are trusted, authenticate the sender, or prove that the emulator's RetroAchievements requests are safe when redirected. The trust-policy issue remains open at [GBCast #1](https://github.com/mindspot7/GBCast/issues/1); package discovery by upstream RAOfflineProxy remains open at [GBCast #2](https://github.com/mindspot7/GBCast/issues/2). Do not close either issue solely because the new tests/build pass.
