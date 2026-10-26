@@ -100,3 +100,20 @@ A small refactor was committed to GBCast on `android-port`:
 - CI was changed to run `testReleaseUnitTest` before `assembleRelease`, so the new JVM tests are part of the validation build.
 
 This is a decision-policy extraction, **not yet a duplicate-event debounce**. The existing toggle fallback is intentionally unchanged because the native GUI state contract is known but lifecycle/event ordering still needs device validation. GitHub Actions run #45 was queued at the time of this report update: https://github.com/mindspot7/GBCast/actions/runs/40318564412. Do not treat the tests or APK build as passed until that run completes successfully.
+
+
+### Follow-up — device verification after the 16 KB validator fix (2026-10-26)
+
+The user installed and tested the resulting GBSat build #361 and GBCast build #58 on an Android device and confirmed that both worked.
+
+- GBSat build #361: https://github.com/mindspot7/GBSat/actions/runs/40337602238 — workflow succeeded; the shared GBFrame validator passed; artifact `GBSat-v1.3.6-build361` uploaded.
+- GBCast build #58: https://github.com/mindspot7/GBCast/actions/runs/40338006960 — workflow succeeded; `:flycast:testDebugUnitTest` and `:flycast:assembleRelease` completed; the shared validator passed for the packaged native libraries across `arm64-v8a`, `armeabi-v7a`, `x86`, and `x86_64`; artifact uploaded.
+- The corrected validator is pinned to GBFrame commit `6fb96ecac381cf7613b7e3321ade39b73b052fd0` in both app workflows.
+- This confirms the tested install/launch path as reported by the user and the CI build/package checks. It does not establish coverage of every pause/resume lifecycle path.
+
+### Next implementation sequence
+
+1. Add a small, independently testable GBSat menu/pause transition policy without changing the native explicit-state setter's semantics; wire it into the UI adapter and run JVM tests.
+2. Keep the GBCast native toggle fallback unchanged until transition/event ordering is covered by targeted device checks. Its pure Back-decision tests run in CI, but they do not test JNI lifecycle timing.
+3. Extend the device regression matrix to rapid repeated Back, root versus nested Back, scrim/close, hotkey open, background/foreground, native-settings return, Reset/Restart, and Exit.
+4. Run dependency-aware lint/static diagnostics before deleting any suspected unused Kotlin declarations. Do not treat text-only reference scans as proof of dead code.
