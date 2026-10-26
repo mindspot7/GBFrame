@@ -55,3 +55,16 @@ A lightweight import-reference scan across the two game-screen and two library-s
 
 Both game menus implement the same generic save/load slot page pattern with GBFrame's `QuickMenuPage` and `QuickMenuItemRow`, but the backing operations and state-file conventions differ. This is a candidate for a GBFrame slot-page abstraction only if it can accept app-provided slot availability, save/load callbacks, labels, and error handling; do not move native file-path assumptions into GBFrame. Both also expose renderer/resolution/audio/performance toggles, but their supported values and core APIs differ, so standardize row presentation and focus/navigation behavior rather than forcing identical settings models.
 
+## Follow-up — pause/resume source trace
+
+A source-level trace of the current app adapters and shared host found:
+
+- **GBSat:** `Emulator.pause(p)` assigns the explicit target state to `paused` and calls `NativeBridge.nativeSetPaused(p)`; it is not a toggle. Repeated calls therefore do not invert the native pause state, although they do repeat play-time accounting and native calls. The current screen can reach this method from Back, the menu button, the hotkey request, menu dismissal, game launch, and close-game paths.
+- **GBFrame:** `QuickMenuHost` owns the nested-page Back stack and invokes `onDismiss` at the root, on scrim, and on close. It deliberately does not pause/resume the core itself; each app adapter owns that responsibility.
+- **GBCast:** `GbcastGameUi.resume()` hides the overlay and calls `JNIdc.guiTogglePause()` only when `JNIdc.guiState() == PAUSE`. That state guard makes repeated calls less likely to toggle a running game back into pause, but correctness depends on the native GUI state being current and the menu remaining in sync with it. `hideForNative()` is a distinct transition that hides Compose while handing control to Flycast's native settings state.
+- **Validation status:** this is static source analysis only. No device/emulator session or native lifecycle test was run, so no runtime regression is confirmed.
+
+### Recommended next change
+
+Do not change pause semantics blindly. Add a small adapter-level transition guard and focused tests only after verifying the native contracts for `nativeSetPaused` and `guiTogglePause`. Cover rapid repeated Back, root Back versus nested Back, scrim/close, hotkey open, activity background/foreground, native settings return, Reset/Restart, and game exit. In GBSat, consider short-circuiting `pause(p)` when `paused == p` only after confirming there are no required side effects in `nativeSetPaused`; the current code is explicit-state, not toggle-based.
+
