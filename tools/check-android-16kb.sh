@@ -23,11 +23,11 @@ fi
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
-unzip -o -q "$APK" 'lib/arm64-v8a/*.so' -d "$WORK"
+unzip -o -q "$APK" 'lib/*/*.so' -d "$WORK"
 shopt -s nullglob
-LIBS=("$WORK"/lib/arm64-v8a/*.so)
+LIBS=("$WORK"/lib/*/*.so)
 if [[ ${#LIBS[@]} -eq 0 ]]; then
-  echo "::error title=16 KB ELF::No arm64-v8a shared libraries found in APK"
+  echo "::error title=16 KB ELF::No native shared libraries found in APK"
   exit 1
 fi
 
@@ -51,7 +51,7 @@ for LIB in "${LIBS[@]}"; do
   fi
 done
 
-echo "Inspected ${#LIBS[@]} arm64-v8a shared libraries; failures: $FAILURES"
+echo "Inspected ${#LIBS[@]} native shared libraries across packaged ABIs; failures: $FAILURES"
 if [[ "$FAILURES" -gt 0 ]]; then
   echo "::error::Native ELF alignment check failed"
   exit 1
