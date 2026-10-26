@@ -44,13 +44,13 @@ for LIB in "${LIBS[@]}"; do
   if [[ -z "$ALIGNMENTS" ]]; then
     echo "::error title=16 KB ELF::Could not read LOAD alignment for ${LIB#"$WORK"/}"
     FAILURES=$((FAILURES + 1))
-  elif [[ "$(printf '%s\\n' "$ALIGNMENTS" | awk '
+  elif [[ "$(printf '%s\n' "$ALIGNMENTS" | awk '
       {
         for (i = 1; i <= NF; i++) {
-          if ($i !~ /^2\\*\\*[0-9]+$/) {
+          if ($i !~ /^2[*][*][0-9]+$/) {
             bad = 1
           } else {
-            split($i, parts, /\\*\\*/)
+            split($i, parts, /[*][*]/)
             if ((parts[2] + 0) < 14) bad = 1
           }
         }
