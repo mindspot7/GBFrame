@@ -9,6 +9,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +43,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -180,7 +182,8 @@ fun QuickMenuHost(
                     color = p.panel,
                     shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
                     border = BorderStroke(1.dp, p.border),
-                    modifier = Modifier.fillMaxHeight().widthIn(max = 340.dp).fillMaxWidth(.85f),
+                    modifier = Modifier.fillMaxHeight().widthIn(max = 340.dp).fillMaxWidth(.85f)
+                        .pointerInput(Unit) { detectTapGestures(onTap = {}) },
                 ) {
                     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(vertical = 12.dp)) {
                         Row(
