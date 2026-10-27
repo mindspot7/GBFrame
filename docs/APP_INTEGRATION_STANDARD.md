@@ -2,6 +2,8 @@
 
 This document is the normative checklist for apps that consume GBFrame. GBFrame owns reusable UI and behavior; each app owns its identity, core adapters, and CI outputs.
 
+The [shared behavior standard](SHARED_BEHAVIOR_STANDARD.md) is also normative. It consolidates the common library, firmware, settings placement, video, overlays, save-state, cheats and local-validation requirements established across consumers.
+
 ## How to identify a rule
 
 Use sources in this order:
@@ -21,17 +23,13 @@ Do not treat an app-specific implementation as a standard when it conflicts with
 
 ## App icon and in-app identity
 
-Gameplay video keeps its configured aspect ratio and is horizontally centered and top-aligned whenever vertical space remains, including square handhelds and portrait phones. Place unused space below the picture; keep menus/overlays full-screen and map pointer/lightgun input to the actual video rectangle. GBFrame's native `video_layout.h` supplies the fitted-rectangle alignment helper; Compose consumers use `Alignment.TopCenter`. Respect the user's device orientation instead of forcing landscape.
-
-Library game options expose **Cover Image**, opening the shared `CoverImageOptions` chooser: **Web Search** opens Google Images inside GBFrame with the library title and configured cover system; tapping or holding an image opens a preview with **Use image**. After saving, invalidate the library's cover version and return to the library. **Local Search** opens the app's image document picker. Back walks browser history, then the cover chooser, game options, and library. The browser also provides **Close search**. Downloads are bounded and validated before atomically replacing the selected game's custom cover.
-
 The consuming app owns its launcher icon in its own Android resources; GBFrame must not embed a particular app's logo.
 
 - Use the app's launcher icon artwork in `HomeTopBar`, `HomeMenuPanel`, and `AboutPage`. These three places must show the same icon identity as the installed app.
-- Pass an inline-compatible raster `Painter` to `HomeTopBar`, `HomeMenuPanel`, and `AboutPage`. Prefer the app-owned raster resource (for example, `painterResource(R.drawable.ic_launcher)`) for all three.
+- Pass an inline-compatible raster `Painter` to `HomeTopBar`, `HomeMenuPanel`, and `AboutPage`. Use `rememberAppIconPainter` with the app-owned raster foreground for all three.
 - **Do not pass an adaptive launcher XML resource** (typically `mipmap-anydpi-v26/ic_launcher.xml`) to Compose `painterResource()`: it may fail at runtime because it is not a supported Compose painter resource. Android may still use that adaptive resource for the launcher; the in-app UI must use a raster-compatible resource.
 - If the app's launcher resource is adaptive or otherwise unsupported inline, provide a raster resource derived from the exact same icon artwork. Do not substitute a different logo or core icon.
-- Keep the icon artwork and displayed app name consistent across the top bar, main menu, and About page. Do not add a GBFrame-specific outline.
+- Keep the icon artwork and displayed app name consistent across the top bar, main menu, and About page. The black controller contour belongs to the supplied artwork; GBFrame must not add a second decorative outline.
 - Each app owns and supplies its own icon resources; GBFrame accepts a `Painter` and must not resolve another app's resource IDs itself.
 - Do not omit the app icon from the top bar or About page.
 - Use `rememberAppIconPainter` with the app's raster foreground for in-app identity. It removes transparent launcher safe-zone margins and preserves the artwork aspect ratio inside the existing 40 dp header/menu or 72 dp About frame. Launcher composition remains unchanged.
@@ -74,6 +72,12 @@ Use GBFrame's `HomeLibrary` and `HomeActions` for the library selection UI. Pres
 Use `SafGames.scan` for the shared SAF library. For a synchronous core load callback, use `SafGames.openAndLoad`; it retains opened disc resources for the session and applies the shared CHD/ISO copy fallback. Close `OpenDisc` on load failure or when the game session ends. An asynchronous/path-based core may use `SafGames.open` and its own adapter, but must preserve the same open lifetime and error handling. If the core reopens referenced tracks by path, materialize the staged descriptors into usable files before releasing them; keep this core-specific staging in the app adapter.
 
 The shared manual save-state limit is `SaveData.MANUAL_SAVE_STATE_SLOTS = 5`. Use that constant instead of app-local counts and expose at most five numbered slots per core. Quick-save, auto-save, and other automatic states are separate features and do not increase the numbered-slot limit.
+
+## Gameplay presentation and cover selection
+
+Gameplay video keeps its configured aspect ratio and is horizontally centered and top-aligned whenever vertical space remains, including square handhelds and portrait phones. Place unused space below the picture; keep menus/overlays full-screen and map pointer/lightgun input to the actual video rectangle. GBFrame's native `video_layout.h` supplies the fitted-rectangle alignment helper; Compose consumers use `Alignment.TopCenter`. Respect the user's device orientation instead of forcing landscape.
+
+Library game options expose **Cover Image** through `CoverImageOptions`: **Web Search** opens the shared in-app image search with the library title and configured cover system; **Local Search** opens an image document picker. Confirm a preview with **Use image**, invalidate the library cover version and return to the library. Back traverses browser history, chooser, game options and library. Follow the bounded download, validation and atomic replacement requirements in [SHARED_BEHAVIOR_STANDARD.md](SHARED_BEHAVIOR_STANDARD.md).
 
 ## Google Play readiness
 

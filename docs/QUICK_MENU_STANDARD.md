@@ -4,6 +4,8 @@ All GB-family Android emulators must use the **GBSat in-game quick menu as the r
 
 This standard describes a shared user experience, not a requirement to expose unsupported core features. Keep the layout and navigation consistent; include a setting only when the app/core can actually implement it.
 
+The [shared behavior standard](SHARED_BEHAVIOR_STANDARD.md) is normative for settings placement, monitoring, firmware, cheat catalogs, automatic states and local validation. Its explicit cross-app requirements take precedence over an older app-specific reference implementation.
+
 The reference implementation lives in [`gbframe/src/main/java/gb/frame/QuickMenu.kt`](https://github.com/mindspot7/GBFrame/blob/main/gbframe/src/main/java/gb/frame/QuickMenu.kt). Apps should construct `QuickMenuPage` objects and use `QuickMenuHost`, `QuickMenuItemRow` and `QuickMenuItemContainer`; do not create a separate panel or Back/focus stack in each app. The app still owns each real core action and builds a capability-aware set of pages and rows.
 
 ## Visual layout
@@ -46,6 +48,7 @@ Do not reorder these standard rows or rename them without a clear usability reas
 - Render each slot with GBFrame's `QuickMenuStateSlot`: an 88 x 66 dp screenshot with rounded corners, followed by the slot label and localized date/time. Core adapters supply the timestamp and decoded thumbnail; existing states without screenshots use the image placeholder.
 - Quick-save, auto-save and other automatic states are separate special features, not extra numbered/manual slots.
 - Execute save/load work off the UI thread where appropriate; show a recoverable error in the menu if an operation fails.
+- Capture the game screenshot on the thread/context required by the renderer and refresh the slot only after the operation completes. Keep special automatic slots separate from the manual-slot preference and its bounds.
 - After successful save/load, close the quick menu and resume the session, matching GBSat.
 - If the core does not support save states, do not show fake controls. Document the limitation and omit these rows until the feature exists.
 
@@ -60,6 +63,8 @@ Follow GBSat's hierarchy and expose available options in this order:
 - **Filter**: cycle through supported image filters, if applicable.
 
 Only show dependent options when they work with the active renderer. When a choice changes, apply it to the running game, persist it where appropriate and update the displayed value immediately.
+
+Use one mutually exclusive display-mode choice, shared with main Video settings. Include only supported modes; distinguish original aspect, 16:9, device-ratio expanded view and Fullscreen stretch. Clear incompatible mode flags when changing the choice. Monitoring belongs in Overlays: do not duplicate Show FPS here. Do not expose Rotate in quick-menu Video; respect device orientation and retain any supported core-specific rotation setting in main settings.
 
 ### Audio
 
@@ -99,6 +104,8 @@ Offer supported visibility toggles in this order:
 
 Each toggle must be connected to the actual overlay or input UI. Omit metrics the app cannot measure and touch controls when the app has no touch-control implementation. The "Show all monitoring" option should consistently enable/disable the supported monitoring metrics together.
 
+Main settings **Video > Overlays** must expose the same supported monitoring preferences as **Quick menu > Overlays**, with one persisted source of truth. Render through GBFrame's shared monitoring/notification components and remove duplicate core-native FPS/pause/notification overlays. A distinct hardware display or control may remain when it is a real consumer capability.
+
 ### Game
 
 Use the GBSat pattern for session/game-specific actions:
@@ -109,6 +116,8 @@ Use the GBSat pattern for session/game-specific actions:
 - **Achievements** — use the shared GBFrame `AchievementsScreen` and `RetroAchievements` UI with the app's `RaBackend` adapter. Keep the menu entry available when the app has initialized the backend, even if RetroAchievements is disabled or the user is not logged in; the screen/settings should explain how to enable or sign in rather than hiding the feature.
 
 These are standard GB-family features, not opportunities to create separate per-app UI. The specific native/core implementation still belongs to the app. Keep nested screens inside the quick-menu navigation stack. Back from Cheats or Achievements must return to the Game submenu and restore focus to the row that opened it.
+
+Auto save and Auto load are global controls in **main settings > System**, using `SaveStateSettings`; do not duplicate them in quick-menu Game. Cheat database behavior follows the shared standard: system-specific licensed catalog, conservative region/revision matching, preservation of existing/manual entries and compatibility patches, disabled imports, duplicate prevention and native hardcore enforcement.
 
 ## Navigation and controller contract
 
@@ -122,6 +131,7 @@ This behavior is mandatory:
 - The first actionable row of every newly opened page receives focus so the menu works with a controller immediately.
 - When returning from a submenu, restore focus to the exact Root row that opened it. On returning from a nested screen, restore focus to the row that opened that screen.
 - The rendering SurfaceView must not steal keyboard/gamepad focus while the menu is open.
+- Neither the outside-dismiss scrim nor a focusable Android wrapper may trap controller focus. Android ComposeView integrations must let Compose descendants own focus. Empty taps inside the panel must not dismiss through the scrim.
 - D-pad navigation, confirm, Back, touch and keyboard access must work consistently. Avoid arbitrary one-off delays as the only focus-restoration mechanism; follow GBFrame's existing focus-retry patterns.
 - Closing the menu resumes emulation exactly once. Repeated or synthetic Back events must not accidentally close multiple navigation levels or resume twice.
 
@@ -192,3 +202,6 @@ Before considering the quick menu complete, verify on device or emulator:
 - [ ] The game can be exited to the library without force-quitting the app.
 - [ ] Immersive mode and normal gameplay input are preserved.
 - [ ] Tests distinguish build success from actual device-level controller validation.
+- [ ] Touch followed by D-pad/A/B navigation retains usable row focus and never activates the scrim by confirm.
+- [ ] Main Video/Overlays and quick-menu Overlays share persisted values; quick-menu Video has no Show FPS or Rotate.
+- [ ] Auto save/Auto load appear only in main System settings, and special states preserve the manual-slot selection.

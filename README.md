@@ -22,7 +22,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `ResumeEntry.kt` | Save-state entry model (`ResumeEntry`) used by the All in One layout; there is no separate Recent library mode |
 | `QuickMenu.kt` | Shared in-game menu host (`QuickMenuHost`), page/Back stack (`QuickMenuPage`, `QuickMenuScope`), capability-aware action rows and custom focusable rows with focus restoration |
 | `Home.kt` | Home screen: `HomeTopBar` (icon, label, clock, battery) and `HomeLibrary` in three layouts (Showcase, Grid, All in One). The main menu's LIBRARY tiles cycle Theme (Showcase/Grid/All in One) and toggle Fullscreen; there is no separate All games/Recent mode. `HomeThemeSettings` remains as an empty compatibility entry point. `HomeMenuPanel` main menu (library view, settings tiles, quit); `HomeTheme` remembers the selected theme; `CoverCard` box art |
-| `LibraryView.kt` | Last selected game/save state remembered between sessions (`LibraryView.init(prefs)`, `lastGame`, `lastState`) |
+| `LibraryView.kt` | Last opened game restored at startup (`init(prefs)`, `gameOpened(key)`); separate session game/save-state selection (`lastGame`, `lastState`) |
 | `DeviceTier.kt` | Device class from CPU core types and the GPU: Entry (little cores only, RK3566), Low (≤2 fast cores or A73-class cores: T618, Snapdragon G1 Gen 2, 662), Mid (modest GPU, T820), High (strong GPU: Snapdragon 865+, Dimensity 8300); picks the recommended preset |
 | `GameProfiles.kt` | Recommended settings per game and device class shipped in `assets/game_profiles.json` (user choice > database > global settings) |
 | `PadDiagram.kt` | Controller diagram for button mapping (`PadLayout`, `PadButton`, `PadDiagram`) |
@@ -83,7 +83,7 @@ android {
 
 ```kotlin
 // Box art and RetroAchievements (once, at startup)
-Covers.init(dataDir, system = "Sony - PlayStation")
+Covers.init(dataDir, system = "Sony - PlayStation", frameAspectRatio = measuredSystemCoverRatio)
 RetroAchievements.init(context, appName = "MyEmu", version = "1.0.0", backend = myRaBackend)
 ```
 
@@ -96,6 +96,8 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 
 ## Documentation for apps
 
+- [docs/SHARED_BEHAVIOR_STANDARD.md](docs/SHARED_BEHAVIOR_STANDARD.md): mandatory cross-app behavior consolidated from the GBCast/GBSat updates; ownership, identity, launch/covers, settings placement, automatic states, display/overlays, firmware, cheats and local validation.
+
 - [docs/LESSONS.md](docs/LESSONS.md): lessons learned (performance, GPU renderers, controller, storage, Play, CI).
 - [docs/QUICK_MENU_STANDARD.md](docs/QUICK_MENU_STANDARD.md): mandatory GBSat-based in-game quick-menu layout, options, navigation and focus behavior.
 - [docs/APP_README_TEMPLATE.md](docs/APP_README_TEMPLATE.md): every app has its own README, written from this template (same sections in every app).
@@ -105,6 +107,7 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 ## Rules
 
 - Only emulator-independent code lives here: no core, JNI or console-specific options.
+- **Every consumer must follow [SHARED_BEHAVIOR_STANDARD.md](docs/SHARED_BEHAVIOR_STANDARD.md).** Common behavior is a framework contract, not a per-app convention. Keep console-specific firmware, pad geometry, catalog formats, native operations and supported modes in the consumer; audit adapters after updating the framework rather than assuming submodule adoption proves conformance.
 - **All GB-family Android apps must follow the [app integration standard](docs/APP_INTEGRATION_STANDARD.md)** for package identity, reuse of the app's launcher icon in the top bar, main menu and About page, the `appid:` label, APK/artifact names, library input/navigation lifecycle, `HomeActions` launch semantics, SAF disc lifetime, the shared five-slot manual save-state limit, and system-majority box-art sizing.
 - **Every GB-family Android app must follow the [GBSat-based quick-menu standard](docs/QUICK_MENU_STANDARD.md)** for layout, item hierarchy, submenu/back behavior and controller focus. Options are capability-aware: never expose inert or unsupported controls.
 - **Cheats and achievements are standard features across the GB app family.** Use GBFrame's `CheatsScreen` with a core-specific `CheatsBackend`, and `AchievementsScreen` with the shared `RetroAchievements` client plus an app-specific `RaBackend`. Reuse these UIs; do not fork per-app versions.
