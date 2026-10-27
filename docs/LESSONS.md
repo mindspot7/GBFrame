@@ -159,6 +159,8 @@ line here whenever a new app teaches something that would have saved time.
   spilled `data/`, `covers/` and the ownership marker there (and blocked the other apps). Data goes in `<selected>/<app>`.
 - The Dreamcast BIOS runs its intro/menu program from main RAM, so "PC in RAM" doesn't mean the game started: wait
   for the disc's IP.BIN bootstrap (8C008000-8C00FFFF with "SEGA SEGAKATANA" loaded there) and end the fast boot when
-  execution leaves it. Sample the PC per frame first before choosing a hand-over rule for a new firmware.
+  execution leaves it. Sample the PC per frame first before choosing a hand-over rule for a new firmware. The Saturn
+  BIOS runs its intro from WRAM-H at 06010000+, above most games' 1st read address: "PC >= 1st read" ended GBSat's
+  fast boot on the SEGA SATURN logo; remembering the pages the BIOS used before IP.BIN appeared fixed it.
 - Overlay colours follow common emulators: FPS and speed green from 95% of full speed (DuckStation and PCSX2/AetherSX2
   also treat below 95% as slow), yellow from 80%, red below.

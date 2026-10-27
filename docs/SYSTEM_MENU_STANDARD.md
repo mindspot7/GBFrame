@@ -45,7 +45,10 @@ real firmware or its boot:
    emulated CPU, never from a fixed time, and keep a timeout as a safety net.
 
 Every new core must implement both before the app ships. GBSat marks the SMPC
-setup done. GBCast writes the Dreamcast flash system configuration block and
+setup done and ends the fast intro once IP.BIN is loaded at 06002000 and the
+master SH-2 runs in WRAM-H pages the BIOS didn't use before (the BIOS intro also
+runs from WRAM-H, above the 1st read address); Virtua Fighter 2 on the T618 reaches
+its title in about 8 s, the intro at ~170% speed. GBCast writes the Dreamcast flash system configuration block and
 ends the fast intro when execution leaves the loaded IP.BIN bootstrap
 (8C008000-8C00FFFF) for the game (Crazy Taxi on the T618: 12.5 s of boot in 3.8 s).
 
