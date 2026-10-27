@@ -2,15 +2,16 @@ package gb.frame
 
 import android.content.SharedPreferences
 
-/** Last selected game and save state in the library, remembered between sessions. */
+/** Session selection and the last opened game, remembered separately between sessions. */
 object LibraryView {
     private const val KEY_GAME = "gbframe.libraryLastGame"
     private const val KEY_STATE = "gbframe.libraryLastState"
+    private const val KEY_OPENED = "gbframe.libraryLastOpenedGame"
     private var prefs: SharedPreferences? = null
 
     /**
      * The game ([HomeGame.key]) and save state ([ResumeEntry.key]) selected last in the library: the home screen
-     * opens on them again (after a game, a settings page, the menu, or the next app start) instead of on the first one.
+     * returns to them after a game, settings page, or menu. Startup prefers the last successfully opened game.
      */
     var lastGame: String? = null
         set(v) { if (field != v) { field = v; prefs?.edit()?.putString(KEY_GAME, v)?.apply() } }
@@ -19,8 +20,14 @@ object LibraryView {
 
     fun init(prefs: SharedPreferences) {
         this.prefs = prefs
-        lastGame = prefs.getString(KEY_GAME, null)
+        lastGame = prefs.getString(KEY_OPENED, null) ?: prefs.getString(KEY_GAME, null)
         lastState = prefs.getString(KEY_STATE, null)
+    }
+
+    /** Call after a game launch succeeds, including fresh starts and save-state resumes. */
+    fun gameOpened(key: String) {
+        prefs?.edit()?.putString(KEY_OPENED, key)?.apply()
+        lastGame = key
     }
 
     /** Index of the last selected game in [games] (0 when it isn't there). */

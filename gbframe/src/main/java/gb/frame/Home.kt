@@ -166,7 +166,7 @@ class HomeActions(
  * used); save states appear alongside the box-art shelf only in All in One. [empty] replaces the games while there are none to show
  * (no BIOS, no folder...). [menu] and [menuFocus] are for the Grid theme's icon rail ([onMenuFocus] tells when it has the focus). The first game (or save state in
  * Continue) takes the focus so the controller works at once; Y on a game opens its options. The library opens on the game
- * (or save state) selected last ([LibraryView.lastGame]), not on the first one.
+ * opened last at startup, and on the session selection when returning from menus ([LibraryView.lastGame]).
  */
 @Composable
 fun HomeLibrary(
