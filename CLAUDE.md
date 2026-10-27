@@ -119,7 +119,8 @@ of these repositories.
   continues from the game's **latest save state in any slot** (auto, quick or numbered), so it also works with Auto
   save off; the Resume view and the "Open" game option (without auto load) still start where the user chooses.
 - **Fast boot** is mandatory in every emulator and **on by default** (System → Loading Times, `SystemStartupOptions.fastBoot`
-  is required): mark the firmware's first-run setup (clock, language) as done so the BIOS skips those screens. See
+  is required): mark the firmware's first-run setup (clock, language) as done so the BIOS skips those screens, and run
+  the BIOS intro animation at maximum speed (muted) until the disc's code takes over. See
   [docs/SYSTEM_MENU_STANDARD.md](docs/SYSTEM_MENU_STANDARD.md).
 - Every performance option goes both in Settings → Performance and in the in-game quick menu → Performance (so it can
   be compared while playing), and into the performance log's `settings` column.

@@ -61,7 +61,7 @@ fun SystemSettings(
     emulatorFiles?.invoke()
     SaveStateSettings(autoSave, autoLoad, onAutoSave, onAutoLoad)
     val startupRows = listOf(
-        Triple("Fast boot", "Skip firmware startup screens when supported", startup.fastBoot),
+        Triple("Fast boot", "Skip the firmware intro and its setup screens", startup.fastBoot),
         Triple("Skip loading screens", "Run at maximum speed during detected loading screens", startup.skipLoadingScreens),
         Triple("Skip transitions", "Run at maximum speed through detected scene transitions", startup.skipTransitions),
         Triple("Skip save waits", "Run at maximum speed while the game reads or writes saves", startup.skipSaveWaits),
