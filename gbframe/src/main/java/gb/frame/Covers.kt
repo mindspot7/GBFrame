@@ -37,6 +37,9 @@ object Covers {
     private var system = "Sega - Saturn"
     private val base get() = "https://thumbnails.libretro.com/" + Uri.encode(system) + "/Named_Boxarts/"
 
+    /** Reuse the library title and configured thumbnail system for manual image search. */
+    fun webSearchQuery(title: String): String = "$title $system box art"
+
     /**
      * @param system libretro-thumbnails system name (folder of https://thumbnails.libretro.com)
      * @param aliases extra title aliases (normalized western title -> normalized name used by the thumbnails)
