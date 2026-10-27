@@ -45,6 +45,11 @@ line here whenever a new app teaches something that would have saved time.
   repo, `-fprofile-use` in normal builds) gave ~12% on the interpreter thread at no code cost. Merge the raw profile
   with an `llvm-profdata` of the same LLVM version as the NDK clang.
 - A dynarec only pays off when the CPU interpreter thread is the bottleneck at full speed; check the profile first.
+- On the Entry tier (RG DS, RK3568: 4x Cortex-A55) Saturn 3D games are bound by the master SH-2 interpreter:
+  Virtua Fighter 2's attract runs at ~45 fps with the master at 16.7 ms per frame (6 ms on the T618's A75); the
+  thread layout was already right (emulation alone on one core, VDP/sound on the other three). Longer SH-2 sync
+  steps barely help there (128 -> 1024 cycles: 21.7 -> 20.1 ms) and 512 made VF2 hang on a black screen at boot:
+  keep Fast at 128 cycles.
 - Measure a borrowed recompiler against the interpreter at the same CPU sync before keeping it: YabaSanshiro's SH-2
   dynarec (template copies, registers kept in memory) ported into Ymir gave nothing over the chained interpreter on the
   T618. Its apparent ~10% came from syncing the two SH-2s every 128 cycles instead of 32, which the interpreter gets
