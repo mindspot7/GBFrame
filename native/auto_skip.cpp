@@ -9,6 +9,7 @@ void AutoSkip::OnFrame(const uint32_t *fb, uint32_t width, uint32_t height) {
     if (!fb || width == 0 || height == 0) {
         return;
     }
+    std::lock_guard<std::mutex> lock(m_pictureMutex);
     uint32_t dark = 0, changed = 0;
     for (uint32_t y = 0; y < kGY; ++y) {
         const uint32_t sy = ((2 * y + 1) * height) / (2 * kGY);
@@ -32,12 +33,13 @@ void AutoSkip::OnFrame(const uint32_t *fb, uint32_t width, uint32_t height) {
 }
 
 void AutoSkip::Update(bool discActivity, uint32_t saveAccesses) {
+    std::lock_guard<std::mutex> lock(m_pictureMutex);
     m_discRecent = discActivity ? 30 : std::max(0, m_discRecent - 1);
     m_saveRecent = saveAccesses >= 64 ? 30 : std::max(0, m_saveRecent - 1);
     const bool quiet = m_audioPeak.exchange(0, std::memory_order_relaxed) < 600; // about -35 dB
 
     // Disc streaming (video, music read from the disc): the original read speed
-    const bool streaming = m_discRecent > 0 && !quiet && !m_still && !m_black;
+    const bool streaming = m_discRecent > 0 && !quiet;
     m_streamRun = streaming ? m_streamRun + 1 : 0;
     m_calmRun = streaming ? 0 : m_calmRun + 1;
     if (m_streamRun >= 10) {
@@ -46,23 +48,31 @@ void AutoSkip::Update(bool discActivity, uint32_t saveAccesses) {
         m_fastDiscOk = true;
     }
 
-    bool want = false;
+    uint32_t reason = None;
     if (skipLoads.load(std::memory_order_relaxed) && m_discRecent > 0 && quiet && (m_still || m_black)) {
-        want = true;
+        reason |= Loading;
     }
     if (skipTransitions.load(std::memory_order_relaxed) && m_blackRun >= 3 && quiet) {
-        want = true;
+        reason |= Transition;
     }
-    if (skipSaves.load(std::memory_order_relaxed) && m_saveRecent > 0) {
-        want = true;
+    if (skipSaves.load(std::memory_order_relaxed) && m_saveRecent > 0 && quiet && (m_still || m_black)) {
+        reason |= SaveWait;
     }
+    const bool want = m_sigValid && reason != None;
     m_wantRun = want ? m_wantRun + 1 : 0;
     if (m_wantRun >= 3) {
         m_holdRun = 8;
     } else if (m_holdRun > 0) {
         --m_holdRun;
     }
+    // Do not carry fast-forward into gameplay/video/audio, including games that save in the background.
+    if (!m_sigValid || !quiet || (!m_still && !m_black) ||
+        !(skipLoads.load(std::memory_order_relaxed) || skipTransitions.load(std::memory_order_relaxed) || skipSaves.load(std::memory_order_relaxed))) {
+        m_holdRun = m_wantRun = 0;
+    }
     const bool on = m_holdRun > 0;
+    if (!on) m_reason.store(None, std::memory_order_relaxed);
+    else if (want) m_reason.store(reason, std::memory_order_relaxed);
     if (on) {
         ++m_activeFrames;
     }
@@ -70,12 +80,14 @@ void AutoSkip::Update(bool discActivity, uint32_t saveAccesses) {
 }
 
 void AutoSkip::Reset() {
+    std::lock_guard<std::mutex> lock(m_pictureMutex);
     m_sigValid = m_still = m_black = false;
     m_blackRun = m_discRecent = m_saveRecent = m_wantRun = m_holdRun = m_streamRun = m_calmRun = 0;
     m_fastDiscOk = true;
     m_activeFrames = 0;
     m_audioPeak.store(0, std::memory_order_relaxed);
     m_active.store(false, std::memory_order_relaxed);
+    m_reason.store(None, std::memory_order_relaxed);
 }
 
 } // namespace gb

@@ -7,6 +7,14 @@
 # Engine (auto_skip: maximum speed through loads, transitions and save waits; safe disc read speed) and A/B diagnostic
 # switches read from adb-set properties (diag_props.hpp).
 set(GB_NATIVE_DIR "${CMAKE_CURRENT_LIST_DIR}")
+function(gb_native_auto_skip target)
+    get_target_property(added ${target} GB_AUTO_SKIP_ADDED)
+    if(NOT added)
+        target_sources(${target} PRIVATE "${GB_NATIVE_DIR}/auto_skip.cpp")
+        target_include_directories(${target} PRIVATE "${GB_NATIVE_DIR}")
+        set_target_properties(${target} PROPERTIES GB_AUTO_SKIP_ADDED TRUE)
+    endif()
+endfunction()
 function(gb_native_storage target)
     target_sources(${target} PRIVATE "${GB_NATIVE_DIR}/gb_data_storage.cpp")
     target_include_directories(${target} PRIVATE "${GB_NATIVE_DIR}")
@@ -17,8 +25,8 @@ endfunction()
 function(gb_native_add target)
     cmake_parse_arguments(GBN "" "APP_ID" "" ${ARGN})
     target_sources(${target} PRIVATE "${GB_NATIVE_DIR}/gl_renderer.cpp" "${GB_NATIVE_DIR}/cpu_tuning.cpp"
-                                     "${GB_NATIVE_DIR}/pgo.cpp" "${GB_NATIVE_DIR}/perf_probe.cpp"
-                                     "${GB_NATIVE_DIR}/auto_skip.cpp")
+                                     "${GB_NATIVE_DIR}/pgo.cpp" "${GB_NATIVE_DIR}/perf_probe.cpp")
+    gb_native_auto_skip(${target})
     target_include_directories(${target} PRIVATE "${GB_NATIVE_DIR}")
     target_compile_definitions(${target} PRIVATE GB_APP_ID="${GBN_APP_ID}")
     target_link_libraries(${target} PRIVATE android log EGL GLESv3 nativewindow)

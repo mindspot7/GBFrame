@@ -36,9 +36,10 @@ must be chosen explicitly rather than picked arbitrarily.
 `SystemStartupOptions` exposes only supported functions. Bind toggles to existing
 persisted settings and core behavior; do not add inert controls or relabel a
 function with different behavior as a missing common option. GBSat supplies Fast
-boot and the three Skip Engine settings. GBCast currently supplies its distinct
-Fast GD-ROM load option; it does not claim Saturn's Skip Engine capabilities.
-Keep HLE separate from Fast boot.
+boot and the three Skip Engine settings. GBCast supplies the same three shared
+Skip Engine functions, followed by its separate Fast GD-ROM load option.
+Keep HLE separate from Fast boot. Integrate the three common skip functions
+according to [SKIP_ENGINE_STANDARD.md](SKIP_ENGINE_STANDARD.md) whenever possible.
 
 Validate empty-folder hints, selected paths, all per-file BIOS states, optional
 capability visibility, section order, toggle persistence, folder/file pickers and
