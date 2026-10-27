@@ -5,6 +5,13 @@ or a synchronized mirror. Every consumer exposes the shared **Data folder** in
 its initial wizard and **System**. Without a selection, app-specific storage is
 the default. Games are a separate selection.
 
+The app's data never goes straight into the selected folder: `AppDataFolder` uses
+a subfolder named after the app (`<selected>/GBSat`, `<selected>/GBCast`), created
+on first use, so one shared folder (e.g. `Emuladores`) can hold every emulator.
+If the selected folder already has the app's name it is used as is. Selections
+made before storage version 3 (mounts and `.gbframe-app` at the top) are moved
+into the app folder at startup; files that already exist there are kept.
+
 Use `ACTION_OPEN_DOCUMENT_TREE` and persistent read/write URI grants. Access the
 selected documents through `ContentResolver`; never guess a filesystem path from
 a URI or request `MANAGE_EXTERNAL_STORAGE`, legacy storage, or all-files access.

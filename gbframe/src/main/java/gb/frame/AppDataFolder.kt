@@ -3,6 +3,7 @@ package gb.frame
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,8 +14,11 @@ import org.json.JSONObject
 import java.io.File
 import java.io.InputStream
 
-/** The selected tree is the authoritative storage, shared by Kotlin and native clients. */
-class AppDataFolder(context: Context, private val appName: String, private val mounts: Map<String, File>, val texturesRelativePath: String? = null) {
+/**
+ * The selected tree is the authoritative storage, shared by Kotlin and native clients. Data lives in a
+ * subfolder named after the app (`<selected>/<appName>`), unless the selected folder already has that name.
+ */
+class AppDataFolder(context: Context, val appName: String, private val mounts: Map<String, File>, val texturesRelativePath: String? = null) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("gbframe.dataFolder", Context.MODE_PRIVATE)
     private val active = prefs.getString("tree", null)
@@ -23,7 +27,14 @@ class AppDataFolder(context: Context, private val appName: String, private val m
     var busy by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
     var selectionNotice by mutableStateOf<String?>(null); private set
-    val label: String get() = folder?.let { Uri.decode(Uri.parse(it).lastPathSegment.orEmpty()).substringAfter(':') } ?: "App storage (default)"
+    val label: String get() = folder?.let { uri ->
+        val tree = Uri.decode(Uri.parse(uri).lastPathSegment.orEmpty()).substringAfter(':').trimEnd('/')
+        when {
+            tree.isEmpty() -> appName
+            tree.substringAfterLast('/').equals(appName, ignoreCase = true) -> tree
+            else -> "$tree/$appName"
+        }
+    } ?: "App storage (default)"
 
     /** Display the effective storage location, never the source directory used for an import. */
     fun displayPath(file: File): String {
@@ -34,20 +45,66 @@ class AppDataFolder(context: Context, private val appName: String, private val m
         } else path
     }
 
+    private fun tree(uri: String): DocumentFile {
+        val tree = requireNotNull(DocumentFile.fromTreeUri(app, Uri.parse(uri))) { "Folder unavailable" }
+        check(tree.exists() && tree.canRead() && tree.canWrite()) { "Folder unavailable or permission lost. Reconnect storage or choose a folder." }
+        return tree
+    }
+
+    private fun owner(dir: DocumentFile): String? = dir.findFile(".gbframe-app")?.let { marker ->
+        requireNotNull(app.contentResolver.openInputStream(marker.uri)).bufferedReader().use { it.readText() }
+    }
+
+    /** The app's own folder inside the selected tree, created on first use. */
     private fun root(uri: String): DocumentFile {
-        val root = requireNotNull(DocumentFile.fromTreeUri(app, Uri.parse(uri))) { "Folder unavailable" }
-        check(root.exists() && root.canRead() && root.canWrite()) { "Folder unavailable or permission lost. Reconnect storage or choose a folder." }
-        root.findFile(".gbframe-app")?.let { marker ->
-            val owner = requireNotNull(app.contentResolver.openInputStream(marker.uri)).bufferedReader().use { it.readText() }
-            require(owner == appName) { "Choose a separate folder for $appName" }
-        }
+        val tree = tree(uri)
+        val root = if (tree.name.equals(appName, ignoreCase = true)) tree
+            else tree.findFile(appName)?.also { check(it.isDirectory) { "$appName in the selected folder is not a folder" } }
+                ?: requireNotNull(tree.createDirectory(appName)) { "Cannot create $appName folder" }
+        owner(root)?.let { require(it == appName) { "Choose a separate folder for $appName" } }
         return root
+    }
+
+    /**
+     * Before storage version 3 the mounts were written straight into the selected folder. Move them (and the
+     * marker) into the app folder; a destination file that already exists is kept and the old copy stays put.
+     */
+    private fun moveIntoAppFolder(uri: String) {
+        val tree = tree(uri)
+        if (tree.name.equals(appName, ignoreCase = true) || owner(tree) != appName) return
+        val root = root(uri)
+        for (name in mounts.keys) {
+            val old = tree.findFile(name)?.takeIf { it.isDirectory } ?: continue
+            val moved = root.findFile(name) == null && runCatching {
+                DocumentsContract.moveDocument(app.contentResolver, old.uri, tree.uri, root.uri) != null
+            }.getOrDefault(false)
+            if (moved) continue
+            // Provider without move support, or both locations exist: verified copy of what is missing, then retire the source
+            val source = SafDataTree(app, tree, setOf(name)); val target = SafDataTree(app, root, setOf(name))
+            val existing = target.files().toSet()
+            val staging = File(app.cacheDir, "data-folder-move").apply { mkdirs() }
+            try {
+                for (path in source.files()) if (path !in existing) {
+                    val temp = File.createTempFile("move-", ".tmp", staging)
+                    try { source.read(path).use { input -> temp.outputStream().use { input.copyTo(it) } }; target.write(path, temp) }
+                    finally { temp.delete() }
+                    source.delete(path)
+                }
+            } finally { staging.deleteRecursively() }
+            source.pruneEmpty(name)
+        }
+        if (owner(root) == null) {
+            val marker = File(app.cacheDir, "data-folder-marker").apply { writeText(appName) }
+            try { SafDataTree(app, root, emptySet()).write(".gbframe-app", marker) } finally { marker.delete() }
+        }
+        tree.findFile(".gbframe-app")?.delete()
     }
 
     /** One-time transition from the former mirror; afterwards opening never scans/hashes/copies data. */
     fun openAtStartup() {
         val uri = active ?: return
         try {
+            if (prefs.getInt("storageVersion", 0) < 3) moveIntoAppFolder(uri)
             val root = root(uri)
             if (prefs.getInt("storageVersion", 0) < 2) {
                 val target = SafDataTree(app, root, mounts.keys)
@@ -61,11 +118,12 @@ class AppDataFolder(context: Context, private val appName: String, private val m
                     throw failure
                 }
                 retireLegacyFiles(target)
-                check(prefs.edit().putInt("storageVersion", 2).remove("baseline").remove("restore").remove("retireLocal").commit())
+                check(prefs.edit().remove("baseline").remove("restore").remove("retireLocal").commit())
             } else if (prefs.getBoolean("retireLocal", false)) {
                 retireLegacyFiles(SafDataTree(app, root, mounts.keys))
                 check(prefs.edit().remove("retireLocal").commit())
             }
+            if (prefs.getInt("storageVersion", 0) < STORAGE_VERSION) check(prefs.edit().putInt("storageVersion", STORAGE_VERSION).commit())
             val routes = mounts.map { (name, local) ->
                 local to (root.findFile(name) ?: requireNotNull(root.createDirectory(name)) { "Cannot create $name" })
             }.toMap()
@@ -109,7 +167,7 @@ class AppDataFolder(context: Context, private val appName: String, private val m
                 val marker = File(staging, "marker").apply { writeText(appName) }
                 try { target.write(".gbframe-app", marker) } finally { marker.delete() }
             } finally { staging.delete() }
-            check(prefs.edit().putString("tree", uri.toString()).putInt("storageVersion", 2).putBoolean("retireLocal", active == null).remove("baseline").remove("restore").commit())
+            check(prefs.edit().putString("tree", uri.toString()).putInt("storageVersion", STORAGE_VERSION).putBoolean("retireLocal", active == null).remove("baseline").remove("restore").commit())
             folder = uri.toString(); restartRequired = true; error = null
         } catch (failure: Exception) { error = failure.message ?: "Could not choose folder" }
         finally { busy = false }
@@ -157,6 +215,8 @@ class AppDataFolder(context: Context, private val appName: String, private val m
         error = null; true
     }
         catch (failure: Exception) { error = failure.message; false }
+
+    private companion object { const val STORAGE_VERSION = 3 }
 }
 
 /** Stages and verifies writes before replacing an existing document, with rollback on rename failure. */
@@ -186,6 +246,15 @@ private class SafDataTree(private val context: Context, private val root: Docume
     override fun read(path: String): InputStream {
         val (parent, name) = document(path)
         return requireNotNull(context.contentResolver.openInputStream(requireNotNull(parent.findFile(name)).uri))
+    }
+    fun delete(path: String) {
+        val (parent, name) = document(path)
+        parent.findFile(name)?.let { check(it.delete()) { "Could not remove $path" } }
+    }
+    /** Remove the folders left empty under [name] after a move; folders that still hold files stay. */
+    fun pruneEmpty(name: String) {
+        fun prune(dir: DocumentFile): Boolean = dir.listFiles().all { it.isDirectory && prune(it) } && dir.delete()
+        root.findFile(name)?.takeIf { it.isDirectory }?.let(::prune)
     }
     override fun write(path: String, source: File) {
         val (parent, name) = document(path, createParents = true)

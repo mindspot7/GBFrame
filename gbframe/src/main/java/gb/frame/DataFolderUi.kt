@@ -27,7 +27,7 @@ fun DataFolderControls(store: AppDataFolder, compact: Boolean = false) {
     ActionRow(Icons.Default.Folder, "Data folder", if (store.folder == null) "Saves, save states, BIOS, cheats and covers. Uses app storage until you choose a folder." else store.label, "Choose", {
         if (!store.busy && !syncing) picker.launch(store.folder?.let(android.net.Uri::parse))
     }, subMaxLines = Int.MAX_VALUE)
-    if (!compact) Text("BIOS, saves, save states, cheats and covers. Choose a dedicated folder for this app. Files are read and written directly in the selected folder. Reopen the app after changing it.",
+    if (!compact) Text("BIOS, saves, save states, cheats and covers. Files are read and written directly in a ${store.appName} folder created inside the selected folder. Reopen the app after changing it.",
         style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
     if (!compact) store.texturesRelativePath?.let { path ->
         Text("Textures: $path/<game ID>. Texture packs are read from this folder.",

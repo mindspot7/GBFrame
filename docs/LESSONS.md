@@ -155,5 +155,7 @@ line here whenever a new app teaches something that would have saved time.
   data arrives (keyed on "list empty"), or the selected item is off screen when it should take the focus.
 - Programmatic focus right after a screen appears must retry until the requester is attached and the focus is really
   in the list; a single try after a fixed delay often missed, and the first D-pad press then picked another item.
+- Users point every emulator at one shared folder (e.g. `Emuladores`): writing mounts at the top of the selected tree
+  spilled `data/`, `covers/` and the ownership marker there (and blocked the other apps). Data goes in `<selected>/<app>`.
 - Overlay colours follow common emulators: FPS and speed green from 95% of full speed (DuckStation and PCSX2/AetherSX2
   also treat below 95% as slow), yellow from 80%, red below.
