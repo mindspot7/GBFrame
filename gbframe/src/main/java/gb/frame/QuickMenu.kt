@@ -40,10 +40,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -112,6 +115,7 @@ private class QuickMenuFocusScope(private val preferredItemId: String?) {
  * for pausing before showing the host and resuming in [onDismiss].
  */
 @Composable
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 fun QuickMenuHost(
     rootPage: QuickMenuPage,
     gameTitle: String?,
@@ -139,6 +143,8 @@ fun QuickMenuHost(
 
     BackHandler(enabled = true) { scope.back() }
 
+    val inputMode = LocalInputModeManager.current
+
     LaunchedEffect(focusScope) {
         // Let the new page and its first rows attach before requesting focus; retry while Compose
         // is laying out or a dynamically supplied menu row becomes available.
@@ -146,6 +152,7 @@ fun QuickMenuHost(
             val target = focusScope.target()
             if (target != null) {
                 val focused = runCatching {
+                    inputMode.requestInputMode(InputMode.Keyboard)
                     target.requestFocus()
                     true
                 }.getOrDefault(false)
@@ -170,6 +177,7 @@ fun QuickMenuHost(
                 Box(
                     Modifier.fillMaxSize()
                         .background(Color.Black.copy(alpha = .45f))
+                        .focusProperties { canFocus = false }
                         .clickable { scope.dismiss() },
                 )
             }
