@@ -43,6 +43,7 @@ Do not reorder these standard rows or rename them without a clear usability reas
 - Expose no more than `SaveData.MANUAL_SAVE_STATE_SLOTS` numbered/manual slots (five by default), in order from slot 1. If a core supports fewer, show only the supported slots. Do not expose extra numbered slots just because the core supports them.
 - Use the shared `SaveData.MANUAL_SAVE_STATE_SLOTS` constant when building slot lists; do not duplicate a per-app count.
 - Show screenshot thumbnails when available, slot number, saved date/time or an Empty label. Loading an empty slot must be disabled.
+- Render each slot with GBFrame's `QuickMenuStateSlot`: an 88 x 66 dp screenshot with rounded corners, followed by the slot label and localized date/time. Core adapters supply the timestamp and decoded thumbnail; existing states without screenshots use the image placeholder.
 - Quick-save, auto-save and other automatic states are separate special features, not extra numbered/manual slots.
 - Execute save/load work off the UI thread where appropriate; show a recoverable error in the menu if an operation fails.
 - After successful save/load, close the quick menu and resume the session, matching GBSat.

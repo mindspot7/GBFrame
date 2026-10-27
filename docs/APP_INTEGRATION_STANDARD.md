@@ -21,6 +21,8 @@ Do not treat an app-specific implementation as a standard when it conflicts with
 
 ## App icon and in-app identity
 
+Library game options expose **Cover Image**, opening the shared `CoverImageOptions` chooser: **Web Search** launches Google Images with the library title and configured cover system; **Local Search** opens the app's image document picker. Back returns to game options.
+
 The consuming app owns its launcher icon in its own Android resources; GBFrame must not embed a particular app's logo.
 
 - Use the app's launcher icon artwork in `HomeTopBar`, `HomeMenuPanel`, and `AboutPage`. These three places must show the same icon identity as the installed app.
