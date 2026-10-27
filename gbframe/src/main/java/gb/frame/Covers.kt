@@ -242,7 +242,72 @@ object Covers {
     }
 
     suspend fun setCustom(context: Context, title: String, uri: Uri) = withContext(Dispatchers.IO) {
-        context.contentResolver.openInputStream(uri)?.use { i -> custom(title).outputStream().use { o -> i.copyTo(o) } }
+        val input = requireNotNull(context.contentResolver.openInputStream(uri)) { "Could not open image" }
+        input.use { saveCustom(title, it) }
+    }
+
+    /** Downloads only the image explicitly selected by the user; never executes page content. */
+    suspend fun webImage(url: String): ByteArray = withContext(Dispatchers.IO) {
+        val limit = 10 * 1024 * 1024
+        val bytes = if (url.startsWith("data:image/")) {
+            require(url.length <= limit * 2) { "Image is too large" }
+            require(url.substringBefore(',').endsWith(";base64")) { "Unsupported image" }
+            android.util.Base64.decode(url.substringAfter(','), android.util.Base64.DEFAULT)
+        } else {
+            var next = URL(url)
+            var result: ByteArray? = null
+            for (redirect in 0..5) {
+                require(next.protocol in listOf("https", "http")) { "Unsupported image address" }
+                val connection = next.openConnection() as HttpURLConnection
+                try {
+                    connection.instanceFollowRedirects = false
+                    connection.connectTimeout = 10000; connection.readTimeout = 15000
+                    connection.setRequestProperty("User-Agent", "Mozilla/5.0")
+                    if (connection.responseCode in 300..399) {
+                        next = URL(next, requireNotNull(connection.getHeaderField("Location")))
+                        continue
+                    }
+                    require(connection.responseCode == 200) { "Image download failed" }
+                    require(connection.contentLengthLong <= limit) { "Image is too large" }
+                    result = connection.inputStream.use { input ->
+                        val output = java.io.ByteArrayOutputStream()
+                        val buffer = ByteArray(8192)
+                        while (true) {
+                            val size = input.read(buffer)
+                            if (size < 0) break
+                            require(output.size() + size <= limit) { "Image is too large" }
+                            output.write(buffer, 0, size)
+                        }
+                        output.toByteArray()
+                    }
+                    break
+                } finally { connection.disconnect() }
+            }
+            requireNotNull(result) { "Too many redirects" }
+        }
+        require(bytes.size <= limit) { "Image is too large" }
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        require(bounds.outWidth > 0 && bounds.outHeight > 0 && bounds.outWidth.toLong() * bounds.outHeight <= 64_000_000) {
+            "This address does not contain a supported image"
+        }
+        bytes
+    }
+
+    suspend fun setCustomWeb(title: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
+        bytes.inputStream().use { saveCustom(title, it) }
+    }
+
+    private fun saveCustom(title: String, input: java.io.InputStream) {
+        val destination = custom(title)
+        val temp = File.createTempFile("cover-", ".tmp", destination.parentFile)
+        try {
+            temp.outputStream().use { input.copyTo(it) }
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(temp.path, bounds)
+            require(bounds.outWidth > 0 && bounds.outHeight > 0) { "Unsupported image" }
+            check(temp.renameTo(destination)) { "Could not save cover" }
+        } finally { temp.delete() }
         memory.remove(title)
     }
 }
