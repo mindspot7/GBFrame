@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import gb.frame.DataFile as StoredFile
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -23,7 +24,7 @@ object Covers {
     /** Width divided by height, explicitly selected by the consuming app for its system. */
     var frameAspectRatio: Float = Float.NaN
         private set
-    private lateinit var dir: File
+    private lateinit var dir: StoredFile
     // Bound the cache by bytes, not entry count: a handful of tall covers can otherwise exhaust low-memory devices.
     private val cacheKb = (Runtime.getRuntime().maxMemory() / 1024L / 40L).toInt().coerceIn(2048, 8 * 1024)
     private val memory = object : LruCache<String, ImageBitmap>(cacheKb) {
@@ -58,13 +59,13 @@ object Covers {
         this.extraAliases = aliases
         this.frameAspectRatio = frameAspectRatio
         memory.evictAll()
-        dir = File(dataDir, "covers").apply { mkdirs(); File(this, "custom").mkdirs() }
+        dir = StoredFile(dataDir, "covers").apply { mkdirs(); StoredFile(this, "custom").mkdirs() }
     }
 
     private fun safe(title: String) = title.replace(Regex("[&*/:`<>?\\\\|\"]"), "_")
-    private fun custom(title: String) = File(dir, "custom/${safe(title)}.img")
-    private fun cached(title: String) = File(dir, "${safe(title)}.png")
-    private fun miss(title: String) = File(dir, "${safe(title)}.miss5")
+    private fun custom(title: String) = StoredFile(dir, "custom/${safe(title)}.img")
+    private fun cached(title: String) = StoredFile(dir, "${safe(title)}.png")
+    private fun miss(title: String) = StoredFile(dir, "${safe(title)}.miss5")
 
     /**
      * Widest cover worth keeping: half the screen's short side (the focused cover in the shelf or grid is smaller), so
@@ -83,16 +84,14 @@ object Covers {
         minOf(screenLimit, heapLimit)
     }
 
-    private fun decode(f: File): ImageBitmap? {
+    private fun decode(f: StoredFile): ImageBitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(f.path, bounds)
+        f.inputStream().use { BitmapFactory.decodeStream(it, null, bounds) }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         val largestSide = maxOf(bounds.outWidth, bounds.outHeight)
         var sample = 1
         while (largestSide / (sample * 2) >= maxDimension) sample *= 2
-        val decoded = BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply {
-            inSampleSize = sample
-        }) ?: return null
+        val decoded = f.inputStream().use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample }) } ?: return null
 
         // Keep decoded covers small on low-memory devices before normalizing their aspect ratio.
         var result = decoded
@@ -120,12 +119,12 @@ object Covers {
         return frame.asImageBitmap()
     }
 
-    private fun download(name: String, to: File): Boolean = runCatching {
+    private fun download(name: String, to: StoredFile): Boolean = runCatching {
         val url = URL(base + Uri.encode(name + ".png"))
         val c = url.openConnection() as HttpURLConnection
         c.connectTimeout = 8000; c.readTimeout = 15000
         if (c.responseCode != 200) return@runCatching false
-        val tmp = File(to.path + ".tmp")
+        val tmp = StoredFile(to.path + ".tmp")
         c.inputStream.use { i -> tmp.outputStream().use { o -> i.copyTo(o) } }
         tmp.renameTo(to)
     }.getOrDefault(false)
@@ -300,11 +299,11 @@ object Covers {
 
     private fun saveCustom(title: String, input: java.io.InputStream) {
         val destination = custom(title)
-        val temp = File.createTempFile("cover-", ".tmp", destination.parentFile)
+        val temp = StoredFile.createTempFile("cover-", ".tmp", destination.parentFile)
         try {
             temp.outputStream().use { input.copyTo(it) }
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeFile(temp.path, bounds)
+            temp.inputStream().use { BitmapFactory.decodeStream(it, null, bounds) }
             require(bounds.outWidth > 0 && bounds.outHeight > 0) { "Unsupported image" }
             check(temp.renameTo(destination)) { "Could not save cover" }
         } finally { temp.delete() }

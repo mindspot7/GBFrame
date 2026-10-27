@@ -27,25 +27,25 @@ fun DataFolderControls(store: AppDataFolder) {
     ActionRow(Icons.Default.Folder, "Data folder", store.label, "Choose", {
         if (!store.busy && !syncing) picker.launch(store.folder?.let(android.net.Uri::parse))
     })
-    Text("BIOS, saves, save states, cheats and covers. Choose a dedicated folder for this app. Existing files are restored after reopening; the local working copy is kept.",
+    Text("BIOS, saves, save states, cheats and covers. Choose a dedicated folder for this app. Files are read and written directly in the selected folder. Reopen the app after changing it.",
         style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
     store.texturesRelativePath?.let { path ->
-        Text("Textures: $path/<game ID>. Texture packs are restored when the app reopens.",
+        Text("Textures: $path/<game ID>. Texture packs are read from this folder.",
             style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
     }
     if (store.folder != null) TextButton(enabled = !syncing && !store.busy && !store.restartRequired, onClick = {
         syncing = true
-        scope.launch { try { withContext(Dispatchers.IO) { store.syncNow() } } finally { syncing = false } }
-    }) { Text(if (syncing) "Synchronizing…" else "Sync now") }
+        scope.launch { try { withContext(Dispatchers.IO) { store.checkAccess() } } finally { syncing = false } }
+    }) { Text(if (syncing) "Checking…" else "Check access") }
     store.error?.let { Text("Data folder: $it", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
     if (store.busy || syncing) AlertDialog(
         onDismissRequest = {}, title = { Text("Data folder") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { CircularProgressIndicator(); Text("Copying and verifying data…") } },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { CircularProgressIndicator(); Text("Moving to the selected data folder…") } },
         confirmButton = {},
     )
     if (store.restartRequired) AlertDialog(
         onDismissRequest = {}, title = { Text("Reopen the app") },
-        text = { Text("The data folder was saved. Close the app now, then open it again to restore its files before the emulator starts. Your previous local data is preserved.") },
+        text = { Text("The data folder was saved. Close the app now, then open it again to use the selected folder directly. Existing destination files were preserved." + (store.selectionNotice?.let { "\n\n$it" } ?: "")) },
         confirmButton = { TextButton(onClick = {
             (context as? Activity)?.finishAffinity()
             android.os.Process.killProcess(android.os.Process.myPid())
@@ -67,7 +67,7 @@ fun DataFolderWarning(store: AppDataFolder) {
     if (error == null) { LaunchedEffect(Unit) { dismissed = null }; return }
     if (dismissed != error) AlertDialog(
         onDismissRequest = { dismissed = error }, title = { Text("Data folder needs attention") },
-        text = { Text("$error\n\nThe local working copy is preserved. Check Data folder in System before relying on the external copy.") },
+        text = { Text("$error\n\nReconnect the selected storage or choose another data folder in System. Data is not redirected to a second local copy.") },
         confirmButton = { TextButton(onClick = { dismissed = error }) { Text("OK") } },
     )
 }

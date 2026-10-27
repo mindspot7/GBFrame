@@ -546,7 +546,7 @@ private fun HeroTitle(title: String, compact: Boolean) {
 private fun rememberScreenshot(e: ResumeEntry?): ImageBitmap? {
     var shot by remember(e?.key, e?.time) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(e?.key, e?.time) {
-        shot = withContext(Dispatchers.IO) { e?.screenshot?.let { runCatching { android.graphics.BitmapFactory.decodeFile(it.path)?.asImageBitmap() }.getOrNull() } }
+        shot = withContext(Dispatchers.IO) { e?.screenshot?.let { runCatching { DataFile(it.path).inputStream().use { stream -> android.graphics.BitmapFactory.decodeStream(stream)?.asImageBitmap() } }.getOrNull() } }
     }
     return shot
 }

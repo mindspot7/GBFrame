@@ -33,7 +33,7 @@ fun ResumeCard(e: ResumeEntry, modifier: Modifier = Modifier, onClick: () -> Uni
     val p = palette
     var shot by remember(e) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(e) {
-        shot = withContext(Dispatchers.IO) { e.screenshot?.let { runCatching { android.graphics.BitmapFactory.decodeFile(it.path)?.asImageBitmap() }.getOrNull() } }
+        shot = withContext(Dispatchers.IO) { e.screenshot?.let { runCatching { DataFile(it.path).inputStream().use { stream -> android.graphics.BitmapFactory.decodeStream(stream)?.asImageBitmap() } }.getOrNull() } }
     }
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.04f else 1f, label = "scale")

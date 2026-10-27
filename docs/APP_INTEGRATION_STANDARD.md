@@ -86,8 +86,12 @@ Library game options expose **Cover Image** through `CoverImageOptions`: **Web S
 
 ## Google Play readiness
 
-Every app offers the shared **Data folder** in the initial wizard and **System**,
-following [DATA_FOLDER_STANDARD.md](DATA_FOLDER_STANDARD.md).
+Every app offers the shared **Data folder** in the initial wizard and **System**.
+The selected SAF tree is the actual storage for mounted app data, including save
+states and screenshots. Use GBFrame's Kotlin/native data adapters; no persistent
+local mirror, per-launch full comparison, background synchronization or silent
+fallback to old local files. See [DATA_FOLDER_STANDARD.md](DATA_FOLDER_STANDARD.md)
+for migration, capability checks and Play-compatible storage rules.
 
 - Use the Storage Access Framework and app-private storage. Do not request broad read/write external-storage permissions or legacy external-storage behavior.
 - Keep automatic cover downloads and every fallback provider optional and replaceable. Before enabling a provider in a Play build, document its API authorization, attribution and media-licensing terms; an open-source API client does not by itself license the returned cover artwork.

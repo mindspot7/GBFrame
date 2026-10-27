@@ -7,6 +7,13 @@
 # Engine (auto_skip: maximum speed through loads, transitions and save waits; safe disc read speed) and A/B diagnostic
 # switches read from adb-set properties (diag_props.hpp).
 set(GB_NATIVE_DIR "${CMAKE_CURRENT_LIST_DIR}")
+function(gb_native_storage target)
+    target_sources(${target} PRIVATE "${GB_NATIVE_DIR}/gb_data_storage.cpp")
+    target_include_directories(${target} PRIVATE "${GB_NATIVE_DIR}")
+    foreach(symbol fopen fopen64 open open64 __open_2 stat access mkdir rename unlink remove opendir readdir closedir)
+        target_link_options(${target} PRIVATE "-Wl,--wrap=${symbol}")
+    endforeach()
+endfunction()
 function(gb_native_add target)
     cmake_parse_arguments(GBN "" "APP_ID" "" ${ARGN})
     target_sources(${target} PRIVATE "${GB_NATIVE_DIR}/gl_renderer.cpp" "${GB_NATIVE_DIR}/cpu_tuning.cpp"
