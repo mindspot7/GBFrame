@@ -12,8 +12,9 @@ import androidx.compose.runtime.*
 data class SystemFolderSetting(val path: String?, val description: String, val onChoose: () -> Unit)
 data class SystemBiosFile(val name: String, val loaded: Boolean)
 data class SystemToggleSetting(val value: Boolean, val onChange: (Boolean) -> Unit, val description: String? = null)
+/** Fast boot is mandatory in every app (on by default); the skip functions only when the core supports them. */
 data class SystemStartupOptions(
-    val fastBoot: SystemToggleSetting? = null,
+    val fastBoot: SystemToggleSetting,
     val skipLoadingScreens: SystemToggleSetting? = null,
     val skipTransitions: SystemToggleSetting? = null,
     val skipSaveWaits: SystemToggleSetting? = null,
@@ -42,7 +43,7 @@ fun SystemSettings(
     autoLoad: Boolean,
     onAutoSave: (Boolean) -> Unit,
     onAutoLoad: (Boolean) -> Unit,
-    startup: SystemStartupOptions = SystemStartupOptions(),
+    startup: SystemStartupOptions,
     startupExtras: (@Composable () -> Unit)? = null,
     hleBios: (@Composable () -> Unit)? = null,
     emulatorFiles: (@Composable () -> Unit)? = null,
@@ -65,13 +66,13 @@ fun SystemSettings(
         Triple("Skip transitions", "Run at maximum speed through detected scene transitions", startup.skipTransitions),
         Triple("Skip save waits", "Run at maximum speed while the game reads or writes saves", startup.skipSaveWaits),
     ).filter { it.third != null }
-    if (startupRows.isNotEmpty() || startupExtras != null) SettingsGroup("Loading Times", Icons.Default.FastForward) {
+    SettingsGroup("Loading Times", Icons.Default.FastForward) {
         startupRows.forEachIndexed { index, (title, description, option) ->
             if (index > 0) SettingsDivider()
             option!!
             ToggleRow(Icons.Default.FastForward, title, option.description ?: description, option.value, option.onChange)
         }
-        if (startupRows.isNotEmpty() && startupExtras != null) SettingsDivider()
+        if (startupExtras != null) SettingsDivider()
         startupExtras?.invoke()
     }
     extraSettings()

@@ -33,11 +33,18 @@ dialog. Imported firmware lives in the actual active data folder, using the
 existing SAF adapters and safe replacement policy. Multiple valid BIOS candidates
 must be chosen explicitly rather than picked arbitrarily.
 
-`SystemStartupOptions` exposes only supported functions. Bind toggles to existing
+**Fast boot is mandatory in every emulator** (`SystemStartupOptions.fastBoot` has
+no default) and is **on by default**. It skips the firmware's first-run setup
+screens (clock, language) by marking that setup as done in the emulated
+non-volatile memory; it never replaces the real firmware or its boot. Every new
+core must implement it before the app ships. GBSat marks the SMPC setup done;
+GBCast writes the Dreamcast flash system configuration block.
+
+The other startup toggles expose only supported functions. Bind toggles to existing
 persisted settings and core behavior; do not add inert controls or relabel a
-function with different behavior as a missing common option. GBSat supplies Fast
-boot and the three Skip Engine settings. GBCast supplies the same three shared
-Skip Engine functions, followed by its separate Fast GD-ROM load option.
+function with different behavior as a missing common option. GBSat and GBCast
+supply the three Skip Engine settings; GBCast follows them with its separate Fast
+GD-ROM load option.
 Keep HLE separate from Fast boot. Integrate the three common skip functions
 according to [SKIP_ENGINE_STANDARD.md](SKIP_ENGINE_STANDARD.md) whenever possible.
 
