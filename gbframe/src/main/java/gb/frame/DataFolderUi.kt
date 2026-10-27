@@ -17,23 +17,23 @@ import kotlinx.coroutines.withContext
 
 /** Same data-folder picker/status in first-run setup and System, independently of the emulated console. */
 @Composable
-fun DataFolderControls(store: AppDataFolder) {
+fun DataFolderControls(store: AppDataFolder, compact: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var syncing by remember { mutableStateOf(false) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) scope.launch { store.choose(uri) }
     }
-    ActionRow(Icons.Default.Folder, "Data folder", store.label, "Choose", {
+    ActionRow(Icons.Default.Folder, "Data folder", if (store.folder == null) "Saves, save states, BIOS, cheats and covers. Uses app storage until you choose a folder." else store.label, "Choose", {
         if (!store.busy && !syncing) picker.launch(store.folder?.let(android.net.Uri::parse))
-    })
-    Text("BIOS, saves, save states, cheats and covers. Choose a dedicated folder for this app. Files are read and written directly in the selected folder. Reopen the app after changing it.",
+    }, subMaxLines = Int.MAX_VALUE)
+    if (!compact) Text("BIOS, saves, save states, cheats and covers. Choose a dedicated folder for this app. Files are read and written directly in the selected folder. Reopen the app after changing it.",
         style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
-    store.texturesRelativePath?.let { path ->
+    if (!compact) store.texturesRelativePath?.let { path ->
         Text("Textures: $path/<game ID>. Texture packs are read from this folder.",
             style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
     }
-    if (store.folder != null) TextButton(enabled = !syncing && !store.busy && !store.restartRequired, onClick = {
+    if (!compact && store.folder != null) TextButton(enabled = !syncing && !store.busy && !store.restartRequired, onClick = {
         syncing = true
         scope.launch { try { withContext(Dispatchers.IO) { store.checkAccess() } } finally { syncing = false } }
     }) { Text(if (syncing) "Checking…" else "Check access") }

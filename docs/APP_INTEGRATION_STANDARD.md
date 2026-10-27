@@ -141,3 +141,7 @@ Every consumer must use GBFrame's `EmuTheme` as the single root theme provider. 
 - **Contrast and disabled states:** text and icons must remain distinguishable from their surfaces. Use `MaterialTheme.colorScheme` and component color APIs, including explicit disabled-content/container colors when a component does not provide a suitable accessible default. Do not simulate disabled controls only by lowering opacity to an unreadable level. Keep warning/error colors distinguishable from normal accents.
 - **One root provider:** select the app palette exactly once at the root with `EmuTheme(palette = ...)`. Do not nest a second `MaterialTheme`, maintain a duplicate palette, or set local hard-coded backgrounds that visually override the active theme. New shared components must obtain the current palette through `palette` and use Material colors for standard controls.
 - **Review rule:** changes to shared UI must be checked against at least the default palette and a contrasting alternative palette, including enabled, selected, warning and disabled states.
+
+## System settings layout
+
+All consumers use `SystemSettings` and the order, folder descriptions, BIOS statuses and capability-aware startup controls in [SYSTEM_MENU_STANDARD.md](SYSTEM_MENU_STANDARD.md). System starts with Data folder, Games folder and Bios folder under Data. HLE, emulator files, automatic states, Loading Times controls and remaining emulator options follow in that order.

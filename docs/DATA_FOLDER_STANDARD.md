@@ -34,7 +34,9 @@ Do not substitute actual `/sdcard/...` paths for selected document permissions.
 All mounted data is read/written in the selected folder. Do not maintain a second
 working copy, recursively hash data on every launch, synchronize in the background,
 or restore a directory mirror before launching. Normal startup validates access
-and mount roots only. System offers **Check access**, not **Sync now**.
+and mount roots only. System uses the three compact folder rows from
+SYSTEM_MENU_STANDARD.md. The full folder setup/recovery controls can offer
+**Check access**; there is no **Sync now** operation.
 
 Folder changes and migration may copy/verify data once, with progress feedback and
 process restart before switching a live core. Existing destination files are kept.

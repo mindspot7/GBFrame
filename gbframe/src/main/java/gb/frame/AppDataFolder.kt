@@ -25,6 +25,15 @@ class AppDataFolder(context: Context, private val appName: String, private val m
     var selectionNotice by mutableStateOf<String?>(null); private set
     val label: String get() = folder?.let { Uri.decode(Uri.parse(it).lastPathSegment.orEmpty()).substringAfter(':') } ?: "App storage (default)"
 
+    /** Display the effective storage location, never the source directory used for an import. */
+    fun displayPath(file: File): String {
+        val path = file.absoluteFile.normalize().path
+        val mount = mounts.entries.firstOrNull { path == it.value.absolutePath || path.startsWith(it.value.absolutePath.trimEnd('/') + "/") }
+        return if (folder != null && mount != null) {
+            "$label/${mount.key}" + path.removePrefix(mount.value.absolutePath)
+        } else path
+    }
+
     private fun root(uri: String): DocumentFile {
         val root = requireNotNull(DocumentFile.fromTreeUri(app, Uri.parse(uri))) { "Folder unavailable" }
         check(root.exists() && root.canRead() && root.canWrite()) { "Folder unavailable or permission lost. Reconnect storage or choose a folder." }

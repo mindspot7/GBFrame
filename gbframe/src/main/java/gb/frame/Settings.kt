@@ -57,14 +57,14 @@ fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, on
 }
 
 @Composable
-fun ActionRow(icon: ImageVector, title: String, sub: String?, action: String, onAction: () -> Unit, warn: Boolean = false) {
+fun ActionRow(icon: ImageVector, title: String, sub: String?, action: String, onAction: () -> Unit, warn: Boolean = false, subMaxLines: Int = 2) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         RowIcon(icon, warn)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             if (sub != null) Text(sub, style = MaterialTheme.typography.bodySmall, color = if (warn) palette.warn else palette.dim,
-                maxLines = 2, overflow = TextOverflow.Ellipsis)
+                maxLines = subMaxLines, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(12.dp))
         FilledTonalButton(onClick = onAction) { Text(action) }
