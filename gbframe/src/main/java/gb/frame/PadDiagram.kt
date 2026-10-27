@@ -1,6 +1,7 @@
 package gb.frame
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,7 +40,12 @@ data class PadButton(
 )
 
 /** A console controller drawn for button mapping: its body and buttons. */
-data class PadLayout(val buttons: List<PadButton>, val body: DrawScope.() -> Unit = PadBodies.Classic)
+data class PadLayout(
+    val buttons: List<PadButton>,
+    val body: DrawScope.() -> Unit = PadBodies.Classic,
+    val aspectRatio: Float = 2.1f,
+    val artwork: (@Composable () -> Painter)? = null,
+)
 
 object PadBodies {
     /** Generic two-grip controller with shoulder bumpers and a D-pad well on the left. */
@@ -72,7 +79,9 @@ fun PadDiagram(layout: PadLayout, highlight: String?, onSelect: (String) -> Unit
     BoxWithConstraints(modifier) {
         val w = maxWidth
         val h = maxHeight
-        Canvas(Modifier.fillMaxSize()) { layout.body(this) }
+        val artwork = layout.artwork
+        if (artwork != null) Image(artwork(), null, Modifier.fillMaxSize())
+        else Canvas(Modifier.fillMaxSize()) { layout.body(this) }
         layout.buttons.forEach { b ->
             val bw = if (b.wOfWidth) w * b.w else h * b.w
             val bh = h * b.h

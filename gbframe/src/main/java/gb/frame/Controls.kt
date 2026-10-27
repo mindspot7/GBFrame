@@ -123,8 +123,11 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
             SettingsGroup("Button mapping", Icons.Default.Gamepad) {
                 Text("Tap a button on the pad or in the list, then press the button on your controller.",
                     style = MaterialTheme.typography.bodySmall, color = p.dim, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-                PadDiagram(host.pad, host.remapTarget, { host.remapTarget = it },
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp).aspectRatio(2.1f))
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    PadDiagram(host.pad, host.remapTarget, { host.remapTarget = it },
+                        Modifier.widthIn(max = if (host.pad.aspectRatio < 1.3f) 360.dp else 760.dp)
+                            .fillMaxWidth().padding(horizontal = 12.dp).aspectRatio(host.pad.aspectRatio))
+                }
                 Spacer(Modifier.height(8.dp))
                 host.buttons.forEachIndexed { i, b ->
                     if (i > 0) SettingsDivider()
@@ -221,7 +224,7 @@ fun ControlsCapturePrompts(host: ControlsHost) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (remap != null) {
                     Text("Remap ${host.buttons.firstOrNull { it.id == remap }?.label ?: remap}", style = MaterialTheme.typography.titleLarge)
-                    PadDiagram(host.pad, remap, { host.remapTarget = it }, Modifier.fillMaxWidth().aspectRatio(2.1f))
+                    PadDiagram(host.pad, remap, { host.remapTarget = it }, Modifier.fillMaxWidth().aspectRatio(host.pad.aspectRatio))
                     Text("Press the button on your controller you want to use for it…", color = palette.dim, textAlign = TextAlign.Center)
                     TextButton(onClick = { host.remapTarget = null }) { Text("Cancel") }
                 } else if (hk != null) {
