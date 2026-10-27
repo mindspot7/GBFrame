@@ -45,6 +45,11 @@ line here whenever a new app teaches something that would have saved time.
   repo, `-fprofile-use` in normal builds) gave ~12% on the interpreter thread at no code cost. Merge the raw profile
   with an `llvm-profdata` of the same LLVM version as the NDK clang.
 - A dynarec only pays off when the CPU interpreter thread is the bottleneck at full speed; check the profile first.
+- Measure a borrowed recompiler against the interpreter at the same CPU sync before keeping it: YabaSanshiro's SH-2
+  dynarec (template copies, registers kept in memory) ported into Ymir gave nothing over the chained interpreter on the
+  T618. Its apparent ~10% came from syncing the two SH-2s every 128 cycles instead of 32, which the interpreter gets
+  just as well (Burning Rangers 16.1 -> 14.6 ms per frame; GBSat's CPU sync option). With 32-cycle slices, entering and
+  leaving compiled code every slice eats the gain: a JIT needs longer slices and state kept in place (no register copies).
 
 ## GPU renderers (Vulkan on Mali)
 
