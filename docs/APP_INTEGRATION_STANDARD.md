@@ -32,6 +32,7 @@ The consuming app owns its launcher icon in its own Android resources; GBFrame m
 - Keep the icon artwork and displayed app name consistent across the top bar, main menu, and About page. Do not add a GBFrame-specific outline.
 - Each app owns and supplies its own icon resources; GBFrame accepts a `Painter` and must not resolve another app's resource IDs itself.
 - Do not omit the app icon from the top bar or About page.
+- Use `rememberAppIconPainter` with the app's raster foreground for in-app identity. It removes transparent launcher safe-zone margins and preserves the artwork aspect ratio inside the existing 40 dp header/menu or 72 dp About frame. Launcher composition remains unchanged.
 - The common GB app icon composition is a recognizable controller from the emulated system, isolated on transparency and finished with a continuous black outer contour. Keep the visible controller approximately **61% of the square foreground canvas width**, matching GBCast's reference composition; preserve aspect ratio and center it on both axes.
 - Supply that transparent foreground as the Compose-safe in-app artwork and as the adaptive icon foreground. Use solid black as the adaptive-icon background/fallback so launchers that flatten or do not preserve transparency still produce a deliberate result.
 - Legacy launcher rasters may preserve transparency. They must be generated from the same foreground composition and must not stretch the controller to fill the entire square.
