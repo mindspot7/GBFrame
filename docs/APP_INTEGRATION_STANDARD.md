@@ -21,6 +21,8 @@ Do not treat an app-specific implementation as a standard when it conflicts with
 
 ## App icon and in-app identity
 
+Gameplay video keeps its configured aspect ratio and is horizontally centered and top-aligned whenever vertical space remains, including square handhelds and portrait phones. Place unused space below the picture; keep menus/overlays full-screen and map pointer/lightgun input to the actual video rectangle. GBFrame's native `video_layout.h` supplies the fitted-rectangle alignment helper; Compose consumers use `Alignment.TopCenter`. Respect the user's device orientation instead of forcing landscape.
+
 Library game options expose **Cover Image**, opening the shared `CoverImageOptions` chooser: **Web Search** opens Google Images inside GBFrame with the library title and configured cover system; tapping or holding an image opens a preview with **Use image**. After saving, invalidate the library's cover version and return to the library. **Local Search** opens the app's image document picker. Back walks browser history, then the cover chooser, game options, and library. The browser also provides **Close search**. Downloads are bounded and validated before atomically replacing the selected game's custom cover.
 
 The consuming app owns its launcher icon in its own Android resources; GBFrame must not embed a particular app's logo.
