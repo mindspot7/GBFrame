@@ -82,7 +82,7 @@ fun ChoiceRow(title: String, sub: String?, options: List<String>, selected: Int,
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { i, label ->
                 SegmentedButton(selected = i == selected, onClick = { onSelect(i) }, shape = SegmentedButtonDefaults.itemShape(i, options.size),
-                    colors = SegmentedButtonDefaults.colors(activeContainerColor = p.highlight.copy(alpha = .25f), activeContentColor = MaterialTheme.colorScheme.onSecondary,
+                    colors = SegmentedButtonDefaults.colors(activeContainerColor = p.highlight.copy(alpha = .25f), activeContentColor = MaterialTheme.colorScheme.onSurface,
                         inactiveContainerColor = Color.Transparent, inactiveContentColor = p.dim, activeBorderColor = p.highlight.copy(alpha = .6f),
                         inactiveBorderColor = p.border),
                 ) { Text(label, maxLines = 1) }

@@ -21,7 +21,7 @@ Do not treat an app-specific implementation as a standard when it conflicts with
 
 ## App icon and in-app identity
 
-Library game options expose **Cover Image**, opening the shared `CoverImageOptions` chooser: **Web Search** launches Google Images with the library title and configured cover system; **Local Search** opens the app's image document picker. Back returns to game options.
+Library game options expose **Cover Image**, opening the shared `CoverImageOptions` chooser: **Web Search** opens Google Images inside GBFrame with the library title and configured cover system; tapping or holding an image opens a preview with **Use image**. After saving, invalidate the library's cover version and return to the library. **Local Search** opens the app's image document picker. Back walks browser history, then the cover chooser, game options, and library. The browser also provides **Close search**. Downloads are bounded and validated before atomically replacing the selected game's custom cover.
 
 The consuming app owns its launcher icon in its own Android resources; GBFrame must not embed a particular app's logo.
 
