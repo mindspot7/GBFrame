@@ -10,8 +10,10 @@ Android Lint, screenshot generation and profiling/PGO validation run locally. Ke
 those test sources and local tools. Do not add separate online test, lint, screenshot,
 profiling, PGO or app-ID workflows, or make package generation depend on them.
 
-GitHub builds remain explicit: manual dispatch or a dedicated build-trigger file.
-Ordinary synchronization must not build APKs. Cloud workflows compile release
+GitHub builds run only by explicit manual dispatch.
+Ordinary pushes, pull requests and synchronization must not build APKs.
+Consumer dispatches require an explicit positive Android version code greater than
+the latest installed/published build, independent of workflow file names or run numbers. Cloud workflows compile release
 artifacts, sign, validate the package (including Android 16 KB compatibility for
 native APKs), and upload it. App Bundles are limited to the existing official-release
 rule or an explicit request. Keep dependency/compiler caches; do not compile debug

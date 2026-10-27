@@ -117,3 +117,9 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 ## License
 
 GPLv3 (see [LICENSE](LICENSE)). Apps using this kit are distributed under GPLv3 too, so their cores must be GPLv3-compatible (e.g. GPLv2 "or later", GPLv3, MIT, BSD, Apache 2.0).
+
+## Build and validation
+
+Use the single `Build GBFrame` workflow for an explicitly requested library build.
+Consumer APK builds are also manual; tests and diagnostics run locally. See the
+[shared build and validation standard](docs/BUILD_VALIDATION_STANDARD.md).

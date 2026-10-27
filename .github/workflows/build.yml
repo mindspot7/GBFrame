@@ -1,13 +1,8 @@
 name: Build GBFrame
 
-# Keep builds controlled: manual dispatch or an explicit trigger-file commit.
+# Build only when explicitly requested through manual dispatch.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/run-build.trigger
 
 jobs:
   build:
