@@ -85,6 +85,9 @@ Library game options expose **Cover Image** through `CoverImageOptions`: **Web S
 
 ## Google Play readiness
 
+Every app offers the shared **Data folder** in the initial wizard and **System**,
+following [DATA_FOLDER_STANDARD.md](DATA_FOLDER_STANDARD.md).
+
 - Use the Storage Access Framework and app-private storage. Do not request broad read/write external-storage permissions or legacy external-storage behavior.
 - Keep automatic cover downloads and every fallback provider optional and replaceable. Before enabling a provider in a Play build, document its API authorization, attribution and media-licensing terms; an open-source API client does not by itself license the returned cover artwork.
 - Do not bundle BIOS files, games, console logos or third-party cover art. Store-listing screenshots and promotional art must use material the publisher is authorized to distribute.

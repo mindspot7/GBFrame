@@ -10,6 +10,15 @@ The reference implementation lives in [`gbframe/src/main/java/gb/frame/QuickMenu
 
 ## Visual layout
 
+Expose **Show all monitoring** and **Show fast-forward button** in main Video
+settings and quick-menu Overlays. The first toggles FPS, speed, CPU, GPU, renderer,
+resolution and frame time together. When the on-screen fast-forward button is
+enabled, omit the duplicate fast-forward action from the quick-menu root.
+
+Android Back must be handled once per press, including key DOWN/UP and system
+navigation gestures. A press during gameplay opens and retains the paused quick
+menu; subsequent Back presses traverse its shared page stack before dismissing.
+
 Use the same basic GBSat arrangement:
 
 - A dimmed, tappable scrim over the game; tapping outside the panel dismisses the quick menu and resumes emulation.
