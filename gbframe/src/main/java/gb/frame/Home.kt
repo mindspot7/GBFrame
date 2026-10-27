@@ -250,7 +250,7 @@ fun HomeTopBar(icon: Painter, label: String, onClick: () -> Unit, modifier: Modi
         modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).focusProperties { canFocus = false }.clickable(onClick = onClick),
     ) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Image(icon, null, Modifier.size(40.dp).clip(RoundedCornerShape(11.dp)))
+            Image(icon, null, Modifier.size(40.dp))
             Spacer(Modifier.width(12.dp))
             Text(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -689,7 +689,7 @@ fun HomeMenuPanel(
                 ) {
                     // App and close
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(appIcon, null, Modifier.size(40.dp).clip(RoundedCornerShape(11.dp)))
+                        Image(appIcon, null, Modifier.size(40.dp))
                         Spacer(Modifier.width(12.dp))
                         Text(appName, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
                         Box(
