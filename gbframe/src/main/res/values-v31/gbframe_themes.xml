@@ -2,6 +2,5 @@
 <resources>
     <style name="GBFrameLaunchTheme" parent="@style/GBFrameLaunchThemeBase">
         <item name="android:windowSplashScreenBackground">@android:color/black</item>
-        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/black</item>
     </style>
 </resources>
