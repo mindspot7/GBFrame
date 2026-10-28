@@ -165,12 +165,13 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
             }
         }
         if (ext == "gdi") {
-            // GDI sheets (Dreamcast) name their track files: <track> <lba> <type> <sector size> <file> <offset>
+            // GDI sheets (Dreamcast) name their track files: <track> <lba> <type> <sector size> <file> <offset>; fields are
+            // matched within one line, so the first line (the track count) can't join the next
             val text = runCatching {
                 appContext.contentResolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, main.docId))
                     ?.use { it.readBytes().toString(Charsets.ISO_8859_1) }
             }.getOrNull().orEmpty()
-            Regex("(?m)^\\s*\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+(\"[^\"]+\"|\\S+)").findAll(text).forEach { m ->
+            Regex("(?m)^[ \t]*\\d+[ \t]+\\d+[ \t]+\\d+[ \t]+\\d+[ \t]+(\"[^\"]+\"|\\S+)").findAll(text).forEach { m ->
                 val ref = m.groupValues[1].trim('"')
                 wanted += ref.lowercase(); linkName[ref.lowercase()] = ref
             }
