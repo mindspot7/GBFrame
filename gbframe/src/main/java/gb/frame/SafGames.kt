@@ -97,8 +97,20 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         }
     }
 
+    @Volatile private var lastScan: Pair<String, Long>? = null
+
+    /**
+     * Whether [dir] should be scanned again: not scanned in this process yet, or more than [maxAgeMs] ago. The library
+     * comes back on screen after every game; walking the whole folder each time cost CPU for a list that rarely changes.
+     */
+    fun scanStale(dir: String, maxAgeMs: Long = 5 * 60_000L): Boolean {
+        val last = lastScan ?: return true
+        return last.first != dir || android.os.SystemClock.elapsedRealtime() - last.second > maxAgeMs
+    }
+
     /** Lists the disc images in the games folder (and up to [maxDepth] levels of subfolders). */
     fun scan(dir: String, maxDepth: Int = 3): List<Game> = scanFolder(dir, maxDepth).also { games ->
+        lastScan = dir to android.os.SystemClock.elapsedRealtime()
         val text = games.joinToString("\n") { it.title + "\t" + it.path }
         val prefs = appContext.getSharedPreferences("gbframe.games", Context.MODE_PRIVATE)
         if (prefs.getString("dir", null) != dir || prefs.getString("games", null) != text) {

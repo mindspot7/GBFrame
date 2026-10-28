@@ -110,6 +110,14 @@ line here whenever a new app teaches something that would have saved time.
 - Give games a save (backup memory) cartridge when they don't need a RAM cartridge: some games ask for one.
 - Google Play: targetSdk 36, 16 KB pages, AAB in the build artifacts only, edge-to-edge, privacy policy, no console
   maker trademarks in the name or icon.
+- On a SAF tree every `DocumentFile.findFile` lists the whole folder (~50 ms each on handhelds); exists/length/
+  lastModified through it walked the path again on every call (the save-state menu: ~100 provider queries). List each
+  folder once (id, name, type, size, time in one query) and cache it, dropped on every write through the app and after a
+  few seconds for outside changes.
+- Keep migrations of older layouts only once a version with that layout was released; before that they are dead code
+  run at every start (GBSat's state-folder check cost ~1.2 s per launch on the RG Rotate).
+- The first data folder (setup wizard, app storage before) can be used at once after the copy; only a switch between two
+  picked folders needs a restart. Reopen files the core keeps open (the backup RAM image) at their new location.
 
 ## CI
 
@@ -134,6 +142,26 @@ line here whenever a new app teaches something that would have saved time.
 - A threaded ("computed goto") interpreter, where each instruction jumps straight to the next handler, cut the SH-2
   time by ~9% on the T618 (one shared dispatch point was mispredicted most of the time). Keep the plain interpreter
   too, and a CI test that runs random programs through both and compares every register and memory write.
+- An SH-2 JIT that gives exactly the interpreter's results (cycle by cycle: load-use stalls, bus waits, slice ends
+  checked per instruction, blocks only at jump targets) was ~2x slower than Ymir's chained interpreter on the RG DS:
+  the chain costs only ~15-20 host instructions per SH-2 instruction, each block entry ~100, VF2's basic blocks are ~7
+  instructions, and whatever follows a block that stopped early ran interpreted (~2M instructions/s). It paid off only
+  in an approximate mode: blocks compiled and entered at any instruction, run to their end past the slice (the slice is
+  checked between blocks), conditional delayed branches with their slot in the block, memory outside the direct work-RAM
+  path through small read/write helpers instead of interpreter calls. RG DS: Daytona USA +24%, DonPachi +11%, VF2 +6%,
+  Guardian Heroes +5%, NiGHTS +3%; on the faster T618 the same frame rate with 7-15 points less CPU.
+- Find what generated code spends its time on before tuning it: write a map of each block (host address of each part
+  and guest instruction) and match simpleperf samples (`--sort dso,vaddr_in_file`, the "unknown" dso) against it. Once
+  the generated code is cheap, removing per-instruction work (stall tracking, cycle adds) changes nothing measurable.
+- A recompiler loses where slices are short: with 32-cycle SH-2 sync (Burning Rangers' game-database exception) every
+  slice enters and leaves compiled code and the JIT was 35% slower than the interpreter. Turn it on only with the long
+  (128-cycle) sync and let the core switch it off by itself for games that need the short one.
+- Approximate timing changes what a game sees: test each one from a BIOS boot and from gameplay saves, compare the
+  image with the interpreter, and keep a per-game way out (the option in the in-game menu, applied live).
+- An idle-loop skip can't take a wait loop that calls functions which write memory (a lock in Burning Rangers' and
+  Daytona's boot wait at 06067B32): skipping iterations changes the result. Check the loop's code before promising a gain.
+- Before optimizing a helper thread check that the emulation waits on it: the RG DS's SCSP thread was ~32% of the CPU
+  (half of it the sound DSP), but no game tested waited more than 1 ms per frame on sound.
 
 ## Threaded renderers and presentation
 
@@ -177,3 +205,14 @@ line here whenever a new app teaches something that would have saved time.
   fast boot on the SEGA SATURN logo; remembering the pages the BIOS used before IP.BIN appeared fixed it.
 - Overlay colours follow common emulators: FPS and speed green from 95% of full speed (DuckStation and PCSX2/AetherSX2
   also treat below 95% as slow), yellow from 80%, red below.
+- Show the library at once: keep the last scan's list and the last save-state list (preferences / memory) and draw them
+  while the folder is scanned again in the background; a spinner then "no games" flashed on every start. Don't walk the
+  games folder again each time a game closes (once per launch, or after a few minutes).
+- Show the app icon while the app starts, not a spinner. Decode what the library's first frames need on the startup
+  thread (covers already on disk, the cropped icon: the crop scanned every pixel on the main thread at each use), and let
+  the selected cover snap into place for the first ~0.7 s: animations over the slow first frames stutter.
+- Ship `androidx.profileinstaller` and a `baseline-prof.txt` (recorded on a device with `cmd package dump-profiles
+  --dump-classes-and-methods` after using the app, plus `HSPL<package>/**` wildcards): a sideloaded APK otherwise runs
+  its UI interpreted until the device compiles it while idle (first library frames ~300 ms instead of ~110 ms).
+- Store covers small (WebP, at most ~600 px on the long side): downloaded PNGs and picked photos were 0.5-3 MB each
+  (16 covers 10 MB -> 0.7 MB).
