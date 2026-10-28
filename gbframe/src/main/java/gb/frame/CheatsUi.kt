@@ -12,7 +12,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -141,14 +140,6 @@ fun CheatsScreen(
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f),
                     )
-                    if (backend.canAddFromDatabase && !blocked) {
-                        IconButton(onClick = {
-                            feedback = runCatching { backend.addFromDatabase() }
-                                .getOrElse { CheatActionResult.failure(it.message ?: "Could not add database cheats.") }
-                        }) {
-                            Icon(Icons.Default.LibraryAdd, "Add cheats from the database")
-                        }
-                    }
                     IconButton(enabled = !blocked, onClick = { importer.launch(arrayOf("*/*")) }) {
                         Icon(Icons.Default.FileOpen, "Import cheat file")
                     }

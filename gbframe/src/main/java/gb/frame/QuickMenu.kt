@@ -145,7 +145,7 @@ fun QuickMenuHost(
 
     val inputMode = LocalInputModeManager.current
 
-    LaunchedEffect(focusScope) {
+    LaunchedEffect(focusScope, current.page.id) {
         // Let the new page and its first rows attach before requesting focus; retry while Compose
         // is laying out or a dynamically supplied menu row becomes available.
         repeat(40) {
@@ -154,7 +154,6 @@ fun QuickMenuHost(
                 val focused = runCatching {
                     inputMode.requestInputMode(InputMode.Keyboard)
                     target.requestFocus()
-                    true
                 }.getOrDefault(false)
                 if (focused) return@LaunchedEffect
             }
