@@ -240,6 +240,18 @@ object Covers {
         return if (bestScore >= threshold) best else null
     }
 
+    /**
+     * Decodes the covers of [titles] already on disk into the memory cache (no downloads), so the library's first frames
+     * don't decode them while its entry animation runs. Call from a background thread at startup.
+     */
+    fun preloadCached(titles: List<String>) {
+        for (title in titles) {
+            if (memory.get(title) != null) continue
+            val img = (custom(title).takeIf { it.exists() } ?: cached(title).takeIf { it.exists() })?.let { runCatching { decode(it) }.getOrNull() }
+            if (img != null) memory.put(title, img)
+        }
+    }
+
     suspend fun load(title: String): ImageBitmap? = withContext(Dispatchers.IO) {
         memory.get(title)?.let { return@withContext it }
         loadSlots.withPermit {
