@@ -84,8 +84,29 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         return out
     }
 
+    /**
+     * The list from the last [scan] of [dir] (kept across restarts), to show the library at once while the folder is
+     * scanned again; empty when it was never scanned.
+     */
+    fun cachedScan(dir: String): List<Game> {
+        val prefs = appContext.getSharedPreferences("gbframe.games", Context.MODE_PRIVATE)
+        if (prefs.getString("dir", null) != dir) return emptyList()
+        return prefs.getString("games", null).orEmpty().split('\n').mapNotNull { line ->
+            val tab = line.indexOf('\t')
+            if (tab <= 0) null else Game(line.substring(0, tab), line.substring(tab + 1))
+        }
+    }
+
     /** Lists the disc images in the games folder (and up to [maxDepth] levels of subfolders). */
-    fun scan(dir: String, maxDepth: Int = 3): List<Game> {
+    fun scan(dir: String, maxDepth: Int = 3): List<Game> = scanFolder(dir, maxDepth).also { games ->
+        val text = games.joinToString("\n") { it.title + "\t" + it.path }
+        val prefs = appContext.getSharedPreferences("gbframe.games", Context.MODE_PRIVATE)
+        if (prefs.getString("dir", null) != dir || prefs.getString("games", null) != text) {
+            prefs.edit().putString("dir", dir).putString("games", text).apply()
+        }
+    }
+
+    private fun scanFolder(dir: String, maxDepth: Int): List<Game> {
         if (!dir.startsWith("content://")) return scanFiles(dir, maxDepth) // plain folders (tests)
         val tree = tree() ?: return emptyList()
         val out = mutableListOf<Game>()
