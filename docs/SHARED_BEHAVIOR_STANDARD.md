@@ -23,6 +23,7 @@ An app-specific implementation is evidence for a requirement, not a reason to co
 
 ## Library startup, covers and disc access
 
+- In every consumer library, list only the first disc of a multi-disc game. Treat explicit `Disc`, `Disk`, `CD` and `DVD` numbers above 1 as additional discs; keep all disc files available for in-game disc swapping.
 - On app startup, select and focus the last opened game in every library layout. Record successful launch handoffs with `LibraryView.gameOpened`; merely browsing other covers must not replace the startup target. Keep session selection when returning from a menu. Fall back to an available game when the remembered one is missing.
 - Preserve `HomeActions` semantics: normal Play follows auto load, Start fresh bypasses it, and Resume loads the exact selected state. Block duplicate launch requests and recover visibly from failures.
 - Open games directly through SAF/session-owned descriptors first. Use the shared supported-format copy fallback only when direct access fails on that device/core. Keep all required disc/track resources alive through the session and close them on failure or exit.

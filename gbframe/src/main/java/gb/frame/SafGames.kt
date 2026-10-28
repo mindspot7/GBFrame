@@ -119,7 +119,7 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
     }
 
     private fun scanFolder(dir: String, maxDepth: Int): List<Game> {
-        if (!dir.startsWith("content://")) return scanFiles(dir, maxDepth) // plain folders (tests)
+        if (!dir.startsWith("content://")) return keepFirstDiscOnly(scanFiles(dir, maxDepth)) // plain folders (tests)
         val tree = tree() ?: return emptyList()
         val out = mutableListOf<Game>()
         fun walk(docId: String, rel: String, depth: Int) {
@@ -131,7 +131,7 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
             }
         }
         walk(DocumentsContract.getTreeDocumentId(tree), "", 0)
-        return out.sortedBy { it.title.lowercase() }
+        return keepFirstDiscOnly(out).sortedBy { it.title.lowercase() }
     }
 
     private fun scanFiles(dir: String, maxDepth: Int): List<Game> {
