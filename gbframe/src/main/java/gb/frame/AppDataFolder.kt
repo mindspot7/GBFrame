@@ -19,7 +19,12 @@ import java.io.InputStream
  * The selected tree is the authoritative storage, shared by Kotlin and native clients. Data lives in a
  * subfolder named after the app (`<selected>/<appName>`), unless the selected folder already has that name.
  */
-class AppDataFolder(context: Context, val appName: String, private val mounts: Map<String, File>, val texturesRelativePath: String? = null) {
+/**
+ * [legacyMounts] are folders of older versions, routed only while they exist in the picked folder (never created), so the
+ * app can move their files into [mounts] and remove them.
+ */
+class AppDataFolder(context: Context, val appName: String, private val mounts: Map<String, File>, val texturesRelativePath: String? = null,
+                    private val legacyMounts: Map<String, File> = emptyMap()) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("gbframe.dataFolder", Context.MODE_PRIVATE)
     private val active = prefs.getString("tree", null)
@@ -151,7 +156,7 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
             }
             val routes = mounts.map { (name, local) ->
                 local to (root.findFile(name) ?: requireNotNull(root.createDirectory(name)) { "Cannot create $name" })
-            }.toMap()
+            }.toMap() + legacyMounts.mapNotNull { (name, local) -> root.findFile(name)?.takeIf { it.isDirectory }?.let { local to it } }
             DataAccess.configure(app, routes) { error = it }
             DataAccess.bindNative(routes.keys.map { it.absoluteFile.normalize().path.trimEnd('/') }.toTypedArray())
             error = null
