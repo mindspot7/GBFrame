@@ -27,7 +27,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `GameProfiles.kt` | Recommended settings per game and device class shipped in `assets/game_profiles.json` (user choice > database > global settings) |
 | `PadDiagram.kt` | Controller diagram for button mapping (`PadLayout`, `PadButton`, `PadDiagram`) |
 | `AchievementsUi.kt` | Unlock notifications, achievement list, `RetroAchievementsSettings`, `RaUserHeader` |
-| `CheatsUi.kt` | Shared, core-agnostic per-game cheats screen (`CheatsScreen`, `CheatsBackend`, `CheatUiItem`); the app supplies code parsing, database, persistence and core application |
+| `CheatsUi.kt` | Shared, core-agnostic per-game cheats screen (`CheatsScreen`, `CheatsBackend`, `CheatUiItem`); it automatically loads the active game's available database entries, while each app supplies code parsing, database, persistence and core application |
 
 Also shared beyond Kotlin:
 

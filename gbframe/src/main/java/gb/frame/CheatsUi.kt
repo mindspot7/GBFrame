@@ -70,6 +70,10 @@ interface CheatsBackend {
     fun delete(id: String)
     /** Parse and import the supplied file contents using this core's supported format. */
     fun importFile(contents: String): CheatActionResult
+    /**
+     * Load the active game's database entries into the core. GBFrame calls this automatically when the cheats screen
+     * opens; implementations must be idempotent because the user can also invoke the database action again.
+     */
     fun addFromDatabase(): CheatActionResult =
         CheatActionResult.failure("Cheat database is not available for this game.")
     /** Enable or disable the optional patch reported by [frameRatePatch]. */
@@ -106,6 +110,15 @@ fun CheatsScreen(
                 else -> runCatching { backend.importFile(text) }
                     .getOrElse { CheatActionResult.failure(it.message ?: "Could not import cheat file.") }
             }
+        }
+    }
+
+    val databaseKey = if (backend.canAddFromDatabase) backend.databaseStatus ?: "available" else null
+    LaunchedEffect(backend, databaseKey, blocked) {
+        if (databaseKey != null && !blocked) {
+            val result = runCatching { backend.addFromDatabase() }
+                .getOrElse { CheatActionResult.failure(it.message ?: "Could not load database cheats.") }
+            if (!result.success) feedback = result
         }
     }
 

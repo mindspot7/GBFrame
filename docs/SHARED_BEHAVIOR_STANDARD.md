@@ -69,6 +69,7 @@ An app-specific implementation is evidence for a requirement, not a reason to co
 ## Integrated cheats and achievements
 
 - Use `CheatsScreen` and a `CheatsBackend`; the consumer supplies a licensed catalog for its own system when available, its real parser, persistence and native application. Support an offline catalog where redistribution permits it; never reuse another console's codes or memory layout.
+- When the active game's database entry is available, `CheatsScreen` automatically imports its cheats when opened. Implement `canAddFromDatabase`, `databaseStatus` and an idempotent `addFromDatabase`; preserve existing manual/core cheats and keep imported entries disabled until the user enables them.
 - Identify matching titles/regions/revisions conservatively. Do not automatically apply a different region's code when the catalog match is ambiguous. Explain missing or unsupported entries.
 - Database/file import preserves manual cheats and core compatibility patches, skips duplicates and validates operations against that core's supported formats and memory bounds. New imported cheats start disabled, with clear counts/feedback. Native patches needed for game compatibility must not become removable user cheats.
 - Keep manual creation and supported file import available. Treat native RAM-operation formats separately from textual GameShark/Action Replay formats; do not reinterpret an unsupported file as another console's cheat syntax.
