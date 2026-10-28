@@ -3,15 +3,12 @@ package gb.frame
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.provider.DocumentsContract
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.io.File
 import java.io.InputStream
 
@@ -19,12 +16,7 @@ import java.io.InputStream
  * The selected tree is the authoritative storage, shared by Kotlin and native clients. Data lives in a
  * subfolder named after the app (`<selected>/<appName>`), unless the selected folder already has that name.
  */
-/**
- * [legacyMounts] are folders of older versions, routed only while they exist in the picked folder (never created), so the
- * app can move their files into [mounts] and remove them.
- */
-class AppDataFolder(context: Context, val appName: String, private val mounts: Map<String, File>, val texturesRelativePath: String? = null,
-                    private val legacyMounts: Map<String, File> = emptyMap()) {
+class AppDataFolder(context: Context, val appName: String, private val mounts: Map<String, File>, val texturesRelativePath: String? = null) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("gbframe.dataFolder", Context.MODE_PRIVATE)
     private val active = prefs.getString("tree", null)
@@ -71,114 +63,20 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
         return root
     }
 
-    /**
-     * Before storage version 3 the mounts were written straight into the selected folder. Move them (and the
-     * marker) into the app folder; a destination file that already exists is kept and the old copy stays put.
-     */
-    private fun moveIntoAppFolder(uri: String) {
-        val tree = tree(uri)
-        if (tree.name.equals(appName, ignoreCase = true) || owner(tree) != appName) return
-        val root = root(uri)
-        for (name in mounts.keys) {
-            val old = tree.findFile(name)?.takeIf { it.isDirectory } ?: continue
-            val moved = root.findFile(name) == null && runCatching {
-                DocumentsContract.moveDocument(app.contentResolver, old.uri, tree.uri, root.uri) != null
-            }.getOrDefault(false)
-            if (moved) continue
-            // Provider without move support, or both locations exist: verified copy of what is missing, then retire the source
-            val source = SafDataTree(app, tree, setOf(name)); val target = SafDataTree(app, root, setOf(name))
-            val existing = target.files().toSet()
-            val staging = File(app.cacheDir, "data-folder-move").apply { mkdirs() }
-            try {
-                for (path in source.files()) if (path !in existing) {
-                    val temp = File.createTempFile("move-", ".tmp", staging)
-                    try { source.read(path).use { input -> temp.outputStream().use { input.copyTo(it) } }; target.write(path, temp) }
-                    finally { temp.delete() }
-                    source.delete(path)
-                }
-            } finally { staging.deleteRecursively() }
-            source.pruneEmpty(name)
-        }
-        if (owner(root) == null) {
-            val marker = File(app.cacheDir, "data-folder-marker").apply { writeText(appName) }
-            try { SafDataTree(app, root, emptySet()).write(".gbframe-app", marker) } finally { marker.delete() }
-        }
-        tree.findFile(".gbframe-app")?.delete()
-    }
-
-    /**
-     * Older versions could create `<appName>/<appName>` when the picked folder already had the app's name. Moves the data
-     * folders up a level (a folder that exists in both places stays where it is) and removes the inner folder once empty.
-     */
-    private fun flattenNestedAppFolder(uri: String) {
-        val tree = tree(uri)
-        if (!tree.name.equals(appName, ignoreCase = true)) return
-        val inner = tree.findFile(appName)?.takeIf { it.isDirectory } ?: return
-        mergeInto(inner, tree)
-    }
-
-    /**
-     * Moves the children of [source] into [target]: a name missing there is moved, two folders of the same name are
-     * merged, and a file that exists in both places stays in [source]. [source] is removed once empty.
-     */
-    private fun sameContent(a: DocumentFile, b: DocumentFile): Boolean = a.length() == b.length() && runCatching {
-        val r = app.contentResolver
-        requireNotNull(r.openInputStream(a.uri)).buffered().use { x -> requireNotNull(r.openInputStream(b.uri)).buffered().use { y ->
-            while (true) { val c = x.read(); if (c != y.read()) return@runCatching false; if (c < 0) return@runCatching true }
-            @Suppress("UNREACHABLE_CODE") false
-        } }
-    }.getOrDefault(false)
-
-    private fun mergeInto(source: DocumentFile, target: DocumentFile) {
-        for (child in source.listFiles()) {
-            val name = child.name ?: continue
-            val existing = target.findFile(name)
-            if (existing == null) {
-                runCatching { DocumentsContract.moveDocument(app.contentResolver, child.uri, source.uri, target.uri) }
-                    .onFailure { Log.w("GBFrame-Data", "Could not move ${source.name}/$name", it) }
-            } else if (existing.isDirectory && child.isDirectory) mergeInto(child, existing)
-            else if (existing.isFile && child.isFile && sameContent(child, existing)) child.delete() // duplicate copy
-        }
-        if (source.listFiles().isEmpty()) source.delete()
-    }
-
-    /** One-time transition from the former mirror; afterwards opening never scans/hashes/copies data. */
+    /** Opens the picked folder (no scan or copy); files left in app storage after picking it are retired once. */
     fun openAtStartup() {
         val uri = active ?: return
         try {
-            if (prefs.getInt("storageVersion", 0) < 3) moveIntoAppFolder(uri)
-            flattenNestedAppFolder(uri)
             val root = root(uri)
-            if (prefs.getInt("storageVersion", 0) < 2) {
-                val target = SafDataTree(app, root, mounts.keys)
-                val json = JSONObject(prefs.getString("baseline", "{}") ?: "{}")
-                val baseline = mutableMapOf<String, String>()
-                json.keys().forEach { baseline[it] = json.getString(it) }
-                // Preserve completed offline writes from the previous version, without importing a second mirror.
-                try { DataFolderSync(mounts, File(app.filesDir, "data-folder-recovery")).transfer(target, baseline, pull = false) }
-                catch (failure: Exception) {
-                    prefs.edit().putString("baseline", JSONObject(baseline.toMap()).toString()).commit()
-                    throw failure
-                }
-                retireLegacyFiles(target)
-                check(prefs.edit().remove("baseline").remove("restore").remove("retireLocal").commit())
-            } else if (prefs.getBoolean("retireLocal", false)) {
+            if (prefs.getBoolean("retireLocal", false)) {
                 retireLegacyFiles(SafDataTree(app, root, mounts.keys))
                 check(prefs.edit().remove("retireLocal").commit())
             }
-            if (prefs.getInt("storageVersion", 0) < STORAGE_VERSION) check(prefs.edit().putInt("storageVersion", STORAGE_VERSION).commit())
             // One listing of the app folder (each findFile lists it again: ~50 ms per call on a SAF tree)
-            var children = root.listFiles().associateBy { it.name }
-            for ((old, new) in DataLayout.RENAMED) {
-                if (new !in mounts) continue
-                val legacy = children[old]?.takeIf { it.isDirectory } ?: continue
-                val current = children[new]?.takeIf { it.isDirectory }
-                if (current == null) legacy.renameTo(new) else mergeInto(legacy, current)
-                children = root.listFiles().associateBy { it.name }
-            }
+            val children = root.listFiles().associateBy { it.name }
             val routes = mounts.map { (name, local) ->
                 local to (children[name] ?: requireNotNull(root.createDirectory(name)) { "Cannot create $name" })
-            }.toMap() + legacyMounts.mapNotNull { (name, local) -> children[name]?.takeIf { it.isDirectory }?.let { local to it } }
+            }.toMap()
             DataAccess.configure(app, routes) { error = it }
             DataAccess.bindNative(routes.keys.map { it.absoluteFile.normalize().path.trimEnd('/') }.toTypedArray())
             error = null
@@ -219,13 +117,13 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
                 val marker = File(staging, "marker").apply { writeText(appName) }
                 try { target.write(".gbframe-app", marker) } finally { marker.delete() }
             } finally { staging.delete() }
-            check(prefs.edit().putString("tree", uri.toString()).putInt("storageVersion", STORAGE_VERSION).putBoolean("retireLocal", active == null).remove("baseline").remove("restore").commit())
+            check(prefs.edit().putString("tree", uri.toString()).putBoolean("retireLocal", active == null).commit())
             folder = uri.toString(); restartRequired = true; error = null
         } catch (failure: Exception) { error = failure.message ?: "Could not choose folder" }
         finally { busy = false }
     }
 
-    /** Retire the obsolete mirror only after checking each destination. Conflicts stay in a recovery archive. */
+    /** Retire the app-storage copies after a folder was picked, checking each destination. Conflicts go to a recovery archive. */
     private fun retireLegacyFiles(target: DataTree) {
         val remote = target.files().toSet()
         for ((prefix, mounted) in mounts) {
@@ -268,10 +166,16 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
     }
         catch (failure: Exception) { error = failure.message; false }
 
-    private companion object { const val STORAGE_VERSION = 3 }
 }
 
 /** Stages and verifies writes before replacing an existing document, with rollback on rename failure. */
+/** The app's mounted folders in a data tree: relative file paths, read and write. */
+private interface DataTree {
+    fun files(): List<String>
+    fun read(path: String): InputStream
+    fun write(path: String, source: File)
+}
+
 private class SafDataTree(private val context: Context, private val root: DocumentFile, private val roots: Set<String>) : DataTree {
     private fun document(path: String, createParents: Boolean = false): Pair<DocumentFile, String> {
         val parts = path.split('/')

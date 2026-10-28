@@ -60,12 +60,6 @@ object Covers {
         this.frameAspectRatio = frameAspectRatio
         memory.evictAll()
         dir = StoredFile(dataDir, "covers").apply { mkdirs(); StoredFile(this, "custom").mkdirs() }
-        // Covers saved by older versions are compacted once, in the background
-        val covers = dir
-        Thread({
-            (covers.listFiles().orEmpty().toList() + StoredFile(covers, "custom").listFiles().orEmpty().toList())
-                .filter { it.isFile && (it.name.endsWith(".png") || it.name.endsWith(".img")) }.forEach(::compact)
-        }, "GBFrame-Covers").apply { priority = Thread.MIN_PRIORITY }.start()
     }
 
     private const val STORED_MAX = 600
@@ -250,7 +244,7 @@ object Covers {
         memory.get(title)?.let { return@withContext it }
         loadSlots.withPermit {
             memory.get(title)?.let { return@withPermit it }
-            // Covers saved by older versions are compacted the first time they are shown
+            // Large covers (picked photos, PNG downloads) are compacted the first time they are shown
             val img = custom(title).takeIf { it.exists() }?.also(::compact)?.let(::decode)
                 ?: cached(title).takeIf { it.exists() }?.also(::compact)?.let(::decode)
                 ?: run {
