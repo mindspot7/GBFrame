@@ -17,10 +17,10 @@ object SaveData {
 
     /** Folder name for a game: its file name without extension, minus characters folders can't hold. */
     fun gameFolderName(gamePath: String): String =
-        gamePath.substringAfterLast('/').substringBeforeLast('.').replace(Regex("[\\\\/:*?\"<>|]"), "_").trim().ifEmpty { "game" }
+        gamePath.substringAfterLast('/').substringBeforeLast('.').replace(Regex("[\\\\/:*?\"<>|]"), "_").trim().trimEnd('.').ifEmpty { "game" }
 
     /** Copies [folders] of [dataDir] into a "[backupName]" folder inside the picked tree. Returns an error or null. */
-    fun export(context: Context, dataDir: File, tree: Uri, backupName: String, folders: List<String> = listOf(DataLayout.SAVES, DataLayout.SAVESTATES)): String? =
+    fun export(context: Context, dataDir: File, tree: Uri, backupName: String, folders: List<String> = listOf("saves", "states")): String? =
         runCatching {
             val root = DocumentFile.fromTreeUri(context, tree) ?: error("Folder not available")
             val out = root.findFile(backupName) ?: root.createDirectory(backupName) ?: error("Can't create the backup folder")

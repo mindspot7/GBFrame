@@ -84,41 +84,8 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         return out
     }
 
-    /**
-     * The list from the last [scan] of [dir] (kept across restarts), to show the library at once while the folder is
-     * scanned again; empty when it was never scanned.
-     */
-    fun cachedScan(dir: String): List<Game> {
-        val prefs = appContext.getSharedPreferences("gbframe.games", Context.MODE_PRIVATE)
-        if (prefs.getString("dir", null) != dir) return emptyList()
-        return prefs.getString("games", null).orEmpty().split('\n').mapNotNull { line ->
-            val tab = line.indexOf('\t')
-            if (tab <= 0) null else Game(line.substring(0, tab), line.substring(tab + 1))
-        }
-    }
-
-    @Volatile private var lastScan: Pair<String, Long>? = null
-
-    /**
-     * Whether [dir] should be scanned again: not scanned in this process yet, or more than [maxAgeMs] ago. The library
-     * comes back on screen after every game; walking the whole folder each time cost CPU for a list that rarely changes.
-     */
-    fun scanStale(dir: String, maxAgeMs: Long = 5 * 60_000L): Boolean {
-        val last = lastScan ?: return true
-        return last.first != dir || android.os.SystemClock.elapsedRealtime() - last.second > maxAgeMs
-    }
-
     /** Lists the disc images in the games folder (and up to [maxDepth] levels of subfolders). */
-    fun scan(dir: String, maxDepth: Int = 3): List<Game> = scanFolder(dir, maxDepth).also { games ->
-        lastScan = dir to android.os.SystemClock.elapsedRealtime()
-        val text = games.joinToString("\n") { it.title + "\t" + it.path }
-        val prefs = appContext.getSharedPreferences("gbframe.games", Context.MODE_PRIVATE)
-        if (prefs.getString("dir", null) != dir || prefs.getString("games", null) != text) {
-            prefs.edit().putString("dir", dir).putString("games", text).apply()
-        }
-    }
-
-    private fun scanFolder(dir: String, maxDepth: Int): List<Game> {
+    fun scan(dir: String, maxDepth: Int = 3): List<Game> {
         if (!dir.startsWith("content://")) return keepFirstDiscOnly(scanFiles(dir, maxDepth)) // plain folders (tests)
         val tree = tree() ?: return emptyList()
         val out = mutableListOf<Game>()
@@ -198,13 +165,12 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
             }
         }
         if (ext == "gdi") {
-            // GDI sheets (Dreamcast) name their track files: <track> <lba> <type> <sector size> <file> <offset>; fields are
-            // matched within one line, so the first line (the track count) can't join the next
+            // GDI sheets (Dreamcast) name their track files: <track> <lba> <type> <sector size> <file> <offset>
             val text = runCatching {
                 appContext.contentResolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, main.docId))
                     ?.use { it.readBytes().toString(Charsets.ISO_8859_1) }
             }.getOrNull().orEmpty()
-            Regex("(?m)^[ \t]*\\d+[ \t]+\\d+[ \t]+\\d+[ \t]+\\d+[ \t]+(\"[^\"]+\"|\\S+)").findAll(text).forEach { m ->
+            Regex("(?m)^\\s*\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+(\"[^\"]+\"|\\S+)").findAll(text).forEach { m ->
                 val ref = m.groupValues[1].trim('"')
                 wanted += ref.lowercase(); linkName[ref.lowercase()] = ref
             }

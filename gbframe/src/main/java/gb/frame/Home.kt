@@ -182,13 +182,6 @@ fun HomeLibrary(
      */
     focusEnabled: Boolean = true,
 ) {
-    // No animation until the library has settled after appearing (see homeAnimates)
-    DisposableEffect(Unit) { onDispose { homeAnimates.value = false } }
-    LaunchedEffect(Unit) {
-        homeAnimates.value = false
-        delay(700)
-        homeAnimates.value = true
-    }
     val latest = remember(states) { states.sortedByDescending { it.time }.distinctBy { it.game } }
     val latestByGame = remember(latest) { latest.associateBy { it.game } }
     val first = remember { FocusRequester() }
@@ -231,10 +224,6 @@ fun HomeLibrary(
  * Home top bar: app icon, [label] with a menu arrow, clock and battery. Touch only (the controller opens the menu with X);
  * a tap anywhere on it opens the menu ([HomeMenuPanel]).
  */
-// The library's first moments (its first frames are slow while the app warms up): the selected cover and the row
-// snap into place instead of animating, so the entry doesn't stutter. Set back to true shortly after it appears.
-internal val homeAnimates = mutableStateOf(false)
-
 @Composable
 fun HomeTopBar(icon: Painter, label: String, onClick: () -> Unit, modifier: Modifier = Modifier, menuOpen: Boolean = false) {
     val ctx = LocalContext.current
@@ -311,8 +300,7 @@ fun CoverCard(
 ) {
     val cover = rememberCover(title, version)
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (focused) focusScale else 1f,
-        if (homeAnimates.value) androidx.compose.animation.core.spring() else androidx.compose.animation.core.snap(), label = "scale")
+    val scale by animateFloatAsState(if (focused) focusScale else 1f, label = "scale")
     val reflH = if (reflection) height * 0.16f else 0.dp
     // The cover area uses the system's selected frame ratio, so covers sit on its bottom without being cut
     val ratio = Covers.frameAspectRatio
@@ -486,7 +474,7 @@ private class RowPace {
     suspend fun scroll(state: androidx.compose.foundation.lazy.LazyListState, index: Int, offset: Int) {
         val held = lastMove != 0L && android.os.SystemClock.uptimeMillis() - lastMove < 2 * STEP_MS
         val item = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
-        if (item == null || !homeAnimates.value) { state.scrollToItem(index, offset); return }
+        if (item == null) { state.scrollToItem(index, offset); return }
         val delta = (item.offset + offset).toFloat() // where the item is now vs. where it should be
         if (delta == 0f) return
         state.animateScrollBy(delta, if (held) androidx.compose.animation.core.tween(STEP_MS.toInt(), easing = androidx.compose.animation.core.LinearEasing)
@@ -602,8 +590,7 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
     val cover = rememberCover(g.title, version)
     var focused by remember { mutableStateOf(false) }
     // 3D box (cover + spine). The selected one grows (over its neighbours: zIndex); the grid's spacing leaves room for it
-    val scale by animateFloatAsState(if (focused) 1.08f else 1f,
-        if (homeAnimates.value) androidx.compose.animation.core.spring() else androidx.compose.animation.core.snap(), label = "scale")
+    val scale by animateFloatAsState(if (focused) 1.08f else 1f, label = "scale")
     Column(Modifier.zIndex(if (focused) 1f else 0f).graphicsLayer { scaleX = scale; scaleY = scale }) {
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(

@@ -3,35 +3,68 @@ package gb.frame
 import android.content.SharedPreferences
 import java.io.File
 
-/**
- * Save states in `<dataDir>/savestates/<Game>/<Game>_<slot>.state` ([SaveData.gameFolderName]); side files (thumbnail,
- * achievements progress) add their own extension to the state's name. The game path of each folder is kept in the
- * preferences, so no file besides the states is written.
- */
-class SaveStateFiles(dataDir: File, private val prefs: SharedPreferences) {
-    val root = DataFile(dataDir, DataLayout.SAVESTATES)
+/** Common state layout and legacy migration. Game links live in app preferences, never game.txt sidecars. */
+class SaveStateFiles(private val root: File, private val preferences: SharedPreferences) {
+    private val key = "gbframe.stateGames"
+    private var migrated = false
+    fun games(): Set<String> = preferences.getStringSet(key, emptySet()).orEmpty().toSet()
+    @Synchronized fun remember(game: String) { rememberAll(listOf(game)) }
+    @Synchronized private fun rememberAll(games: Collection<String>) {
+        val previous = games()
+        val next = previous + games
+        if (next != previous) check(preferences.edit().putStringSet(key, next).commit())
+    }
+    fun rememberExistingGames(catalog: List<Game>) {
+        val folders = DataFile(root, DataLayout.SAVESTATES).listFiles().orEmpty().filter { it.isDirectory }.map { it.name }.toSet()
+        rememberAll(catalog.filter { SaveData.gameFolderName(it.path) in folders }.map { it.path })
+    }
+    fun files(game: String): List<Pair<String, DataFile>> =
+        ((1..SaveData.MANUAL_SAVE_STATE_SLOTS).map { it.toString() } + listOf("auto", "quick"))
+            .map { it to file(game, it) }.filter { it.second.isFile }
 
-    private fun key(folder: String) = "stateGame:$folder"
-    private fun dir(game: String) = DataFile(root, SaveData.gameFolderName(game))
+    fun file(game: String, slot: String) = DataLayout.stateFile(root, game, slot)
 
-    fun file(game: String, slot: String): DataFile = DataLayout.stateFile(root.parentFile!!, game, slot)
-
-    /** Records the game a folder belongs to (call after saving a state). */
-    fun remember(game: String) {
-        val folder = SaveData.gameFolderName(game)
-        if (prefs.getString(key(folder), null) != game) prefs.edit().putString(key(folder), game).apply()
+    /** Called once at startup, before states are listed; preserves unknown/conflicting legacy files. */
+    fun migrateLegacyNumberedStates() {
+        if (migrated) return
+        for (parent in listOf(DataFile(root, "states"), DataFile(root, DataLayout.SAVESTATES))) {
+            for (dir in parent.listFiles().orEmpty().filter { it.isDirectory }) {
+                val link = DataFile(dir, "game.txt")
+                val game = link.takeIf { it.isFile }?.readText()?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: games().firstOrNull { SaveData.gameFolderName(it) == dir.name } ?: continue
+                remember(game) // commit the replacement link before deleting any old sidecar
+                migrateLegacyGame(game, listOf(dir))
+            }
+        }
+        migrated = true
     }
 
-    /** Links existing state folders to the scanned games (folders copied from another device or data folder). */
-    fun rememberExistingGames(games: List<Game>) = games.forEach { if (dir(it.path).isDirectory) remember(it.path) }
+    fun migrateLegacyGame(game: String, directories: List<DataFile>) {
+        val labels = (0 until SaveData.MANUAL_SAVE_STATE_SLOTS).associate { it.toString() to (it + 1).toString() } +
+            mapOf("auto" to "auto", "quick" to "quick")
+        for (dir in directories.distinctBy { it.path }) {
+            var complete = true
+            for ((old, slot) in labels) {
+                if (!moveFamily(DataFile(dir, "$old.savestate"), file(game, slot))) complete = false
+            }
+            if (complete && dir.isDirectory) {
+                val remaining = dir.listFiles().orEmpty().filter { it.name != "game.txt" }
+                if (remaining.none { it.name.contains(".savestate") }) {
+                    DataFile(dir, "game.txt").takeIf { it.exists() }?.delete()
+                    if (dir.listFiles().orEmpty().isEmpty()) dir.delete()
+                }
+            }
+        }
+    }
 
-    /** Games with a state folder whose path is known. */
-    fun games(): List<String> = root.listFiles()?.filter { it.isDirectory }?.mapNotNull { prefs.getString(key(it.name), null) }.orEmpty()
-
-    /** Slot name -> state file of a game. */
-    fun files(game: String): Map<String, DataFile> {
-        val prefix = SaveData.gameFolderName(game) + "_"
-        return dir(game).listFiles { f -> f.name.startsWith(prefix) && f.name.endsWith(".state") }
-            ?.associateBy { it.name.removePrefix(prefix).removeSuffix(".state") }.orEmpty()
+    /** Move the state and its screenshot/achievement payload together; binary contents are unchanged. */
+    fun moveFamily(old: DataFile, target: DataFile): Boolean {
+        var complete = true
+        // Keep a conflicting legacy family intact, rather than combining screenshots/RA from different states.
+        if (old.isFile && target.isFile && !DataLayout.sameContents(old, target)) return false
+        for (suffix in listOf(".png", ".ra", "")) {
+            if (!DataLayout.move(DataFile(old.path + suffix), DataFile(target.path + suffix))) complete = false
+        }
+        return complete
     }
 }

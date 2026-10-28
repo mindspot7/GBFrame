@@ -62,9 +62,6 @@ object Covers {
         dir = StoredFile(dataDir, "covers").apply { mkdirs(); StoredFile(this, "custom").mkdirs() }
     }
 
-    private const val STORED_MAX = 600
-    private const val COMPACT_ABOVE = 120L * 1024
-
     private fun safe(title: String) = title.replace(Regex("[&*/:`<>?\\\\|\"]"), "_")
     private fun custom(title: String) = StoredFile(dir, "custom/${safe(title)}.img")
     private fun cached(title: String) = StoredFile(dir, "${safe(title)}.png")
@@ -85,35 +82,6 @@ object Covers {
             else -> 480
         }
         minOf(screenLimit, heapLimit)
-    }
-
-    /**
-     * Covers are stored at most [STORED_MAX] px on the long side as WebP: downloaded PNGs and picked photos were often
-     * 0.5-3 MB each, far above what the library shows. Rewrites [f] in place; files already small enough are left alone.
-     */
-    private fun compact(f: StoredFile) = runCatching {
-        if (f.length() <= COMPACT_ABOVE) return@runCatching
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        f.inputStream().use { BitmapFactory.decodeStream(it, null, bounds) }
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching
-        var sample = 1
-        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= STORED_MAX) sample *= 2
-        var bmp = f.inputStream().use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample }) } ?: return@runCatching
-        val side = maxOf(bmp.width, bmp.height)
-        if (side > STORED_MAX) {
-            val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, bmp.width * STORED_MAX / side, bmp.height * STORED_MAX / side, true)
-            if (scaled !== bmp) bmp.recycle()
-            bmp = scaled
-        }
-        val out = java.io.ByteArrayOutputStream()
-        @Suppress("DEPRECATION")
-        val format = if (android.os.Build.VERSION.SDK_INT >= 30) android.graphics.Bitmap.CompressFormat.WEBP_LOSSY else android.graphics.Bitmap.CompressFormat.WEBP
-        bmp.compress(format, 82, out)
-        bmp.recycle()
-        if (out.size() >= f.length()) return@runCatching
-        val tmp = StoredFile(f.path + ".tmp")
-        tmp.writeBytes(out.toByteArray())
-        if (!tmp.renameTo(f)) tmp.delete()
     }
 
     private fun decode(f: StoredFile): ImageBitmap? {
@@ -158,7 +126,7 @@ object Covers {
         if (c.responseCode != 200) return@runCatching false
         val tmp = StoredFile(to.path + ".tmp")
         c.inputStream.use { i -> tmp.outputStream().use { o -> i.copyTo(o) } }
-        tmp.renameTo(to).also { if (it) compact(to) }
+        tmp.renameTo(to)
     }.getOrDefault(false)
 
     private var extraAliases: Map<String, String> = emptyMap()
@@ -240,25 +208,12 @@ object Covers {
         return if (bestScore >= threshold) best else null
     }
 
-    /**
-     * Decodes the covers of [titles] already on disk into the memory cache (no downloads), so the library's first frames
-     * don't decode them while its entry animation runs. Call from a background thread at startup.
-     */
-    fun preloadCached(titles: List<String>) {
-        for (title in titles) {
-            if (memory.get(title) != null) continue
-            val img = (custom(title).takeIf { it.exists() } ?: cached(title).takeIf { it.exists() })?.let { runCatching { decode(it) }.getOrNull() }
-            if (img != null) memory.put(title, img)
-        }
-    }
-
     suspend fun load(title: String): ImageBitmap? = withContext(Dispatchers.IO) {
         memory.get(title)?.let { return@withContext it }
         loadSlots.withPermit {
             memory.get(title)?.let { return@withPermit it }
-            // Large covers (picked photos, PNG downloads) are compacted the first time they are shown
-            val img = custom(title).takeIf { it.exists() }?.also(::compact)?.let(::decode)
-                ?: cached(title).takeIf { it.exists() }?.also(::compact)?.let(::decode)
+            val img = custom(title).takeIf { it.exists() }?.let(::decode)
+                ?: cached(title).takeIf { it.exists() }?.let(::decode)
                 ?: run {
                     // Versioned negative cache invalidates misses from older matching logic.
                     if (miss(title).exists()) return@run null
@@ -351,7 +306,6 @@ object Covers {
             temp.inputStream().use { BitmapFactory.decodeStream(it, null, bounds) }
             require(bounds.outWidth > 0 && bounds.outHeight > 0) { "Unsupported image" }
             check(temp.renameTo(destination)) { "Could not save cover" }
-            compact(destination)
         } finally { temp.delete() }
         memory.remove(title)
     }
