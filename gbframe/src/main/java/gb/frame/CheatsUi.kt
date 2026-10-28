@@ -30,6 +30,13 @@ data class CheatUiItem(
     val sourceLabel: String? = null,
 )
 
+/** Optional per-game frame-rate patch control supplied by a console-specific cheat backend. */
+data class CheatPatchControl(
+    val label: String,
+    val description: String,
+    val enabled: Boolean,
+)
+
 /** Result of an app/core-specific cheat operation. */
 data class CheatActionResult(val success: Boolean, val message: String? = null) {
     companion object {
@@ -47,6 +54,8 @@ data class CheatActionResult(val success: Boolean, val message: String? = null) 
  */
 interface CheatsBackend {
     val cheats: List<CheatUiItem>
+    /** Optional core-specific frame-rate patch for the active game. Null when no patch is available. */
+    val frameRatePatch: CheatPatchControl? get() = null
     /** Optional status such as the matched database entry or a message that no entry was found. */
     val databaseStatus: String? get() = null
     /** True only when the app can add cheats from a real database entry for the active game. */
@@ -63,6 +72,9 @@ interface CheatsBackend {
     fun importFile(contents: String): CheatActionResult
     fun addFromDatabase(): CheatActionResult =
         CheatActionResult.failure("Cheat database is not available for this game.")
+    /** Enable or disable the optional patch reported by [frameRatePatch]. */
+    fun setFrameRatePatchEnabled(enabled: Boolean): CheatActionResult =
+        CheatActionResult.failure("Frame-rate patch is not available for this game.")
 }
 
 /**
@@ -181,6 +193,22 @@ fun CheatsScreen(
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+                backend.frameRatePatch?.let { patch ->
+                    ListItem(
+                        headlineContent = { Text(patch.label) },
+                        supportingContent = { Text(patch.description) },
+                        leadingContent = {
+                            Switch(
+                                checked = patch.enabled,
+                                enabled = !blocked,
+                                onCheckedChange = { enabled ->
+                                    feedback = runCatching { backend.setFrameRatePatchEnabled(enabled) }
+                                        .getOrElse { CheatActionResult.failure(it.message ?: "Could not change frame-rate patch.") }
+                                },
+                            )
+                        },
                     )
                 }
                 feedback?.let { result ->
