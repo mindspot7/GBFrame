@@ -90,6 +90,13 @@ line here whenever a new app teaches something that would have saved time.
   first item, never let the game `SurfaceView` take key focus, let Android map hat-axis D-pads to D-pad keys while a
   menu is open, and handle global buttons (Select, B in dialogs) in the Activity.
 - With targetSdk 36 (predictive back), map the controller's B to `onBackPressedDispatcher.onBackPressed()`.
+- Consume every gamepad key the app acts on, down *and* up. An unhandled key makes Android dispatch its fallback key
+  (`Generic.kcm`: L3/`BUTTON_THUMBL` → `DPAD_CENTER`, among others). GBSat's L3+X menu hotkey opened the menu, then the
+  L3 release came back as `DPAD_CENTER` and pressed "Resume": the hotkey "worked once" and the menu seemed to break
+  (Retroid Pocket Nova; Select+X on the RG Rotate was fine because Select has no fallback). `Hotkeys.onKey` now
+  returns true for the release of a key that took part in a combination. To debug keys, log `dispatchKeyEvent` and
+  inject real pad events with `sendevent /dev/input/eventN` (held presses); `input keycombination` comes from a
+  virtual keyboard and doesn't reproduce controller paths.
 - Cheats and achievements are shared GBFrame UI components, not app-specific screens: `CheatsScreen` receives a core-specific `CheatsBackend`, while `AchievementsScreen` uses the common `RetroAchievements` client with an app-specific `RaBackend`. Keep parsing, save/apply APIs and hashing in the app/core adapter; standardize presentation and navigation in GBFrame.
 - When a screen leaves composition, clear any focus flags stored outside Compose state. A stale `hasFocus=true` can make focus restoration skip the requester and leave selection behind an overlay. Do not attach one `FocusRequester` to multiple controls when only one should receive initial focus.
 - Standardize the in-game quick menu across GB-family apps against GBSat: left-side dimmed panel, same root item order, matching submenu hierarchy, system Back/B stack behavior, pause/resume semantics, and return focus to the item that opened a submenu. Keep the visuals themed and expose only capabilities actually implemented by the app/core; see [QUICK_MENU_STANDARD.md](QUICK_MENU_STANDARD.md).

@@ -45,8 +45,13 @@ object Hotkeys {
     fun isMenuKey(code: Int) = code in bindings()[HotkeyAction.Menu].orEmpty()
     fun suppressedKeys(): Set<Int> = suppressed.toSet()
 
-    /** Returns true if the key was consumed by a hotkey (single-button binding). */
+    /**
+     * Returns true if the key was consumed by a hotkey: a single-button binding, or the release of a key that took part
+     * in a triggered combination. That release must be consumed too: an unhandled key up makes Android send the key's
+     * fallback (L3 → DPAD_CENTER in Generic.kcm), which clicked the focused item of the menu the combo had just opened.
+     */
     fun onKey(code: Int, down: Boolean): Boolean {
+        val wasSuppressed = code in suppressed
         if (down) pressed += code else { pressed -= code; suppressed -= code }
         var consumed = false
         val all = bindings()
@@ -64,7 +69,7 @@ object Hotkeys {
             }
             if (binding.size == 1 && code in binding) consumed = true
         }
-        return consumed
+        return consumed || (!down && wasSuppressed)
     }
 
     fun reset() { pressed.clear(); active.clear(); suppressed.clear() }
