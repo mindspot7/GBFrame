@@ -103,8 +103,9 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
             val existing = target.files().toSet()
             val staging = File(app.cacheDir, "data-folder-selection").apply { mkdirs() }
             try {
-                if (active != null && active != uri.toString()) {
-                    val previous = runCatching { root(active) }.getOrNull()
+                val current = active
+                if (current != null && current != uri.toString()) {
+                    val previous = runCatching { root(current) }.getOrNull()
                     if (previous == null) selectionNotice = "The previous folder is unavailable, so its files could not be copied. They remain in that folder. The app will use the files in the newly selected folder."
                     else {
                         val source = SafDataTree(app, previous, mounts.keys)
