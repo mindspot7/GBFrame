@@ -71,13 +71,20 @@ class SaveStateFiles(dataDir: File, private val prefs: SharedPreferences) {
     }
 
     private fun renameNumbered(folder: File, game: String) {
-        folder.listFiles()?.forEach { f ->
+        val legacySlots = mutableMapOf<String, String>() // old state name -> slot it went to (its side files follow)
+        folder.listFiles()?.sortedBy { it.name.length }?.forEach { f ->
             if (f.name.endsWith(".state.ra") && f.length() == 0L) { f.delete(); return@forEach }
             val m = Regex("""^(\d+|quick|auto)\.savestate(.*)$""").find(f.name) ?: return@forEach
             val (old, side) = m.destructured
             if (side.isNotEmpty() && f.length() == 0L) { f.delete(); return@forEach } // empty side file (no progress)
             val slot = old.toIntOrNull()?.let { (it + 1).toString() } ?: old
-            val dest = DataFile(folder, file(game, slot).name + side)
+            // A numbered state whose slot is taken (folders merged) goes to the first free slot; side files follow it
+            val target = if (side.isNotEmpty()) legacySlots[f.name.removeSuffix(side)] ?: slot else {
+                val taken = { n: String -> DataFile(folder, file(game, n).name).exists() }
+                (if (old.toIntOrNull() != null && taken(slot)) (1..SaveData.MANUAL_SAVE_STATE_SLOTS).map { it.toString() }.firstOrNull { !taken(it) } else null)
+                    ?: slot
+            }.also { if (side.isEmpty()) legacySlots[f.name] = it }
+            val dest = DataFile(folder, file(game, target).name + side)
             if (!dest.exists()) f.renameTo(dest)
         }
     }

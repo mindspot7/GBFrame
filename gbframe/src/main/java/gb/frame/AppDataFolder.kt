@@ -114,13 +114,32 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
         val tree = tree(uri)
         if (!tree.name.equals(appName, ignoreCase = true)) return
         val inner = tree.findFile(appName)?.takeIf { it.isDirectory } ?: return
-        for (child in inner.listFiles()) {
+        mergeInto(inner, tree)
+    }
+
+    /**
+     * Moves the children of [source] into [target]: a name missing there is moved, two folders of the same name are
+     * merged, and a file that exists in both places stays in [source]. [source] is removed once empty.
+     */
+    private fun sameContent(a: DocumentFile, b: DocumentFile): Boolean = a.length() == b.length() && runCatching {
+        val r = app.contentResolver
+        requireNotNull(r.openInputStream(a.uri)).buffered().use { x -> requireNotNull(r.openInputStream(b.uri)).buffered().use { y ->
+            while (true) { val c = x.read(); if (c != y.read()) return@runCatching false; if (c < 0) return@runCatching true }
+            @Suppress("UNREACHABLE_CODE") false
+        } }
+    }.getOrDefault(false)
+
+    private fun mergeInto(source: DocumentFile, target: DocumentFile) {
+        for (child in source.listFiles()) {
             val name = child.name ?: continue
-            if (tree.findFile(name) != null) continue
-            runCatching { DocumentsContract.moveDocument(app.contentResolver, child.uri, inner.uri, tree.uri) }
-                .onFailure { Log.w("GBFrame-Data", "Could not move $name out of $appName/$appName", it) }
+            val existing = target.findFile(name)
+            if (existing == null) {
+                runCatching { DocumentsContract.moveDocument(app.contentResolver, child.uri, source.uri, target.uri) }
+                    .onFailure { Log.w("GBFrame-Data", "Could not move ${source.name}/$name", it) }
+            } else if (existing.isDirectory && child.isDirectory) mergeInto(child, existing)
+            else if (existing.isFile && child.isFile && sameContent(child, existing)) child.delete() // duplicate copy
         }
-        if (inner.listFiles().isEmpty()) inner.delete()
+        if (source.listFiles().isEmpty()) source.delete()
     }
 
     /** One-time transition from the former mirror; afterwards opening never scans/hashes/copies data. */
@@ -151,8 +170,8 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
             for ((old, new) in DataLayout.RENAMED) {
                 if (new !in mounts) continue
                 val legacy = root.findFile(old)?.takeIf { it.isDirectory } ?: continue
-                root.findFile(new)?.takeIf { it.isDirectory && it.listFiles().isEmpty() }?.delete()
-                if (root.findFile(new) == null) legacy.renameTo(new)
+                val current = root.findFile(new)?.takeIf { it.isDirectory }
+                if (current == null) legacy.renameTo(new) else mergeInto(legacy, current)
             }
             val routes = mounts.map { (name, local) ->
                 local to (root.findFile(name) ?: requireNotNull(root.createDirectory(name)) { "Cannot create $name" })
