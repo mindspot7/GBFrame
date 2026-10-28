@@ -153,7 +153,8 @@ fun QuickMenuHost(
             if (target != null) {
                 val focused = runCatching {
                     inputMode.requestInputMode(InputMode.Keyboard)
-                    target.requestFocus()
+                    target.requestFocus() // Unit in Compose 1.7; throws while the row isn't attached yet
+                    true
                 }.getOrDefault(false)
                 if (focused) return@LaunchedEffect
             }
