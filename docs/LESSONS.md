@@ -66,6 +66,10 @@ line here whenever a new app teaches something that would have saved time.
 - Read frames back from **cached** host memory (`HOST_CACHED`, invalidate if not coherent) and read it once:
   uncached reads are very slow on Mali.
 - Keep the software renderer: some games stay faster there on weak GPUs; the GPU path wins on Adreno-class devices.
+- A sudden burst of draw commands (one heavy second among smooth ones) may be the game's command list looping: count
+  the *distinct* command addresses per frame before optimizing the renderer. NiGHTS ran 85 commands ~215 times per
+  frame (80-100 ms frames, white sprite smears) because the core gave the VDP1 4x its real cycle budget and it reached
+  the loop's jump before the game rewrote the table; the game database's accurate-VDP1-timing flag fixed it.
 
 ## Frame pacing
 
