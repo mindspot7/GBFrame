@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -100,11 +101,29 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
         tree.findFile(".gbframe-app")?.delete()
     }
 
+    /**
+     * Older versions could create `<appName>/<appName>` when the picked folder already had the app's name. Moves the data
+     * folders up a level (a folder that exists in both places stays where it is) and removes the inner folder once empty.
+     */
+    private fun flattenNestedAppFolder(uri: String) {
+        val tree = tree(uri)
+        if (!tree.name.equals(appName, ignoreCase = true)) return
+        val inner = tree.findFile(appName)?.takeIf { it.isDirectory } ?: return
+        for (child in inner.listFiles()) {
+            val name = child.name ?: continue
+            if (tree.findFile(name) != null) continue
+            runCatching { DocumentsContract.moveDocument(app.contentResolver, child.uri, inner.uri, tree.uri) }
+                .onFailure { Log.w("GBFrame-Data", "Could not move $name out of $appName/$appName", it) }
+        }
+        if (inner.listFiles().isEmpty()) inner.delete()
+    }
+
     /** One-time transition from the former mirror; afterwards opening never scans/hashes/copies data. */
     fun openAtStartup() {
         val uri = active ?: return
         try {
             if (prefs.getInt("storageVersion", 0) < 3) moveIntoAppFolder(uri)
+            flattenNestedAppFolder(uri)
             val root = root(uri)
             if (prefs.getInt("storageVersion", 0) < 2) {
                 val target = SafDataTree(app, root, mounts.keys)
@@ -124,6 +143,12 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
                 check(prefs.edit().remove("retireLocal").commit())
             }
             if (prefs.getInt("storageVersion", 0) < STORAGE_VERSION) check(prefs.edit().putInt("storageVersion", STORAGE_VERSION).commit())
+            for ((old, new) in DataLayout.RENAMED) {
+                if (new !in mounts) continue
+                val legacy = root.findFile(old)?.takeIf { it.isDirectory } ?: continue
+                root.findFile(new)?.takeIf { it.isDirectory && it.listFiles().isEmpty() }?.delete()
+                if (root.findFile(new) == null) legacy.renameTo(new)
+            }
             val routes = mounts.map { (name, local) ->
                 local to (root.findFile(name) ?: requireNotNull(root.createDirectory(name)) { "Cannot create $name" })
             }.toMap()

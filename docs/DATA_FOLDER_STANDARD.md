@@ -64,7 +64,12 @@ storage strategy, and must never become a hidden persistent directory mirror.
 
 Each app owns its mount names and formats. Never mount credentials, private
 preferences, games, temporary disc staging, or disposable caches.
-GBSat mounts `bios`, `saves`, `states`, `cheats`, `covers`, `carts`.
+GBSat mounts `bios`, `saves`, `savestates`, `cheats`, `covers`, `carts`.
+
+Folder names come from `DataLayout`. Save states follow `SaveStateFiles`: `savestates/<Game>/<Game>_<slot>.state` (slot
+`1`..`5`, `quick`, `auto`), side files append an extension (`.png` thumbnail, `.ra` achievement progress, kept only when not
+empty). The game path of each folder is kept in the app preferences: no `game.txt`. Older `states/` folders, `<n>.savestate`
+files and nested `<App>/<App>` folders are migrated at startup. Covers are stored as WebP at most 600 px on the long side.
 GBCast mounts native `data` and library `covers`; its supported texture replacements
 live in `data/textures/<game ID>`. Expose Textures only for capable cores.
 The `.gbframe-app` marker prevents accidental sharing between different consumers.

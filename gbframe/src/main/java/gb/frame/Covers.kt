@@ -60,7 +60,16 @@ object Covers {
         this.frameAspectRatio = frameAspectRatio
         memory.evictAll()
         dir = StoredFile(dataDir, "covers").apply { mkdirs(); StoredFile(this, "custom").mkdirs() }
+        // Covers saved by older versions are compacted once, in the background
+        val covers = dir
+        Thread({
+            (covers.listFiles().orEmpty().toList() + StoredFile(covers, "custom").listFiles().orEmpty().toList())
+                .filter { it.isFile && (it.name.endsWith(".png") || it.name.endsWith(".img")) }.forEach(::compact)
+        }, "GBFrame-Covers").apply { priority = Thread.MIN_PRIORITY }.start()
     }
+
+    private const val STORED_MAX = 600
+    private const val COMPACT_ABOVE = 120L * 1024
 
     private fun safe(title: String) = title.replace(Regex("[&*/:`<>?\\\\|\"]"), "_")
     private fun custom(title: String) = StoredFile(dir, "custom/${safe(title)}.img")
@@ -82,6 +91,35 @@ object Covers {
             else -> 480
         }
         minOf(screenLimit, heapLimit)
+    }
+
+    /**
+     * Covers are stored at most [STORED_MAX] px on the long side as WebP: downloaded PNGs and picked photos were often
+     * 0.5-3 MB each, far above what the library shows. Rewrites [f] in place; files already small enough are left alone.
+     */
+    private fun compact(f: StoredFile) = runCatching {
+        if (f.length() <= COMPACT_ABOVE) return@runCatching
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        f.inputStream().use { BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= STORED_MAX) sample *= 2
+        var bmp = f.inputStream().use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample }) } ?: return@runCatching
+        val side = maxOf(bmp.width, bmp.height)
+        if (side > STORED_MAX) {
+            val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, bmp.width * STORED_MAX / side, bmp.height * STORED_MAX / side, true)
+            if (scaled !== bmp) bmp.recycle()
+            bmp = scaled
+        }
+        val out = java.io.ByteArrayOutputStream()
+        @Suppress("DEPRECATION")
+        val format = if (android.os.Build.VERSION.SDK_INT >= 30) android.graphics.Bitmap.CompressFormat.WEBP_LOSSY else android.graphics.Bitmap.CompressFormat.WEBP
+        bmp.compress(format, 82, out)
+        bmp.recycle()
+        if (out.size() >= f.length()) return@runCatching
+        val tmp = StoredFile(f.path + ".tmp")
+        tmp.writeBytes(out.toByteArray())
+        if (!tmp.renameTo(f)) tmp.delete()
     }
 
     private fun decode(f: StoredFile): ImageBitmap? {
@@ -126,7 +164,7 @@ object Covers {
         if (c.responseCode != 200) return@runCatching false
         val tmp = StoredFile(to.path + ".tmp")
         c.inputStream.use { i -> tmp.outputStream().use { o -> i.copyTo(o) } }
-        tmp.renameTo(to)
+        tmp.renameTo(to).also { if (it) compact(to) }
     }.getOrDefault(false)
 
     private var extraAliases: Map<String, String> = emptyMap()
@@ -212,8 +250,9 @@ object Covers {
         memory.get(title)?.let { return@withContext it }
         loadSlots.withPermit {
             memory.get(title)?.let { return@withPermit it }
-            val img = custom(title).takeIf { it.exists() }?.let(::decode)
-                ?: cached(title).takeIf { it.exists() }?.let(::decode)
+            // Covers saved by older versions are compacted the first time they are shown
+            val img = custom(title).takeIf { it.exists() }?.also(::compact)?.let(::decode)
+                ?: cached(title).takeIf { it.exists() }?.also(::compact)?.let(::decode)
                 ?: run {
                     // Versioned negative cache invalidates misses from older matching logic.
                     if (miss(title).exists()) return@run null
@@ -306,6 +345,7 @@ object Covers {
             temp.inputStream().use { BitmapFactory.decodeStream(it, null, bounds) }
             require(bounds.outWidth > 0 && bounds.outHeight > 0) { "Unsupported image" }
             check(temp.renameTo(destination)) { "Could not save cover" }
+            compact(destination)
         } finally { temp.delete() }
         memory.remove(title)
     }
