@@ -19,9 +19,11 @@ import java.io.InputStream
 class AppDataFolder(context: Context, val appName: String, private val mounts: Map<String, File>, val texturesRelativePath: String? = null) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("gbframe.dataFolder", Context.MODE_PRIVATE)
-    private val active = prefs.getString("tree", null)
+    private var active = prefs.getString("tree", null)
     var folder by mutableStateOf(active); private set
     var restartRequired by mutableStateOf(false); private set
+    /** Called after a folder picked in place of app storage starts being used without a restart (reopen open files). */
+    var onOpened: (() -> Unit)? = null
     var busy by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
     var selectionNotice by mutableStateOf<String?>(null); private set
@@ -66,6 +68,10 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
     /** Opens the picked folder (no scan or copy); files left in app storage after picking it are retired once. */
     fun openAtStartup() {
         val uri = active ?: return
+        open(uri)
+    }
+
+    private fun open(uri: String) {
         try {
             val root = root(uri)
             if (prefs.getBoolean("retireLocal", false)) {
@@ -118,7 +124,15 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
                 try { target.write(".gbframe-app", marker) } finally { marker.delete() }
             } finally { staging.delete() }
             check(prefs.edit().putString("tree", uri.toString()).putBoolean("retireLocal", active == null).commit())
-            folder = uri.toString(); restartRequired = true; error = null
+            folder = uri.toString(); error = null
+            if (active == null) {
+                // First folder (the setup wizard, or leaving app storage): app storage was just copied into it, so it is
+                // routed now instead of after a restart; the app reopens what it keeps open (onOpened), and the local
+                // copies are retired at the next start
+                active = uri.toString()
+                open(uri.toString())
+                onOpened?.invoke()
+            } else restartRequired = true
         } catch (failure: Exception) { error = failure.message ?: "Could not choose folder" }
         finally { busy = false }
     }
