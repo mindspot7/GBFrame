@@ -50,6 +50,9 @@ line here whenever a new app teaches something that would have saved time.
   thread layout was already right (emulation alone on one core, VDP/sound on the other three). Longer SH-2 sync
   steps barely help there (128 -> 1024 cycles: 21.7 -> 20.1 ms) and 512 made VF2 hang on a black screen at boot:
   keep Fast at 128 cycles.
+- Test a speed setting by booting each game from the BIOS, not only from save states: Burning Rangers ran from a state
+  with the 128-cycle SH-2 sync and deadlocked right after the BIOS with 64+ (both CPUs polling). Per-game exceptions
+  go in the core's game database (GBSat: `PreciseSH2Sync`), not in the option's default.
 - Measure a borrowed recompiler against the interpreter at the same CPU sync before keeping it: YabaSanshiro's SH-2
   dynarec (template copies, registers kept in memory) ported into Ymir gave nothing over the chained interpreter on the
   T618. Its apparent ~10% came from syncing the two SH-2s every 128 cycles instead of 32, which the interpreter gets
