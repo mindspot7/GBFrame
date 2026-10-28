@@ -10,7 +10,7 @@ inline std::string gameFolderName(const std::string &gamePath) {
     std::string name = gamePath.substr(gamePath.find_last_of('/') + 1);
     if (auto dot = name.find_last_of('.'); dot != std::string::npos) name.resize(dot);
     for (char &c : name) {
-        if (std::string_view("\/:*?\"<>|").find(c) != std::string_view::npos) c = '_';
+        if (std::string_view("\\/:*?\"<>|").find(c) != std::string_view::npos) c = '_';
     }
     const auto first = name.find_first_not_of(" \t\r\n");
     if (first == std::string::npos) return "game";
