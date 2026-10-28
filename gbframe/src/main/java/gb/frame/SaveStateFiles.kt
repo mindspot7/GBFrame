@@ -55,6 +55,18 @@ class SaveStateFiles(dataDir: File, private val prefs: SharedPreferences) {
      * and folders could be named after the disc hash. Renames them to the current layout once per folder.
      */
     private var migrated = false
+
+    /**
+     * Runs the migration below once per [location] (the data folder in use: picking another one may bring older files);
+     * each pass lists every state folder, which takes about a second on a SAF tree.
+     */
+    fun migrateLegacyNumberedStatesOnce(location: String) {
+        val key = "stateLayoutMigrated:$location"
+        if (prefs.getBoolean(key, false)) { migrated = true; return }
+        migrateLegacyNumberedStates()
+        prefs.edit().putBoolean(key, true).apply()
+    }
+
     fun migrateLegacyNumberedStates() {
         if (migrated) return
         migrated = true

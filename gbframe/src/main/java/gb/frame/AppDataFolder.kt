@@ -167,15 +167,18 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
                 check(prefs.edit().remove("retireLocal").commit())
             }
             if (prefs.getInt("storageVersion", 0) < STORAGE_VERSION) check(prefs.edit().putInt("storageVersion", STORAGE_VERSION).commit())
+            // One listing of the app folder (each findFile lists it again: ~50 ms per call on a SAF tree)
+            var children = root.listFiles().associateBy { it.name }
             for ((old, new) in DataLayout.RENAMED) {
                 if (new !in mounts) continue
-                val legacy = root.findFile(old)?.takeIf { it.isDirectory } ?: continue
-                val current = root.findFile(new)?.takeIf { it.isDirectory }
+                val legacy = children[old]?.takeIf { it.isDirectory } ?: continue
+                val current = children[new]?.takeIf { it.isDirectory }
                 if (current == null) legacy.renameTo(new) else mergeInto(legacy, current)
+                children = root.listFiles().associateBy { it.name }
             }
             val routes = mounts.map { (name, local) ->
-                local to (root.findFile(name) ?: requireNotNull(root.createDirectory(name)) { "Cannot create $name" })
-            }.toMap() + legacyMounts.mapNotNull { (name, local) -> root.findFile(name)?.takeIf { it.isDirectory }?.let { local to it } }
+                local to (children[name] ?: requireNotNull(root.createDirectory(name)) { "Cannot create $name" })
+            }.toMap() + legacyMounts.mapNotNull { (name, local) -> children[name]?.takeIf { it.isDirectory }?.let { local to it } }
             DataAccess.configure(app, routes) { error = it }
             DataAccess.bindNative(routes.keys.map { it.absoluteFile.normalize().path.trimEnd('/') }.toTypedArray())
             error = null
