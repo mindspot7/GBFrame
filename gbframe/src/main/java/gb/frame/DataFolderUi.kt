@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -58,6 +59,19 @@ fun dataFolderWizardStep(store: AppDataFolder): WizardStep = WizardStep(
     listOf(androidx.compose.ui.graphics.Color(0xFF3EC6FF), androidx.compose.ui.graphics.Color(0xFF1B6F99)),
     "Choose where to keep this app's data, including on an SD card. You can keep app storage and change this later in System.",
 ) { DataFolderControls(store) }
+
+/**
+ * The setup wizard's last step: the performance preset the app picked for this device ([summary], e.g.
+ * "Low · 2 fast cores · Mali-G57" from [DeviceTier]) and what it sets ([details]). Every app ends its wizard with it.
+ */
+fun performanceWizardStep(appName: String, preset: String, summary: String, details: String? = null): WizardStep = WizardStep(
+    Icons.Default.Speed, "Performance",
+    listOf(androidx.compose.ui.graphics.Color(0xFFFFB15A), androidx.compose.ui.graphics.Color(0xFF8A4B12)),
+    "$appName picked these settings for this device. You can change every option later in Settings → Performance.",
+) {
+    Text("$preset · $summary")
+    if (details != null) Text(details)
+}
 
 /** Surface inaccessible storage even when the user never opens System. */
 @Composable
