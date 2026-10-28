@@ -14,9 +14,14 @@ class SaveStateFiles(dataDir: File, private val prefs: SharedPreferences) {
     private fun key(folder: String) = "stateGame:$folder"
     private fun dir(game: String) = DataFile(root, SaveData.gameFolderName(game))
 
-    fun file(game: String, slot: String): DataFile {
-        val name = SaveData.gameFolderName(game)
-        return DataFile(DataFile(root, name), "${name}_$slot.state")
+    fun file(game: String, slot: String): DataFile = DataLayout.stateFile(root.parentFile!!, game, slot)
+
+    /** Moves a state and its side files (`<state>.<ext>`) to [to]; files already at the destination are kept. */
+    fun moveFamily(from: File, to: File) {
+        val dir = DataFile(from.parent ?: return)
+        dir.listFiles { _, n -> n == from.name || n.startsWith(from.name + ".") }?.forEach { f ->
+            DataLayout.move(f, DataFile(to.parent, to.name + f.name.removePrefix(from.name)))
+        }
     }
 
     /** Records the game a folder belongs to (call after saving a state). */

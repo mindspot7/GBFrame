@@ -65,7 +65,8 @@ object DataAccess {
     private var failure: ((String) -> Unit)? = null
     fun configure(app: Context, mounts: Map<File, DocumentFile>, onError: (String) -> Unit) {
         context = app.applicationContext
-        roots = mounts.mapKeys { it.key.absoluteFile.normalize().path.trimEnd('/') }
+        // Longest first: a mount inside another mount's folder (data/bios inside data) wins
+        roots = mounts.mapKeys { it.key.absoluteFile.normalize().path.trimEnd('/') }.toList().sortedByDescending { it.first.length }.toMap()
         failure = onError
     }
     private fun route(path: String): Pair<DocumentFile, List<String>>? {

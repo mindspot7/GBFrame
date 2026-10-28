@@ -13,6 +13,12 @@ object DataLayout {
     /** Folders renamed since older versions (old -> new): [AppDataFolder] renames them in the picked folder. */
     val RENAMED = mapOf("states" to SAVESTATES)
 
+    /** A game's save state for [slot] (`1`..`5`, `quick`, `auto`): `savestates/<Game>/<Game>_<slot>.state`. */
+    fun stateFile(dataDir: File, game: String, slot: String): DataFile {
+        val name = SaveData.gameFolderName(game)
+        return DataFile(DataFile(DataFile(dataDir, SAVESTATES), name), "${name}_$slot.state")
+    }
+
     /**
      * Moves [from] to [to] (renamed when they share a parent and [to] doesn't exist, else merged file by file without
      * overwriting); [from] is removed when emptied. Works on the data folder ([DataFile]) and on plain files.
