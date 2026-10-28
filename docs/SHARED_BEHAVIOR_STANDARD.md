@@ -16,6 +16,7 @@ An app-specific implementation is evidence for a requirement, not a reason to co
 ## Identity, selected text and controller diagrams
 
 - Use the same app-owned controller artwork for the launcher, library header, main menu and About. Preserve aspect ratio, transparent foreground and continuous black controller contour. Default to a transparent adaptive background; reserve the black compatibility variant for configurations that actually require it. In-app identity has no surrounding badge/frame/background or clipping mask, following the app integration standard.
+- Set each launcher activity's theme to GBFrame's `GBFrameLaunchTheme`: the app icon artwork stays transparent, and Android's brief system splash uses a solid black window background instead of an unintended white surface. Keep the app's adaptive launcher background transparent where supported.
 - Use `rememberAppIconPainter` for in-app identity so launcher safe-zone padding does not shrink the visible artwork. Retain the standard frame dimensions; do not compensate by stretching a controller or changing each menu independently.
 - Selected segmented options must keep readable theme text colors. Reuse `ChoiceRow` and the active theme rather than introducing black selected text on dark surfaces.
 - Use `ControlsPage` and `PadLayout`. The consumer supplies the actual system's pad shape/artwork, aspect ratio and measured button positions. Button targets, labels and remapping actions must agree with that drawing at handheld and phone sizes.
