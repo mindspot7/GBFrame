@@ -39,6 +39,15 @@ The consuming app owns its launcher icon in its own Android resources; GBFrame m
 - Supply that transparent foreground as the Compose-safe in-app artwork and as the adaptive icon foreground. The default adaptive background must also be transparent: a universally black adaptive background defeats transparency even on compatible launchers. Keep an explicit solid-black compatibility resource for launchers/configurations that require it; do not select that fallback by default or claim automatic launcher-capability detection without a tested implementation.
 - In-app identity has no rectangular/circular badge, frame, border, background or clipping mask around the artwork. Keep only the black contour that follows the controller silhouette; use the transparent foreground directly, never a flattened launcher icon.
 - Both `android:icon` and `android:roundIcon` must resolve to an app-owned adaptive resource on Android 8+ (`mipmap-anydpi-v26/<manifest-icon-name>.xml`), using the same resource name as the legacy per-density PNGs. Keep the adaptive background transparent and the controller foreground centered with its original proportions. A legacy-only PNG can make Android add a white badge and shrink the controller; do not remove the adaptive override as a general transparency workaround. Keep approved legacy PNGs for older Android versions without rescaling them.
+- **Launcher icon by Android version** (tested on an RG Rotate, Android 12, and a Retroid Pocket Nova, Android 14):
+  - `mipmap-anydpi-v26/<manifest-icon-name>.xml`: the adaptive icon above (transparent background), used up to Android 12.
+    Those launchers put a white plate behind a plain icon.
+  - `mipmap-anydpi-v33/<manifest-icon-name>.xml`: a plain `<bitmap android:src="@drawable/<name>_legacy" />`, used from
+    Android 13. Those launchers drew the adaptive icon's transparent background black and shrank the art to the safe zone;
+    a plain icon is shown as it is, transparent and full size.
+  - `drawable-nodpi/<name>_legacy.png`: the adaptive foreground trimmed to its visible bounds plus ~2% margin, square.
+    `tools/make-legacy-icon.py <ic_launcher_foreground.png> <out.png>` makes it.
+  - Check the installed result on one device of each kind (the launcher's look, not only the resources).
 - Regression checks must resolve the actual manifest icon on Android 8+ as an adaptive drawable and verify its transparent background; separately check legacy PNG alpha/size on Android 7. Validate the installed launcher icon after an update, including RG Rotate when available. A transparent source alone does not prove correct launcher rendering. Never claim automatic black fallback selection without a tested implementation.
 - Legacy launcher rasters may preserve transparency. They must be generated from the same foreground composition and must not stretch the controller to fill the entire square.
 
