@@ -162,6 +162,9 @@ of these repositories.
 - The button help bar is shown only when a physical controller is connected and `HomeTheme.buttonHelp` (Extras → Layout → Button help) is on.
 - Programmatic focus (first game, first menu entry, refocus after a tap) only happens with a physical controller (`rememberHasGamepad`); a menu opened by touch also selects its first entry then, after `requestFocusFromTouch()` leaves touch mode.
 - The legacy `HomeThemeSettings(onLayoutChanged)` entry point is intentionally empty for compatibility; layout and fullscreen are controlled from the main menu, not Settings.
+- In game, the menu and fast-forward buttons, the Skip Engine indicator, the performance overlay, achievement
+  notifications and toasts come from `GameplayOverlayChrome` (top left / top right / top center), padded only by the
+  display cutout (`gameOverlayInsets()`), never by the system bars.
 - The game picture is aligned to the top of the screen: when the screen is narrower than the picture (square, 5:4, a
   16:9 mode on 4:3) all the black bars go below it; side bars stay centered.
 - Touch controls are hidden automatically while a physical controller is connected (handhelds' built-in controls count).

@@ -98,6 +98,10 @@ line here whenever a new app teaches something that would have saved time.
   inject real pad events with `sendevent /dev/input/eventN` (held presses); `input keycombination` comes from a
   virtual keyboard and doesn't reproduce controller paths.
 - Cheats and achievements are shared GBFrame UI components, not app-specific screens: `CheatsScreen` receives a core-specific `CheatsBackend`, while `AchievementsScreen` uses the common `RetroAchievements` client with an app-specific `RaBackend`. Keep parsing, save/apply APIs and hashing in the app/core adapter; standardize presentation and navigation in GBFrame.
+- Overlays drawn over the game must not pad by the system bars (`safeDrawingPadding`): the game is immersive, so the
+  bars only show for a moment (GBCast's game Activity hid them on window focus, after its first frames) and in that
+  moment the menu button and performance overlay sat a status bar lower. Use `gameOverlayInsets()` (display cutout
+  only) or the kit's `GameplayOverlayChrome`, and hide the bars in `onCreate`, not only on focus.
 - Starting the library Activity by intent while the app is open (`LaunchIntent`): with the default launch mode an
   intent that `filterEquals` the task's root (same component, extras don't count) only brings the task to the front,
   without `onNewIntent`. GBSat's single Activity is `singleTask`; GBCast's LibraryActivity is `singleTop` (not
