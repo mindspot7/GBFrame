@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,6 +18,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+/** Shared defaults and enforcement policy for optional game-specific patches. */
+object GameHackPolicy {
+    const val DEFAULT_ENABLED = true
+
+    /** Hardcore always wins over a saved toggle value. */
+    fun shouldApply(enabled: Boolean, hardcoreActive: Boolean): Boolean = enabled && !hardcoreActive
+}
 
 /** Settings page building blocks: a titled card ([SettingsGroup]) holding rows separated by [SettingsDivider]. */
 @Composable
@@ -45,8 +54,12 @@ fun RowIcon(icon: ImageVector, warn: Boolean = false) {
 }
 
 @Composable
-fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onChange(!value) }.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, onChange: (Boolean) -> Unit) =
+    ToggleRow(icon, title, sub, value, enabled = true, onChange = onChange)
+
+@Composable
+fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(enabled = enabled) { onChange(!value) }.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         RowIcon(icon)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
@@ -54,7 +67,7 @@ fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, on
             if (sub != null) Text(sub, style = MaterialTheme.typography.bodySmall, color = palette.dim)
         }
         Spacer(Modifier.width(12.dp))
-        Switch(checked = value, onCheckedChange = onChange)
+        Switch(checked = value, onCheckedChange = onChange, enabled = enabled)
     }
 }
 
@@ -65,6 +78,17 @@ fun WidescreenGameHacksRow(value: Boolean, onChange: (Boolean) -> Unit) = Toggle
     "Widescreen game hacks",
     "Apply built-in widescreen cheat codes for supported games. Separate toggle from your own cheats.",
     value,
+    onChange,
+)
+
+/** Shared Performance control for an app-provided, per-game frame-rate hack. */
+@Composable
+fun FrameRateHackRow(control: CheatPatchControl, enabled: Boolean = true, onChange: (Boolean) -> Unit) = ToggleRow(
+    Icons.Default.Speed,
+    control.label,
+    control.description,
+    control.enabled,
+    enabled,
     onChange,
 )
 

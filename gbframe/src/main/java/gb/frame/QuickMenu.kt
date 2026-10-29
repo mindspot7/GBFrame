@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -293,6 +294,22 @@ fun WidescreenGameHacksItem(id: String = "widescreen-game-hacks", value: Boolean
         value = if (value) "On" else "Off",
         onClick = { onChange(!value) },
     )
+
+/** Standard in-game Performance row for a core- or code-provided frame-rate hack. */
+@Composable
+fun FrameRateHackItem(
+    control: CheatPatchControl,
+    enabled: Boolean = true,
+    id: String = "frame-rate-hack",
+    onChange: (Boolean) -> Unit,
+) = QuickMenuItemRow(
+    id = id,
+    icon = Icons.Default.Speed,
+    label = control.label,
+    value = if (control.enabled) "On" else "Off",
+    enabled = enabled,
+    onClick = { onChange(!control.enabled) },
+)
 
 /**
  * A focusable/clickable row container for a custom menu row such as a save-state slot with a thumbnail.

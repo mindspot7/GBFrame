@@ -1,6 +1,6 @@
 # Lessons learned
 
-- Treat built-in widescreen game cheat codes as a distinct Video capability, separate from the user's cheat list. Share the toggle UI in GBFrame; each consumer owns code matching and native application, and must reapply the effective cheat set when the toggle or display mode changes.
+- Treat widescreen and frame-rate patches as distinct shared kit capabilities in Video and the in-game Performance menu. Prefer the core's native hack, then a curated game-specific code patch, then a matching database code; do not stack sources. Both default on and are suppressed in RetroAchievements Hardcore; reapply the effective patch set when the toggle, display mode or Hardcore state changes.
 
 What building GBSat (Sega Saturn, Ymir core) taught us, to apply from day one in every app of the family. Add a
 line here whenever a new app teaches something that would have saved time.
