@@ -45,6 +45,10 @@ The consuming app owns its launcher icon in its own Android resources; GBFrame m
   - `mipmap-anydpi-v33/<manifest-icon-name>.xml`: a plain `<bitmap android:src="@drawable/<name>_legacy" />`, used from
     Android 13. Those launchers drew the adaptive icon's transparent background black and shrank the art to the safe zone;
     a plain icon is shown as it is, transparent and full size.
+  - RG DS (Anbernic, Android 14) is an exception: its launcher adds a white plate to that plain bitmap. Consumers that
+    support RG DS must declare a second launcher alias targeting the existing main activity, with a distinct resource name
+    that resolves to the transparent adaptive icon. Use `LauncherIconCompatibility` to enable that alias only on RG DS;
+    keep the main activity enabled and preserve the plain-bitmap alias on other devices.
   - `drawable-nodpi/<name>_legacy.png`: the adaptive foreground trimmed to its visible bounds plus ~2% margin, square.
     `tools/make-legacy-icon.py <ic_launcher_foreground.png> <out.png>` makes it.
   - Check the installed result on one device of each kind (the launcher's look, not only the resources).
