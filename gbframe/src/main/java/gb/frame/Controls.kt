@@ -248,6 +248,7 @@ fun ControlsCapturePrompts(host: ControlsHost) {
  */
 object ControlsCapture {
     private val held = HashSet<Int>()
+    private var capturedBackRelease = false
 
     /** A remap or hotkey prompt is open (every button belongs to it). */
     fun active(host: ControlsHost) = host.remapTarget != null || host.hotkeyCapture != null
@@ -256,24 +257,40 @@ object ControlsCapture {
     fun dispatch(event: KeyEvent, host: ControlsHost): Boolean {
         // Some handhelds report face buttons with a keyboard source; accept any gamepad/keyboard source
         val fromPad = event.source and (InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD or InputDevice.SOURCE_KEYBOARD) != 0
+        return dispatchKeyEvent(event.keyCode, event.action, event.repeatCount, fromPad, host)
+    }
+
+    /** Key-event state machine kept separate so combinations can be covered by local unit tests. */
+    internal fun dispatchKeyEvent(keyCode: Int, eventAction: Int, repeatCount: Int, fromPad: Boolean, host: ControlsHost): Boolean {
+        if (!active(host)) held.clear()
+
+        // Some handhelds emit Android Back alongside a controller button (including Select). If it escapes the
+        // capture prompt, Compose treats the companion event as Back and closes Settings before the combo is saved.
+        // Back is not a gameplay hotkey; consume it during capture and its matching release, but don't add it to the bind.
+        if (keyCode == KeyEvent.KEYCODE_BACK && (active(host) || capturedBackRelease)) {
+            if (eventAction == KeyEvent.ACTION_DOWN) capturedBackRelease = true
+            else if (eventAction == KeyEvent.ACTION_UP) capturedBackRelease = false
+            return true
+        }
+
         host.remapTarget?.let { target ->
-            if (fromPad && event.keyCode != KeyEvent.KEYCODE_BACK) {
-                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                    host.bindKey(target, event.keyCode)
+            if (fromPad) {
+                if (eventAction == KeyEvent.ACTION_DOWN && repeatCount == 0) {
+                    host.bindKey(target, keyCode)
                     host.remapTarget = null
                 }
                 return true
             }
         }
-        host.hotkeyCapture?.let { action ->
-            if (fromPad && event.keyCode != KeyEvent.KEYCODE_BACK) {
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    held += event.keyCode
-                    host.hotkeyCaptureKeys = host.hotkeyCaptureKeys + event.keyCode
-                } else if (event.action == KeyEvent.ACTION_UP) {
-                    held -= event.keyCode
+        host.hotkeyCapture?.let { hotkeyAction ->
+            if (fromPad) {
+                if (eventAction == KeyEvent.ACTION_DOWN) {
+                    held += keyCode
+                    host.hotkeyCaptureKeys = host.hotkeyCaptureKeys + keyCode
+                } else if (eventAction == KeyEvent.ACTION_UP) {
+                    held -= keyCode
                     if (held.isEmpty() && host.hotkeyCaptureKeys.isNotEmpty()) {
-                        host.bindHotkey(action, host.hotkeyCaptureKeys)
+                        host.bindHotkey(hotkeyAction, host.hotkeyCaptureKeys)
                         host.hotkeyCapture = null
                         host.hotkeyCaptureKeys = emptySet()
                     }

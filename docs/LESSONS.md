@@ -99,6 +99,9 @@ line here whenever a new app teaches something that would have saved time.
   returns true for the release of a key that took part in a combination. To debug keys, log `dispatchKeyEvent` and
   inject real pad events with `sendevent /dev/input/eventN` (held presses); `input keycombination` comes from a
   virtual keyboard and doesn't reproduce controller paths.
+- During controller-binding capture, consume Android `KEYCODE_BACK` and its matching release without adding Back to
+  the binding: some handhelds emit it alongside a physical combo button, and an unhandled companion event runs the
+  screen's BackHandler before the chord can be saved.
 - Cheats and achievements are shared GBFrame UI components, not app-specific screens: `CheatsScreen` receives a core-specific `CheatsBackend`, while `AchievementsScreen` uses the common `RetroAchievements` client with an app-specific `RaBackend`. Keep parsing, save/apply APIs and hashing in the app/core adapter; standardize presentation and navigation in GBFrame.
 - Apply "a physical controller hides the touch controls" when the game screen is created, not when the game has
   started: Flycast's virtual gamepad started visible and GBCast hid it only on the game-started event, so it showed
