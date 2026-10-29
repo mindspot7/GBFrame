@@ -110,7 +110,9 @@ of these repositories.
   `EmuPalette.fromAccent(color)`), settings blocks, the standard `AboutPage` (label, version, Application id, credits, license), the standard `ControlsPage(host)` (Controller / Hotkeys / Touch tabs, the console's controller drawing, button mapping, hotkeys), `ConfirmDialog`, `MenuIconView`, `PerfOverlay`, `rememberHasGamepad`, the first-run `SetupWizard`
   (no preset question: the preset is chosen from `DeviceTier`, and Settings → Performance shows the device class and it), box art (`Covers`, libretro-thumbnails), the home screen (`HomeTopBar`, `HomeLibrary`, `HomeTheme`, `HomeMenuPanel`) and RetroAchievements
   (`RetroAchievements` + `RaBackend`, `RetroAchievementsSettings`, `RaUserHeader`, `AchievementsScreen`, offline
-  casual unlocks through `RaOffline`), the games folder (`SafGames`), hotkeys (`Hotkeys`), per-game recommended
+  casual unlocks through `RaOffline`), the games folder (`SafGames`), starting a game from an intent for frontends
+  (`LaunchIntent`: the library Activity calls `handle` in `onCreate`/`onNewIntent`, the root composable resolves
+  `pending` against the library by file name and starts it like a cover tap), hotkeys (`Hotkeys`), per-game recommended
   settings (`GameProfiles` by `DeviceTier`), play time
   (`PlayTime`), game-named save folders with Export/Import (`SaveData`), the "Resume" view of save states with
   save-state screenshots within All in One and button mapping on a drawing of the console's controller (`PadDiagram` + `PadLayout`).
