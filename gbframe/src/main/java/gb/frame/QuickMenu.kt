@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -281,6 +282,17 @@ fun QuickMenuItemRow(
         }
     }
 }
+
+/** Standard quick-menu switch row for a consumer's core-provided widescreen patches. */
+@Composable
+fun WidescreenGameHacksItem(id: String = "widescreen-game-hacks", value: Boolean, onChange: (Boolean) -> Unit) =
+    QuickMenuItemRow(
+        id = id,
+        icon = Icons.Default.Tune,
+        label = "Widescreen game hacks",
+        value = if (value) "On" else "Off",
+        onClick = { onChange(!value) },
+    )
 
 /**
  * A focusable/clickable row container for a custom menu row such as a save-state slot with a thumbnail.

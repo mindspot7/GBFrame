@@ -1,5 +1,7 @@
 # Lessons learned
 
+- Treat built-in widescreen game cheat codes as a distinct Video capability, separate from the user's cheat list. Share the toggle UI in GBFrame; each consumer owns code matching and native application, and must reapply the effective cheat set when the toggle or display mode changes.
+
 What building GBSat (Sega Saturn, Ymir core) taught us, to apply from day one in every app of the family. Add a
 line here whenever a new app teaches something that would have saved time.
 

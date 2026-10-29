@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +57,16 @@ fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, on
         Switch(checked = value, onCheckedChange = onChange)
     }
 }
+
+/** Shared opt-in for core-provided widescreen game patches. The consumer owns patch lookup/application. */
+@Composable
+fun WidescreenGameHacksRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
+    Icons.Default.Tune,
+    "Widescreen game hacks",
+    "Apply built-in widescreen cheat codes for supported games. Separate toggle from your own cheats.",
+    value,
+    onChange,
+)
 
 @Composable
 fun ActionRow(icon: ImageVector, title: String, sub: String?, action: String, onAction: () -> Unit, warn: Boolean = false, subMaxLines: Int = 2) {
