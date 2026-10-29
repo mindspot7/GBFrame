@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -292,6 +293,17 @@ fun WidescreenGameHacksItem(id: String = "widescreen-game-hacks", value: Boolean
         icon = Icons.Default.Tune,
         label = "Widescreen game hacks",
         value = if (value) "On" else "Off",
+        onClick = { onChange(!value) },
+    )
+
+/** Shared in-game Performance row for adaptive render skipping; app supplies and persists the core setting. */
+@Composable
+fun AdaptiveGraphicsItem(id: String = "adaptive-graphics", value: Boolean, onChange: (Boolean) -> Unit) =
+    QuickMenuItemRow(
+        id = id,
+        icon = Icons.Default.SkipNext,
+        label = "Adaptive graphics",
+        value = if (value) "Auto" else "Off",
         onClick = { onChange(!value) },
     )
 

@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +78,16 @@ fun WidescreenGameHacksRow(value: Boolean, onChange: (Boolean) -> Unit) = Toggle
     Icons.Default.Tune,
     "Widescreen game hacks",
     "Apply built-in widescreen cheat codes for supported games. Separate toggle from your own cheats.",
+    value,
+    onChange,
+)
+
+/** Shared main-settings row for adaptive render skipping, independent of fast-forward and audio pacing. */
+@Composable
+fun AdaptiveGraphicsSettingsRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
+    Icons.Default.SkipNext,
+    "Adaptive graphics",
+    "Automatically skips rendering only while the game is below its speed target. Audio keeps its normal pace; Fast Forward stays separate.",
     value,
     onChange,
 )

@@ -95,7 +95,7 @@ options after them. Put the app's options in their own group in settings (e.g. "
 
 Expose the applicable GBSat-style controls in this order:
 
-- **Frame skip** (Auto/Off, or the actual supported modes).
+- **Adaptive graphics / frame skip** (Auto/Off when the core supports adaptive render skipping). Use GBFrame's `AdaptiveGraphicsItem`; the consumer supplies and persists the setting. It skips rendering below the speed target, preserves normal audio pacing, and remains independent of Fast Forward.
 - **Threaded audio** (Auto/On/Off only if supported).
 - **Skip loading screens**.
 - **Skip transitions**.
