@@ -13,8 +13,12 @@ object LibraryView {
      * The game ([HomeGame.key]) and save state ([ResumeEntry.key]) selected last in the library: the home screen
      * returns to them after a game, settings page, or menu. Startup prefers the last successfully opened game.
      */
-    var lastGame: String? = null
-        set(v) { if (field != v) { field = v; prefs?.edit()?.putString(KEY_GAME, v)?.apply() } }
+    // Snapshot state: the shelves place their focus requester on it, so putting a selection back (HomeLibrary, after a
+    // dialog) moves the requester to that cover
+    private val game = androidx.compose.runtime.mutableStateOf<String?>(null)
+    var lastGame: String?
+        get() = game.value
+        set(v) { if (game.value != v) { game.value = v; prefs?.edit()?.putString(KEY_GAME, v)?.apply() } }
     var lastState: String? = null
         set(v) { if (field != v) { field = v; prefs?.edit()?.putString(KEY_STATE, v)?.apply() } }
 

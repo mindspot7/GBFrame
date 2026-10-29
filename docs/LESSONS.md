@@ -98,6 +98,11 @@ line here whenever a new app teaches something that would have saved time.
   inject real pad events with `sendevent /dev/input/eventN` (held presses); `input keycombination` comes from a
   virtual keyboard and doesn't reproduce controller paths.
 - Cheats and achievements are shared GBFrame UI components, not app-specific screens: `CheatsScreen` receives a core-specific `CheatsBackend`, while `AchievementsScreen` uses the common `RetroAchievements` client with an app-specific `RaBackend`. Keep parsing, save/apply APIs and hashing in the app/core adapter; standardize presentation and navigation in GBFrame.
+- When a focused overlay drawn in the same window (the quit `ConfirmDialog`, the main menu) goes away, Compose gives the
+  focus to the first focusable laid out — on a shelf, the cover partly visible at the edge — and that cover's
+  `onFocused` overwrites the selection (Back/B on the quit dialog moved it two covers left). `HomeLibrary` keeps the
+  selection while it may not take the focus (`focusEnabled` false or `MenuState.quitOpen`), writes it back, and only
+  stops refocusing once the focus is on that game; `LibraryView.lastGame` is snapshot state so the requester follows.
 - When a screen leaves composition, clear any focus flags stored outside Compose state. A stale `hasFocus=true` can make focus restoration skip the requester and leave selection behind an overlay. Do not attach one `FocusRequester` to multiple controls when only one should receive initial focus.
 - Standardize the in-game quick menu across GB-family apps against GBSat: left-side dimmed panel, same root item order, matching submenu hierarchy, system Back/B stack behavior, pause/resume semantics, and return focus to the item that opened a submenu. Keep the visuals themed and expose only capabilities actually implemented by the app/core; see [QUICK_MENU_STANDARD.md](QUICK_MENU_STANDARD.md).
 

@@ -196,21 +196,34 @@ fun HomeLibrary(
     // The selection only exists with a physical controller (handhelds' built-in controls count)
     val hasPad = rememberHasGamepad()
     val view = androidx.compose.ui.platform.LocalView.current
+    // The quit dialog owns the controller like the menu does, in every app
+    val canFocus = focusEnabled && !MenuState.quitOpen.value
+    // Selection to put back when the library may take the focus again. When the dialog or menu that had the focus goes
+    // away, Compose hands the focus to the first cover laid out (the one partly visible at the edge), whose onFocused
+    // overwrote the selection: closing the quit dialog with Back/B moved it two covers to the left.
+    var kept by remember { mutableStateOf<String?>(null) }
     // [style] is a key too: switching layout disposes the selected cover, so the new layout must take the focus back
-    LaunchedEffect(games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad, style, focusEnabled) {
-        if (empty == null && hasPad && focusEnabled) {
+    LaunchedEffect(games.firstOrNull()?.key, latest.firstOrNull()?.key, empty == null, refocus, hasPad, style, canFocus) {
+        if (!canFocus) { if (kept == null) kept = LibraryView.lastGame; return@LaunchedEffect }
+        kept?.let { LibraryView.lastGame = it; kept = null }
+        if (empty == null && hasPad) {
             // The selected cover may not be laid out yet (games loaded just now, a game screen closing): requestFocus throws
             // until its requester is attached. One try after 60 ms often missed it, nothing kept the focus and the first
             // D-pad press then picked the first visible cover (the one before the selected game). Retry for up to ~2 s.
-            delay(60)
             val wanted = LibraryView.lastGame
+            val listed = games.any { it.key == wanted }
+            delay(60)
             repeat(40) {
                 // After a touch (e.g. leaving a game through its touch menu) Android is still in touch mode and Compose
-                // doesn't focus clickable covers there: leave it first. The view taking the focus may put it on another
-                // cover for a moment, so the selected game is written back before the request.
-                if (view.isInTouchMode) { view.requestFocusFromTouch(); LibraryView.lastGame = wanted }
-                // Done once the request went through (the requester was attached) and the focus is in the library
-                if (runCatching { first.requestFocus() }.isSuccess && libraryFocused) return@LaunchedEffect
+                // doesn't focus clickable covers there: leave it first. The view taking the focus (or Compose, when the
+                // focused dialog went away) may put it on another cover for a moment, so the selected game is written
+                // back before the request; the requester follows it at the next recomposition.
+                if (view.isInTouchMode) view.requestFocusFromTouch()
+                LibraryView.lastGame = wanted
+                // Done once the request went through (the requester was attached), the focus is in the library and on the
+                // selected game (a request made before the requester moved focuses the cover the focus was taken to)
+                if (runCatching { first.requestFocus() }.isSuccess && libraryFocused &&
+                    (!listed || LibraryView.lastGame == wanted)) return@LaunchedEffect
                 delay(50)
             }
         }
