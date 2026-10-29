@@ -28,6 +28,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `PadDiagram.kt` | Controller diagram for button mapping (`PadLayout`, `PadButton`, `PadDiagram`) |
 | `AchievementsUi.kt` | Unlock notifications, achievement list, `RetroAchievementsSettings`, `RaUserHeader` |
 | `CheatsUi.kt` | Shared, core-agnostic per-game cheats screen (`CheatsScreen`, `CheatsBackend`, `CheatUiItem`); it automatically loads the active game's available database entries, while each app supplies code parsing, database, persistence and core application |
+| `TexturePackImport.kt` | Shared ZIP/7z/RAR texture-pack importer for texture-capable consumers; validates archive paths and stages extraction before writing into the app's routed texture folder |
 
 Also shared beyond Kotlin:
 
@@ -110,6 +111,7 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 - **Every consumer must follow [SHARED_BEHAVIOR_STANDARD.md](docs/SHARED_BEHAVIOR_STANDARD.md).** Common behavior is a framework contract, not a per-app convention. Keep console-specific firmware, pad geometry, catalog formats, native operations and supported modes in the consumer; audit adapters after updating the framework rather than assuming submodule adoption proves conformance.
 - **All GB-family Android apps must follow the [app integration standard](docs/APP_INTEGRATION_STANDARD.md)** for package identity, reuse of the app's launcher icon in the top bar, main menu and About page, the `appid:` label, APK/artifact names, library input/navigation lifecycle, `HomeActions` launch semantics, SAF disc lifetime, the shared five-slot manual save-state limit, and system-majority box-art sizing.
 - **Every GB-family Android app must follow the [GBSat-based quick-menu standard](docs/QUICK_MENU_STANDARD.md)** for layout, item hierarchy, submenu/back behavior and controller focus. Options are capability-aware: never expose inert or unsupported controls.
+- Texture-capable apps should use `TexturePackImportRow` from GBFrame in Video settings and pass their routed texture mount. Archives may contain `textures/<game ID>/...`, `<game ID>/...`, or flat files (which are placed under a folder named after the archive). ZIP, 7z, and RAR are supported; archives are staged, path-checked, and size-limited before import.
 - **Cheats and achievements are standard features across the GB app family.** Use GBFrame's `CheatsScreen` with a core-specific `CheatsBackend`, and `AchievementsScreen` with the shared `RetroAchievements` client plus an app-specific `RaBackend`. Reuse these UIs; do not fork per-app versions.
 - Use the shared `QuickMenuHost`, `QuickMenuPage`, `QuickMenuScope`, `QuickMenuItemRow` and `QuickMenuItemContainer` implementation in `gbframe/QuickMenu.kt`; do not re-create the panel/navigation/focus primitives in each app.
 - A change here reaches every app when it updates the submodule (`git submodule update --remote libs/gbframe`).

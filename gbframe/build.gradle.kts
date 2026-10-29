@@ -31,5 +31,7 @@ dependencies {
     api("androidx.compose.material3:material3")
     api("androidx.compose.material:material-icons-extended")
     implementation("androidx.documentfile:documentfile:1.0.1")
+    implementation("org.apache.commons:commons-compress:1.28.0") // ZIP and 7z texture packages
+    implementation("com.github.junrar:junrar:8.1.2") // RAR4/RAR5 texture packages
     testImplementation("junit:junit:4.13.2")
 }
