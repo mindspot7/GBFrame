@@ -137,7 +137,8 @@ of these repositories.
   The help bar lists the buttons from the right as A, Y, X, B. This is the kit's behavior, the same in every app:
   `MenuState` (menu/quit/focus state), `HomeKeys.dispatch(event, enabled)` (X, Start, Select, A on the quit dialog, lost
   focus; call it first in the Activity's `dispatchKeyEvent`, with `enabled = false` while a game runs or a button is being
-  captured), `LibraryBack.handle { … }` (from the app's `BackHandler`) and `HomeHelpBar()`. Apps do not reimplement them.
+  captured), `LibraryBack.handle { … }` (from the app's `BackHandler`), the Exit dialog (`HomeQuitDialog(onQuit)` drawn last
+  over the library, `Modifier.homeQuitKeys(onQuit)` on the library's root) and `HomeHelpBar()`. Apps do not reimplement them.
 - Every dialog and menu must work with the controller from the first press: draw dialogs in the app window, give the
   first item focus, never let the game `SurfaceView` take key focus, and let Android turn hat-axis D-pads into D-pad keys
   while a menu is open.
