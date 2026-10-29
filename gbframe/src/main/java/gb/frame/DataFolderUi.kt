@@ -60,17 +60,14 @@ fun dataFolderWizardStep(store: AppDataFolder): WizardStep = WizardStep(
     "Choose where to keep this app's data, including on an SD card. You can keep app storage and change this later in System.",
 ) { DataFolderControls(store) }
 
-/**
- * The setup wizard's last step: the performance preset the app picked for this device ([summary], e.g.
- * "Low · 2 fast cores · Mali-G57" from [DeviceTier]) and what it sets ([details]). Every app ends its wizard with it.
- */
-fun performanceWizardStep(appName: String, preset: String, summary: String, details: String? = null): WizardStep = WizardStep(
+/** The setup wizard's last step: the chosen preset and the options it applies. */
+fun performanceWizardStep(preset: String, options: List<String>): WizardStep = WizardStep(
     Icons.Default.Speed, "Performance",
     listOf(androidx.compose.ui.graphics.Color(0xFFFFB15A), androidx.compose.ui.graphics.Color(0xFF8A4B12)),
-    "$appName picked these settings for this device. You can change every option later in Settings → Performance.",
+    "",
 ) {
-    Text("$preset · $summary")
-    if (details != null) Text(details)
+    Text(preset)
+    options.forEach { Text("• $it") }
 }
 
 /** Surface inaccessible storage even when the user never opens System. */

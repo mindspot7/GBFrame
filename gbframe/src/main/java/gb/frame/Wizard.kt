@@ -73,7 +73,7 @@ fun WizardPage(icon: ImageVector, title: String, colors: List<Color>, body: Stri
     }
     Text(title, style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
         textAlign = TextAlign.Center, color = Color.White, fontWeight = FontWeight.Bold)
-    Text(body, style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+    if (body.isNotBlank()) Text(body, style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center, color = Color.White.copy(alpha = .75f))
 }
 
