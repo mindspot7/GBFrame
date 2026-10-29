@@ -32,6 +32,18 @@ object DeviceTier {
         val gpuMaxScale: Int,
     ) {
         val summary get() = "${tier.name} · $fastCores fast core${if (fastCores == 1) "" else "s"}" + (if (gpu.isNotBlank()) " · $gpu" else "")
+
+        /** A short user-facing explanation of the hardware signals behind this class. */
+        val classificationReason: String get() = when (tier) {
+            Tier.Entry -> "Only efficiency-class CPU cores were detected (such as Cortex-A53/A55-class cores), with no high-performance cores."
+            Tier.Low -> if (fastCores <= 2) {
+                "Only $fastCores high-performance CPU core${if (fastCores == 1) " was" else "s were"} detected, so CPU headroom for emulation and helper work is limited."
+            } else {
+                "The fastest CPU cores are from an older high-performance generation (Cortex-A73 class or earlier), with less per-core performance than newer designs."
+            }
+            Tier.Mid -> "The CPU has $fastCores fast cores, but ${gpu.ifBlank { "the detected GPU" }} does not meet the kit's threshold for heavier GPU emulation."
+            Tier.High -> "The CPU has at least three fast cores and ${gpu.ifBlank { "the detected GPU" }} meets the kit's threshold for modern GPU emulation."
+        }
     }
 
     @Volatile private var cached: Info? = null

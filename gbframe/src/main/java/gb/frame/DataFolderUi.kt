@@ -60,14 +60,26 @@ fun dataFolderWizardStep(store: AppDataFolder): WizardStep = WizardStep(
     "Choose where to keep this app's data, including on an SD card. You can keep app storage and change this later in System.",
 ) { DataFolderControls(store) }
 
-/** The setup wizard's last step: the chosen preset and the options it applies. */
-fun performanceWizardStep(preset: String, options: List<String>): WizardStep = WizardStep(
+/** The setup wizard's last step: detected device class, recommended preset and the options it applies. */
+fun performanceWizardStep(
+    preset: String,
+    options: List<String>,
+    device: DeviceTier.Info = DeviceTier.detect(),
+): WizardStep = WizardStep(
     Icons.Default.Speed, "Performance",
     listOf(androidx.compose.ui.graphics.Color(0xFFFFB15A), androidx.compose.ui.graphics.Color(0xFF8A4B12)),
     "",
 ) {
-    Text(preset)
-    options.forEach { Text("• $it") }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Recommended profile: $preset", style = MaterialTheme.typography.titleMedium)
+        Text("Device class: ${device.summary}", style = MaterialTheme.typography.bodyMedium)
+        Text(device.classificationReason, style = MaterialTheme.typography.bodySmall)
+        Text(
+            "This profile was selected and applied automatically for this hardware to aim for the best performance it can sustain. You can review or change these settings later in the app's settings.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        options.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+    }
 }
 
 /** Surface inaccessible storage even when the user never opens System. */

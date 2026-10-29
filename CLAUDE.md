@@ -33,8 +33,9 @@ of these repositories.
   | Anbernic RG476H | Unisoc T820 / Mali-G57 | 1280x960 4.7" 4:3 | Mid |
   | Anbernic RG477V | Dimensity 8300 / Mali-G615 MC6 | 1280x960 4.7" 4:3 | High (Native 2x) |
   | Retroid Pocket Nova | Snapdragon 8 Gen 2 / Adreno 740 | 1280x960 4.5" 4:3 | High (Native 4x) |
-- APKs are built by GitHub Actions, never locally. After every push, watch the run until it finishes, read the check
-  annotations, and **fix build errors and warnings automatically** (including deprecated actions) before reporting.
+- Build and test locally before pushing when the consumer's toolchain and signing key are available. Use GitHub Actions
+  when a hosted artifact or remote CI result is needed, or at the end of a major update that already passed local validation.
+  If CI is triggered, watch the run until it finishes, read check annotations, and fix build errors and warnings.
 - Report results briefly: what changed and the build name (e.g. `GBSat-v1.3.1-build141`). Mention CI only when something
   went wrong, and don't say that a build wasn't tested on a device (the owner knows); say what to test only when it's
   not obvious.
