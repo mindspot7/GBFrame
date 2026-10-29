@@ -42,18 +42,15 @@ object LauncherIconCompatibility {
         model: String,
     ) {
         val useAdaptive = shouldUseAdaptiveIcon(manufacturer, model)
-        setAliasEnabled(
-            context,
-            bitmapLauncherClassName,
-            enabled = !useAdaptive,
-            manifestDefaultEnabled = true,
-        )
-        setAliasEnabled(
-            context,
-            adaptiveLauncherClassName,
-            enabled = useAdaptive,
-            manifestDefaultEnabled = false,
-        )
+        if (useAdaptive) {
+            // Keep a launcher entry available throughout the switch and don't disable the alias
+            // Android is currently resolving until its replacement is already enabled.
+            setAliasEnabled(context, adaptiveLauncherClassName, enabled = true, manifestDefaultEnabled = false)
+            setAliasEnabled(context, bitmapLauncherClassName, enabled = false, manifestDefaultEnabled = true)
+        } else {
+            setAliasEnabled(context, bitmapLauncherClassName, enabled = true, manifestDefaultEnabled = true)
+            setAliasEnabled(context, adaptiveLauncherClassName, enabled = false, manifestDefaultEnabled = false)
+        }
     }
 
     private fun setAliasEnabled(
