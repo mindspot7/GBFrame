@@ -124,6 +124,8 @@ of these repositories.
   is required): mark the firmware's first-run setup (clock, language) as done so the BIOS skips those screens, and run
   the BIOS intro animation at maximum speed (muted) until the disc's code takes over. See
   [docs/SYSTEM_MENU_STANDARD.md](docs/SYSTEM_MENU_STANDARD.md).
+- Menus and settings pages show the kit's standard options first, then the app's own (core-specific) ones. Audio:
+  `AudioSettings` + `AudioSettingsGroups` (Settings → Audio) and `AudioQuickMenuRows` (quick menu → Audio).
 - Every performance option goes both in Settings → Performance and in the in-game quick menu → Performance (so it can
   be compared while playing), and into the performance log's `settings` column.
 - Settings the user changes through the interface are remembered between sessions, including UI state such as the

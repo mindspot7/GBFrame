@@ -98,6 +98,10 @@ line here whenever a new app teaches something that would have saved time.
   inject real pad events with `sendevent /dev/input/eventN` (held presses); `input keycombination` comes from a
   virtual keyboard and doesn't reproduce controller paths.
 - Cheats and achievements are shared GBFrame UI components, not app-specific screens: `CheatsScreen` receives a core-specific `CheatsBackend`, while `AchievementsScreen` uses the common `RetroAchievements` client with an app-specific `RaBackend`. Keep parsing, save/apply APIs and hashing in the app/core adapter; standardize presentation and navigation in GBFrame.
+- Starting the library Activity by intent while the app is open (`LaunchIntent`): with the default launch mode an
+  intent that `filterEquals` the task's root (same component, extras don't count) only brings the task to the front,
+  without `onNewIntent`. GBSat's single Activity is `singleTask`; GBCast's LibraryActivity is `singleTop` (not
+  `singleTask`, which would close the game Activity above it when the launcher icon is tapped).
 - When a focused overlay drawn in the same window (the quit `ConfirmDialog`, the main menu) goes away, Compose gives the
   focus to the first focusable laid out — on a shelf, the cover partly visible at the edge — and that cover's
   `onFocused` overwrites the selection (Back/B on the quit dialog moved it two covers left). `HomeLibrary` keeps the

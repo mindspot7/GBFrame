@@ -77,12 +77,19 @@ Use one mutually exclusive display-mode choice, shared with main Video settings.
 
 ### Audio
 
-Use the GBSat pattern where the backend supports it:
+The standard rows come from the kit: implement `AudioSettings` (volume 0..100, fast-forward audio mode) over the core and
+call `AudioQuickMenuRows(settings)` first; Settings → Audio uses `AudioSettingsGroups(settings)` the same way.
 
-- **Volume down** and **Volume up**, showing the current volume and using bounded increments.
-- **Fast-forward audio**, with the supported choices (for example Default, Speed up and Mute).
+- **Volume down** and **Volume up**, showing the current volume, 10% steps.
+- **Fast-forward audio**: Default (normal pitch, in pieces), Speed up (faster and higher, following the game speed),
+  Mute. The core must honor all three, and must not wait for the audio output while fast-forwarding.
 
-Clamp values to valid ranges and apply changes to the active session. Do not display options the audio backend cannot honor.
+Then the app's own audio options (GBCast: DSP, latency, buffer, VMU sound), after the standard ones.
+
+### Order of standard and app options
+
+In every settings page and quick-menu page, the kit's standard options come first and the app's own (core-specific)
+options after them. Put the app's options in their own group in settings (e.g. "Sound chip (AICA)").
 
 ### Performance
 
