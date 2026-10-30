@@ -41,6 +41,9 @@ line here whenever a new app teaches something that would have saved time.
 - The trade-off changes with core count: on the RG DS (4x A55), threaded SCSP was faster in both VF2 (53.7 vs 40.45 fps)
   and Burning Rangers (30.9 vs 25.6 fps). Turning it off removed the sound-thread wait but moved its work onto emulation,
   increased audio underruns, and lowered FPS. Judge the mode by throughput and audio health, not wait time alone.
+- On the same Entry device, NiGHTS with 250-349 VDP1 commands/frame measured 48.7 fps with threaded SCSP vs 36.8 fps
+  without it (ABBA, same savestate); sound-scheduler time fell 11.29 -> 0.74 ms and underruns 44 -> 31/s. A measured
+  per-tier game profile should supersede a stale Auto result, while an explicit per-game On/Off choice still wins.
 - CPU profiles don't show waits: log per frame how long the emulation thread waits for each helper thread (sound,
   VDP1, VDP2) together with the active settings; it found what profiles could not.
 - Keep one Android performance hint session, on the emulation thread only; recreating it leaves lasting slowdowns.
