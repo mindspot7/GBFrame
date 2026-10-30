@@ -48,6 +48,15 @@ line here whenever a new app teaches something that would have saved time.
   VDP1 commands), Daytona CCE (57.7 vs 44.5) and Guardian Heroes (57.4 vs 47.3), with lower sound-scheduler time and
   fewer underruns in all three. The tested Entry-tier profiles should start with it enabled and supersede stale Auto
   cache results; the user can still choose On or Off per game.
+- On the RG DS, Fast SH-2 sync (128 cycles) beat Accurate (32) by 4-10% in NiGHTS, VF2, Daytona and Guardian Heroes
+  with the recompiler held off; Burning Rangers stayed at 32 because of `PreciseSH2Sync`. Keep Fast as the app default
+  and preserve such core game-database exceptions.
+- Approximate SH-2 recompiler On beat Off at Fast sync in the same four games (about 4% in Guardian Heroes, 21% in
+  VF2, 24% in NiGHTS and 31% in Daytona). Burning Rangers' precise-sync rule disabled the JIT either way. Keep the
+  measured global default On, with the core deciding when the game requires the interpreter.
+- Compare both emulated and displayed FPS when evaluating Adaptive graphics: on the RG DS it improved emulation
+  throughput and audio underruns in those four games, while reducing the number of rendered frames. In Burning
+  Rangers it did not improve throughput or underruns, so GBSat's Entry profile opts out there for smoother video.
 - CPU profiles don't show waits: log per frame how long the emulation thread waits for each helper thread (sound,
   VDP1, VDP2) together with the active settings; it found what profiles could not.
 - Keep one Android performance hint session, on the emulation thread only; recreating it leaves lasting slowdowns.
