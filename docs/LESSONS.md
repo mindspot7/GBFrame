@@ -52,6 +52,11 @@ line here whenever a new app teaches something that would have saved time.
   thread layout was already right (emulation alone on one core, VDP/sound on the other three). Longer SH-2 sync
   steps barely help there (128 -> 1024 cycles: 21.7 -> 20.1 ms) and 512 made VF2 hang on a black screen at boot:
   keep Fast at 128 cycles.
+- Reusing alternate VDP2 background rows in 448-line interlaced software output (Yaba-style half-height backgrounds)
+  did not measurably speed up VF2 on the RG DS: with the same Slot 1 state and adaptive graphics on, 30 s averaged
+  58.7 -> 58.9 emulated FPS, while average frame time rose 16.2 -> 16.9 ms and slow-frame count rose 578 -> 625.
+  Keep this optional and off by default; VF2 is SH-2-bound here, so only promote the renderer tradeoff if a renderer-bound
+  game shows a repeatable gain.
 - Test a speed setting by booting each game from the BIOS, not only from save states: Burning Rangers ran from a state
   with the 128-cycle SH-2 sync and deadlocked right after the BIOS with 64+ (both CPUs polling). Per-game exceptions
   go in the core's game database (GBSat: `PreciseSH2Sync`), not in the option's default.
