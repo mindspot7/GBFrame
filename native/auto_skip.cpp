@@ -5,17 +5,18 @@
 
 namespace gb {
 
-void AutoSkip::OnFrame(const uint32_t *fb, uint32_t width, uint32_t height) {
+void AutoSkip::OnFrame(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t stridePixels) {
     if (!fb || width == 0 || height == 0) {
         return;
     }
+    if (stridePixels == 0) stridePixels = width;
     std::lock_guard<std::mutex> lock(m_pictureMutex);
     uint32_t dark = 0, changed = 0;
     for (uint32_t y = 0; y < kGY; ++y) {
         const uint32_t sy = ((2 * y + 1) * height) / (2 * kGY);
         for (uint32_t x = 0; x < kGX; ++x) {
             const uint32_t sx = ((2 * x + 1) * width) / (2 * kGX);
-            const uint32_t px = fb[(size_t)sy * width + sx];
+            const uint32_t px = fb[(size_t)sy * stridePixels + sx];
             const int c0 = px & 0xFF, c1 = (px >> 8) & 0xFF, c2 = (px >> 16) & 0xFF;
             if (c0 < 24 && c1 < 24 && c2 < 24) ++dark;
             uint32_t &old = m_sig[y * kGX + x];

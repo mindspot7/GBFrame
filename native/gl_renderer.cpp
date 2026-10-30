@@ -216,6 +216,8 @@ struct State {
     std::thread th;
     bool started = false;
     bool stop = false;
+    std::atomic<bool> windowReady{false};
+    std::atomic<bool> vulkanTargetDisabled{false};
 
     ANativeWindow *pendingWindow = nullptr;
     bool windowPending = false;
@@ -231,9 +233,12 @@ struct State {
         AHardwareBuffer *hb = nullptr;
         uint32_t w = 0, h = 0, stride = 0;
         uint32_t gen = 0; // bumped when the buffer is reallocated
+        uint64_t usage = 0;
+        bool vulkanTarget = false;
     } slots[kSlots];
     int readySlot = -1, shownSlot = -1, writingSlot = -1;
     std::atomic<bool> hbDisabled{false}; // set when the device lacks the EGL/GL extensions or allocation fails
+    std::atomic<bool> hbSupportReady{false};
 
     std::atomic<int> filter{1};
     std::atomic<int> shader{0};
@@ -301,6 +306,8 @@ void Loop() {
     if (!eglGetNativeClientBuffer || !imageTargetTexture || !createImage || !destroyImage) {
         S.hbDisabled = true;
     }
+    S.hbSupportReady.store(true, std::memory_order_release);
+    S.cv.notify_all();
     GLuint drawTex = 0; // texture sampled this frame
     uint32_t drawW = 0, drawH = 0;
 
@@ -327,6 +334,7 @@ void Loop() {
 
     for (;;) {
         bool newFrame = false;
+        int previousShownSlot = -1;
         {
             std::unique_lock lk(S.m);
             S.cv.wait(lk, [] { return S.stop || S.windowPending || S.frameReady || S.dirty; });
@@ -345,9 +353,11 @@ void Loop() {
                 win = S.pendingWindow;
                 S.pendingWindow = nullptr;
                 S.windowPending = false;
+                S.windowReady.store(false, std::memory_order_release);
                 if (win) {
                     surf = eglCreateWindowSurface(dpy, cfg, win, nullptr);
                     if (surf != EGL_NO_SURFACE && eglMakeCurrent(dpy, surf, surf, ctx)) {
+                        S.windowReady.store(true, std::memory_order_release);
                         eglSwapInterval(dpy, 1);
                         if (!prog) {
                             GLuint vs = Compile(GL_VERTEX_SHADER, kVertex);
@@ -392,9 +402,9 @@ void Loop() {
                 }
             }
             if (S.frameReady) {
+                previousShownSlot = S.shownSlot;
                 if (S.readySlot >= 0) {
                     frameSlot = S.readySlot;
-                    S.shownSlot = frameSlot;
                     S.readySlot = -1;
                 } else {
                     frameSlot = -1;
@@ -492,8 +502,25 @@ void Loop() {
         glUniform1i(uShader, S.shader.load());
         glUniform1i(uRamp, S.colorRamp.load());
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        // A Vulkan producer can reuse a target only after GL has finished sampling it. Wait on this dedicated
+        // presentation thread, then release the old shown slot; this leaves the CPU emulation thread unblocked here.
+        const bool externalTargetDrawn = frameSlot >= 0 && S.slots[frameSlot].vulkanTarget;
+        const bool externalTargetReleased = previousShownSlot >= 0 && S.slots[previousShownSlot].vulkanTarget;
+        if (externalTargetDrawn || externalTargetReleased) {
+            glFinish();
+        }
         if (query) glEndQuery(GL_TIME_ELAPSED_EXT);
         eglSwapBuffers(dpy, surf);
+        if (newFrame) {
+            std::lock_guard lk(S.m);
+            S.shownSlot = frameSlot;
+            S.cv.notify_all();
+        }
+        {
+            std::lock_guard lk(S.m);
+            S.shownSlot = frameSlot;
+            S.cv.notify_all();
+        }
     }
 
     if (surf != EGL_NO_SURFACE) {
@@ -534,25 +561,26 @@ bool SubmitHardwareBuffer(const uint32_t *fb, uint32_t width, uint32_t height, u
         std::lock_guard lk(S.m);
         if (!S.started) return true;
         for (int i = 0; i < State::kSlots; i++) {
-            if (i != S.readySlot && i != S.shownSlot) { idx = i; break; }
+            if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot) { idx = i; break; }
         }
         if (idx < 0) return false;
         S.writingSlot = idx;
     }
     auto &sl = S.slots[idx];
     bool ok = true;
-    if (!sl.hb || sl.w != width || sl.h != height) {
+    const uint64_t usage = AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE;
+    if (!sl.hb || sl.w != width || sl.h != height || (sl.usage & usage) != usage) {
         if (sl.hb) { AHardwareBuffer_release(sl.hb); sl.hb = nullptr; }
         AHardwareBuffer_Desc d{};
         d.width = width;
         d.height = height;
         d.layers = 1;
         d.format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
-        d.usage = AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE;
+        d.usage = usage;
         ok = AHardwareBuffer_allocate(&d, &sl.hb) == 0;
         if (ok) {
             AHardwareBuffer_describe(sl.hb, &d);
-            sl.w = width; sl.h = height; sl.stride = d.stride; sl.gen++;
+            sl.w = width; sl.h = height; sl.stride = d.stride; sl.usage = usage; sl.gen++;
         }
     }
     void *dst = nullptr;
@@ -574,6 +602,7 @@ bool SubmitHardwareBuffer(const uint32_t *fb, uint32_t width, uint32_t height, u
         LOGE("AHardwareBuffer path unavailable, using texture uploads");
         return false;
     }
+    sl.vulkanTarget = false;
     S.readySlot = idx;
     S.fw = width;
     S.fh = height;
@@ -581,6 +610,73 @@ bool SubmitHardwareBuffer(const uint32_t *fb, uint32_t width, uint32_t height, u
     S.frameReady = true;
     S.cv.notify_all();
     return true;
+}
+
+VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height) {
+    int idx = -1;
+    {
+        std::lock_guard lk(S.m);
+        if (!S.started || !S.windowReady.load(std::memory_order_acquire) ||
+            !S.hbSupportReady.load(std::memory_order_acquire) || S.hbDisabled.load() ||
+            S.vulkanTargetDisabled.load()) return {};
+        for (int i = 0; i < State::kSlots; ++i) {
+            if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot) { idx = i; break; }
+        }
+        if (idx < 0) return {};
+        S.writingSlot = idx;
+    }
+    auto &sl = S.slots[idx];
+    const uint64_t usage = AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
+                           AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT;
+    bool ok = true;
+    if (!sl.hb || sl.w != width || sl.h != height || (sl.usage & usage) != usage) {
+        if (sl.hb) { AHardwareBuffer_release(sl.hb); sl.hb = nullptr; }
+        AHardwareBuffer_Desc d{};
+        d.width = width;
+        d.height = height;
+        d.layers = 1;
+        d.format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
+        d.usage = usage;
+        ok = AHardwareBuffer_allocate(&d, &sl.hb) == 0;
+        if (ok) {
+            AHardwareBuffer_describe(sl.hb, &d);
+            sl.w = width; sl.h = height; sl.stride = d.stride; sl.usage = usage; sl.gen++;
+        }
+    }
+    std::lock_guard lk(S.m);
+    if (!ok || !sl.hb) {
+        S.writingSlot = -1;
+        S.vulkanTargetDisabled = true;
+        LOGE("Vulkan AHardwareBuffer target unavailable, using readback presentation");
+        return {};
+    }
+    sl.vulkanTarget = true;
+    AHardwareBuffer_acquire(sl.hb); // Ymir holds this reference while importing it into Vulkan.
+    const uint64_t token = ((uint64_t)sl.gen << 32) | (uint32_t)idx;
+    return {sl.hb, token, sl.stride};
+}
+
+void SubmitVulkanTarget(uint64_t token, uint32_t width, uint32_t height, uint32_t scale) {
+    const uint32_t idx = (uint32_t)token;
+    const uint32_t gen = (uint32_t)(token >> 32);
+    std::lock_guard lk(S.m);
+    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen || !S.slots[idx].hb) return;
+    S.writingSlot = -1;
+    S.readySlot = (int)idx;
+    S.fw = width;
+    S.fh = height;
+    S.fscale = scale ? scale : 1;
+    S.frameReady = true;
+    S.cv.notify_all();
+}
+
+void CancelVulkanTarget(uint64_t token) {
+    const uint32_t idx = (uint32_t)token;
+    const uint32_t gen = (uint32_t)(token >> 32);
+    std::lock_guard lk(S.m);
+    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen) return;
+    S.writingSlot = -1;
+    S.cv.notify_all();
 }
 
 void Submit(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t scale) {
