@@ -47,6 +47,10 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalInputModeManager
@@ -94,6 +98,7 @@ private val LocalQuickMenuFocusScope = compositionLocalOf<QuickMenuFocusScope?> 
 
 private class QuickMenuFocusScope(private val preferredItemId: String?) {
     private val requesters = LinkedHashMap<String, FocusRequester>()
+    private var focusedItemId: String? = null
 
     fun register(id: String, requester: FocusRequester) {
         requesters[id] = requester
@@ -101,9 +106,27 @@ private class QuickMenuFocusScope(private val preferredItemId: String?) {
 
     fun unregister(id: String, requester: FocusRequester) {
         if (requesters[id] === requester) requesters.remove(id)
+        if (focusedItemId == id) focusedItemId = null
     }
 
     fun target(): FocusRequester? = requesters[preferredItemId] ?: requesters.values.firstOrNull()
+
+    fun onFocused(id: String, focused: Boolean) {
+        if (focused) focusedItemId = id else if (focusedItemId == id) focusedItemId = null
+    }
+
+    /** Wrap vertical focus between the first and last rows on this page. */
+    fun wrapVertical(key: androidx.compose.ui.input.key.Key): Boolean {
+        val ids = requesters.keys.toList()
+        val index = ids.indexOf(focusedItemId)
+        val targetId = when {
+            key == androidx.compose.ui.input.key.Key.DirectionUp && index == 0 -> ids.lastOrNull()
+            key == androidx.compose.ui.input.key.Key.DirectionDown && index == ids.lastIndex -> ids.firstOrNull()
+            else -> null
+        } ?: return false
+        requesters[targetId]?.requestFocus()
+        return true
+    }
 }
 
 /**
@@ -234,7 +257,14 @@ fun QuickMenuHost(
                             color = Color.White.copy(alpha = .1f),
                         )
                         Column(
-                            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+                            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 8.dp)
+                                .onPreviewKeyEvent { event ->
+                                    val vertical = event.key == androidx.compose.ui.input.key.Key.DirectionUp ||
+                                        event.key == androidx.compose.ui.input.key.Key.DirectionDown
+                                    if (event.type == KeyEventType.KeyDown && vertical) {
+                                        focusScope.wrapVertical(event.key)
+                                    } else false
+                                },
                         ) {
                             CompositionLocalProviderQuickMenuFocus(focusScope) {
                                 current.page.content(scope)
@@ -346,7 +376,10 @@ fun QuickMenuItemContainer(
             .padding(vertical = 2.dp)
             .clip(RoundedCornerShape(14.dp))
             .focusRequester(requester)
-            .onFocusChanged { focused = it.isFocused }
+            .onFocusChanged {
+                focused = it.isFocused
+                focusScope?.onFocused(id, it.isFocused)
+            }
             .background(if (focused) palette.accent.copy(alpha = .16f) else Color.Transparent)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 12.dp),

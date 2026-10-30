@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -461,6 +462,10 @@ private fun Shelf(
     // once the games are there starts on it.
     val rowState = remember(games.isEmpty()) { LazyListState((start - 1).coerceAtLeast(0)) }
     var focusIndex by remember { mutableIntStateOf(-1) }
+    var selectedIndex by remember(games) { mutableIntStateOf(start) }
+    val firstGameFocus = remember(games) { FocusRequester() }
+    val lastGameFocus = remember(games) { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
     val pace = remember { RowPace() }
     val gap = if (HomeTheme.fullscreen.value) 28.dp else 18.dp
     val slotPx = with(LocalDensity.current) { (cardW + gap).roundToPx() }
@@ -472,14 +477,37 @@ private fun Shelf(
             val side = e + if (rememberHasGamepad()) cardW * (focusScale - 1f) / 2 else 0.dp // the zoom grows from the center
             PaddingValues(start = side, end = side, top = topRoom, bottom = 4.dp)
         } ?: PaddingValues(start = startPad + cardW * (focusScale - 1f), end = 20.dp + cardW * (focusScale - 1f), top = topRoom, bottom = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().steadyKeys(pace),
+        horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top,
+        modifier = Modifier.fillMaxWidth().steadyKeys(pace) { key ->
+            val targetIndex = when {
+                games.size < 2 -> null
+                key == Key.DirectionLeft && selectedIndex == 0 -> games.lastIndex
+                key == Key.DirectionRight && selectedIndex == games.lastIndex -> 0
+                else -> null
+            } ?: return@steadyKeys false
+            coroutineScope.launch {
+                rowState.scrollToItem(targetIndex, -slotPx)
+                repeat(3) {
+                    androidx.compose.runtime.withFrameNanos { }
+                    val requester = if (targetIndex == 0) firstGameFocus else lastGameFocus
+                    if (runCatching { requester.requestFocus() }.isSuccess) return@launch
+                }
+            }
+            true
+        },
     ) {
         items(games.size, key = { games[it].key }) { i ->
             val g = games[i]
-            CoverCard(g.title, version, cardW, cardH, if (i == target && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier,
+            CoverCard(g.title, version, cardW, cardH,
+                (if (i == target && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier).then(
+                    when (i) {
+                        0 -> Modifier.focusRequester(firstGameFocus)
+                        games.lastIndex -> Modifier.focusRequester(lastGameFocus)
+                        else -> Modifier
+                    }),
                 reflection = reflection, focusScale = focusScale,
                 onClick = { LibraryView.lastGame = g.key; actions.play(g) }, onOptions = { actions.options(g) },
-                onFocused = { cover -> LibraryView.lastGame = g.key; onSelected(g, cover); pace.focused(); focusIndex = i })
+                onFocused = { cover -> LibraryView.lastGame = g.key; selectedIndex = i; onSelected(g, cover); pace.focused(); focusIndex = i })
         }
     }
 }
@@ -508,13 +536,13 @@ private class RowPace {
     companion object { const val STEP_MS = 120L }
 }
 
-private fun Modifier.steadyKeys(pace: RowPace) = onPreviewKeyEvent { e ->
+private fun Modifier.steadyKeys(pace: RowPace, onBoundary: (Key) -> Boolean = { false }) = onPreviewKeyEvent { e ->
     if (e.type != KeyEventType.KeyDown || (e.key != Key.DirectionLeft && e.key != Key.DirectionRight)) return@onPreviewKeyEvent false
     val now = android.os.SystemClock.uptimeMillis()
     val repeat = e.nativeKeyEvent.repeatCount > 0
     if (repeat && now - pace.lastMove < RowPace.STEP_MS) return@onPreviewKeyEvent true // held: wait for the next step
     pace.lastMove = if (repeat) now else 0L
-    false // the normal focus move happens
+    onBoundary(e.key) // move across a library edge or let Compose handle the normal focus move
 }
 
 // ---- A: Showcase ------------------------------------------------------------------------------------------------------
@@ -591,16 +619,46 @@ private fun GridHome(
                     val start = remember(games) { LibraryView.gameIndex(games) }
                     // The requester follows the selected game (see Shelf); the grid recomposes when the selection moves
                     var selectionTick by remember { mutableIntStateOf(0) }
+                    var selectedIndex by remember(games) { mutableIntStateOf(start) }
                     val target = remember(games, selectionTick) { LibraryView.gameIndex(games) }
+                    val gridState = remember(games.isEmpty()) { androidx.compose.foundation.lazy.grid.LazyGridState(start) }
+                    val firstGameFocus = remember(games) { FocusRequester() }
+                    val lastGameFocus = remember(games) { FocusRequester() }
+                    val coroutineScope = rememberCoroutineScope()
                     LazyVerticalGrid(
-                        state = remember(games.isEmpty()) { androidx.compose.foundation.lazy.grid.LazyGridState(start) },
+                        state = gridState,
                         columns = GridCells.Fixed(cols), contentPadding = if (compact) PaddingValues(horizontal = 18.dp, vertical = 12.dp) else PaddingValues(horizontal = 14.dp, vertical = 18.dp),
                         horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 20.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 26.dp),
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().onPreviewKeyEvent { event ->
+                            if (event.type != KeyEventType.KeyDown || games.size < 2) return@onPreviewKeyEvent false
+                            val targetIndex = when {
+                                event.key == Key.DirectionLeft && selectedIndex == 0 -> games.lastIndex
+                                event.key == Key.DirectionRight && selectedIndex == games.lastIndex -> 0
+                                else -> null
+                            } ?: return@onPreviewKeyEvent false
+                            coroutineScope.launch {
+                                gridState.scrollToItem(targetIndex)
+                                repeat(3) {
+                                    androidx.compose.runtime.withFrameNanos { }
+                                    val requester = if (targetIndex == 0) firstGameFocus else lastGameFocus
+                                    if (runCatching { requester.requestFocus() }.isSuccess) return@launch
+                                }
+                            }
+                            true
+                        },
                     ) {
                         items(games.size, key = { games[it].key }) { i ->
                             val g = games[i]
-                            GridCard(g, latestByGame[g.key] != null, version, if (i == target) Modifier.focusRequester(first) else Modifier, actions) { selectionTick++ }
+                            GridCard(g, latestByGame[g.key] != null, version,
+                                (if (i == target) Modifier.focusRequester(first) else Modifier).then(
+                                    when (i) {
+                                        0 -> Modifier.focusRequester(firstGameFocus)
+                                        games.lastIndex -> Modifier.focusRequester(lastGameFocus)
+                                        else -> Modifier
+                                    }), actions) {
+                                selectedIndex = i
+                                selectionTick++
+                            }
                         }
                     }
                 }
