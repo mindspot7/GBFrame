@@ -38,6 +38,9 @@ line here whenever a new app teaches something that would have saved time.
 - A thread per chip is not free: with only 2 fast cores (T618), a threaded sound chip took the core the background
   renderer needed (VF2: 30 fps threaded vs 50-60 fps unthreaded). But other games (Burning Rangers, NiGHTS) need it: tune it per game
   at runtime (Auto mode: try the other mode when slow, keep the faster, remember per game).
+- The trade-off changes with core count: on the RG DS (4x A55), threaded SCSP was faster in both VF2 (53.7 vs 40.45 fps)
+  and Burning Rangers (30.9 vs 25.6 fps). Turning it off removed the sound-thread wait but moved its work onto emulation,
+  increased audio underruns, and lowered FPS. Judge the mode by throughput and audio health, not wait time alone.
 - CPU profiles don't show waits: log per frame how long the emulation thread waits for each helper thread (sound,
   VDP1, VDP2) together with the active settings; it found what profiles could not.
 - Keep one Android performance hint session, on the emulation thread only; recreating it leaves lasting slowdowns.
@@ -52,6 +55,11 @@ line here whenever a new app teaches something that would have saved time.
   thread layout was already right (emulation alone on one core, VDP/sound on the other three). Longer SH-2 sync
   steps barely help there (128 -> 1024 cycles: 21.7 -> 20.1 ms) and 512 made VF2 hang on a black screen at boot:
   keep Fast at 128 cycles.
+- Before attributing an Entry-tier CPU bottleneck to thermal throttling, sample the device governor, current/max
+  frequency and thermal status during gameplay. On the RG DS, VF2's four A55s reported a shared `performance`
+  policy at 1.992 GHz throughout a 25-second CPU-renderer capture; thermal status stayed 0 at 60 °C (70 °C
+  threshold). This rules out observed clock scaling and thermal throttling in that capture; affinity and CPU
+  utilization are separate measurements and must not be inferred from frequency alone.
 - Reusing alternate VDP2 background rows in 448-line interlaced software output (Yaba-style half-height backgrounds)
   was tested on the RG DS with the same VF2 Slot 1 state and adaptive graphics on. 30 s averaged 58.7 -> 58.9 emulated
   FPS, but average frame time rose 16.2 -> 16.9 ms and slow-frame count rose 578 -> 625; the image also lost too much
