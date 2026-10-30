@@ -18,6 +18,28 @@ object LauncherIconCompatibility {
         manufacturer.trim().equals("Anbernic", ignoreCase = true) &&
             model.trim().equals("RG DS", ignoreCase = true)
 
+    /**
+     * Apply the consumer-declared launcher aliases from app metadata.
+     *
+     * Call this from the consumer Application.onCreate as well as after package replacement:
+     * Android does not send MY_PACKAGE_REPLACED on first install, so relying on the receiver
+     * alone leaves the manifest-default bitmap alias active on RG DS until a later update.
+     */
+    @JvmStatic
+    fun applyFromMetadata(context: Context): Boolean {
+        val applicationInfo = try {
+            @Suppress("DEPRECATION")
+            context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+        } catch (_: PackageManager.NameNotFoundException) {
+            return false
+        }
+        val metadata = applicationInfo.metaData ?: return false
+        val bitmapAlias = metadata.getString(BITMAP_ALIAS_METADATA) ?: return false
+        val adaptiveAlias = metadata.getString(ADAPTIVE_ALIAS_METADATA) ?: return false
+        apply(context, bitmapAlias, adaptiveAlias)
+        return true
+    }
+
     /** Apply consumer-owned launcher aliases using the current Android device identity. */
     @JvmStatic
     fun apply(
@@ -77,4 +99,7 @@ object LauncherIconCompatibility {
             )
         }
     }
+
+    private const val BITMAP_ALIAS_METADATA = "gb.frame.bitmapLauncherAlias"
+    private const val ADAPTIVE_ALIAS_METADATA = "gb.frame.adaptiveLauncherAlias"
 }
