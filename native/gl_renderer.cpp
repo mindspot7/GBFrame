@@ -326,7 +326,12 @@ void Loop() {
     bool haveFrame = false;
     int frameSlot = -1; // slot of the new frame (zero-copy path), -1 = frame in `local`
     GLsync frameFence = nullptr;
-    struct SlotGl { GLuint tex = 0; EGLImageKHR img = EGL_NO_IMAGE_KHR; uint32_t gen = 0; } slotGl[State::kSlots];
+    struct SlotGl {
+        GLuint tex = 0;
+        EGLImageKHR img = EGL_NO_IMAGE_KHR;
+        uint32_t gen = 0;
+        uint32_t failedGen = 0;
+    } slotGl[State::kSlots];
     auto eglGetNativeClientBuffer = (PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC)eglGetProcAddress("eglGetNativeClientBufferANDROID");
     auto imageTargetTexture = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)eglGetProcAddress("glEGLImageTargetTexture2DOES");
     auto createImage = (PFNEGLCREATEIMAGEKHRPROC)eglGetProcAddress("eglCreateImageKHR");
@@ -463,8 +468,12 @@ void Loop() {
             // Zero-copy: sample the hardware buffer directly through an EGLImage
             auto &gl = slotGl[frameSlot];
             const auto &sl = S.slots[frameSlot];
-            if (gl.gen != sl.gen || gl.img == EGL_NO_IMAGE_KHR) {
+            if (gl.gen != sl.gen) {
                 if (gl.img != EGL_NO_IMAGE_KHR) { destroyImage(dpy, gl.img); gl.img = EGL_NO_IMAGE_KHR; }
+                gl.gen = 0;
+                gl.failedGen = 0;
+            }
+            if (gl.img == EGL_NO_IMAGE_KHR && gl.failedGen != sl.gen) {
                 if (!gl.tex) {
                     glGenTextures(1, &gl.tex);
                     glBindTexture(GL_TEXTURE_2D, gl.tex);
@@ -474,20 +483,52 @@ void Loop() {
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
                 }
                 const EGLint attrs[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
-                gl.img = createImage(dpy, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglGetNativeClientBuffer(sl.hb), attrs);
+                const EGLClientBuffer clientBuffer = eglGetNativeClientBuffer(sl.hb);
+                gl.img = clientBuffer == nullptr
+                             ? EGL_NO_IMAGE_KHR
+                             : createImage(dpy, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, attrs);
                 glBindTexture(GL_TEXTURE_2D, gl.tex);
                 if (gl.img != EGL_NO_IMAGE_KHR) imageTargetTexture(GL_TEXTURE_2D, (GLeglImageOES)gl.img);
                 if (gl.img == EGL_NO_IMAGE_KHR || glGetError() != GL_NO_ERROR) {
-                    LOGE("EGLImage from AHardwareBuffer failed, using texture uploads");
-                    S.hbDisabled = true; // next frames come through the upload path
+                    if (gl.img != EGL_NO_IMAGE_KHR) destroyImage(dpy, gl.img);
+                    gl.img = EGL_NO_IMAGE_KHR;
+                    gl.failedGen = sl.gen;
+                    LOGE("EGLImage from AHardwareBuffer failed; trying CPU-readable buffer fallback");
+                } else {
+                    gl.gen = sl.gen;
+                }
+            }
+            if (gl.gen == sl.gen && gl.img != EGL_NO_IMAGE_KHR) {
+                drawTex = gl.tex;
+                drawW = lw;
+                drawH = lh;
+            } else {
+                // Some Android GPU drivers cannot sample these buffers through EGLImage. They were
+                // allocated with CPU_READ_RARELY, so copy rows using the reported AHardwareBuffer
+                // stride and upload on the presenter thread instead of invoking GLES glReadPixels.
+                glFinish();
+                AHardwareBuffer_Desc desc{};
+                AHardwareBuffer_describe(sl.hb, &desc);
+                void *pixels = nullptr;
+                const int lockResult = AHardwareBuffer_lock(sl.hb, AHARDWAREBUFFER_USAGE_CPU_READ_RARELY, -1, nullptr,
+                                                            &pixels);
+                if (lockResult != 0 || pixels == nullptr || desc.format != AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM ||
+                    desc.width < lw || desc.height < lh || desc.stride < lw) {
+                    if (lockResult == 0 && pixels != nullptr) AHardwareBuffer_unlock(sl.hb, nullptr);
+                    LOGE("AHardwareBuffer CPU fallback failed (lock=%d, size=%ux%u, stride=%u, format=%u)",
+                         lockResult, desc.width, desc.height, desc.stride, desc.format);
                     continue;
                 }
-                gl.gen = sl.gen;
+                local.resize((size_t)lw * lh);
+                for (uint32_t y = 0; y < lh; ++y) {
+                    memcpy(local.data() + (size_t)y * lw, (const uint32_t *)pixels + (size_t)y * desc.stride,
+                           (size_t)lw * sizeof(uint32_t));
+                }
+                AHardwareBuffer_unlock(sl.hb, nullptr);
+                frameSlot = -1;
             }
-            drawTex = gl.tex;
-            drawW = lw;
-            drawH = lh;
-        } else if (newFrame) {
+        }
+        if (newFrame && frameSlot < 0) {
             drawTex = tex;
             glBindTexture(GL_TEXTURE_2D, tex);
             glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
