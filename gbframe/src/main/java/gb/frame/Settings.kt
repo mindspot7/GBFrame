@@ -92,6 +92,16 @@ fun AdaptiveGraphicsSettingsRow(value: Boolean, onChange: (Boolean) -> Unit) = T
     onChange,
 )
 
+/** Shared opt-in for cores that can reduce VDP2 background raster work in high-resolution interlaced modes. */
+@Composable
+fun HalfHeightBackgroundsSettingsRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
+    Icons.Default.Tune,
+    "Half-height backgrounds",
+    "Reduces detail in high-resolution interlaced backgrounds to improve performance. Sprites stay full resolution; supported software renderers only.",
+    value,
+    onChange,
+)
+
 /** Shared Performance control for an app-provided, per-game frame-rate hack. */
 @Composable
 fun FrameRateHackRow(control: CheatPatchControl, enabled: Boolean = true, onChange: (Boolean) -> Unit) = ToggleRow(

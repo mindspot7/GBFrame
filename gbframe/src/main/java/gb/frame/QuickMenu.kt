@@ -307,6 +307,17 @@ fun AdaptiveGraphicsItem(id: String = "adaptive-graphics", value: Boolean, onCha
         onClick = { onChange(!value) },
     )
 
+/** Shared in-game Performance control for reducing interlaced background raster work when a core supports it. */
+@Composable
+fun HalfHeightBackgroundsItem(id: String = "half-height-backgrounds", value: Boolean, onChange: (Boolean) -> Unit) =
+    QuickMenuItemRow(
+        id = id,
+        icon = Icons.Default.Tune,
+        label = "Half-height backgrounds",
+        value = if (value) "On" else "Off",
+        onClick = { onChange(!value) },
+    )
+
 /** Standard in-game Performance row for a core- or code-provided frame-rate hack. */
 @Composable
 fun FrameRateHackItem(
