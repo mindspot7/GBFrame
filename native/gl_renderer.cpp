@@ -218,6 +218,11 @@ struct State {
     bool stop = false;
     std::atomic<bool> windowReady{false};
     std::atomic<bool> vulkanTargetDisabled{false};
+    std::atomic<bool> glesTargetDisabled{false};
+    EGLDisplay eglDisplay = EGL_NO_DISPLAY;
+    EGLContext sharedContext = EGL_NO_CONTEXT;
+    EGLSurface sharedSurface = EGL_NO_SURFACE;
+    std::atomic<bool> sharedContextReady{false};
 
     ANativeWindow *pendingWindow = nullptr;
     bool windowPending = false;
@@ -235,6 +240,7 @@ struct State {
         uint32_t gen = 0; // bumped when the buffer is reallocated
         uint64_t usage = 0;
         bool vulkanTarget = false;
+        void *readyFence = nullptr; // GLsync created in the shared GLES context
     } slots[kSlots];
     int readySlot = -1, shownSlot = -1, writingSlot = -1;
     std::atomic<bool> hbDisabled{false}; // set when the device lacks the EGL/GL extensions or allocation fails
@@ -271,19 +277,40 @@ GLuint Compile(GLenum type, const char *src) {
 void Loop() {
     EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     eglInitialize(dpy, nullptr, nullptr);
-    const EGLint cfgAttr[] = {EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT, EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+    const EGLint cfgAttr[] = {EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT, EGL_SURFACE_TYPE,
+                              EGL_WINDOW_BIT | EGL_PBUFFER_BIT,
                               EGL_RED_SIZE,        8,                  EGL_GREEN_SIZE,   8,
                               EGL_BLUE_SIZE,       8,                  EGL_ALPHA_SIZE,   0,
                               EGL_NONE};
     EGLConfig cfg = nullptr;
     EGLint n = 0;
     eglChooseConfig(dpy, cfgAttr, &cfg, 1, &n);
+    if (n == 0) {
+        const EGLint windowCfgAttr[] = {EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT, EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+                                        EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 0,
+                                        EGL_NONE};
+        eglChooseConfig(dpy, windowCfgAttr, &cfg, 1, &n);
+    }
     const EGLint ctxAttr[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
     EGLContext ctx = eglCreateContext(dpy, cfg, EGL_NO_CONTEXT, ctxAttr);
     if (n == 0 || ctx == EGL_NO_CONTEXT) {
         LOGE("EGL setup failed");
         failed = true;
         return;
+    }
+    const EGLint pbufferAttr[] = {EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE};
+    EGLSurface sharedSurf = eglCreatePbufferSurface(dpy, cfg, pbufferAttr);
+    EGLContext sharedCtx = sharedSurf != EGL_NO_SURFACE ? eglCreateContext(dpy, cfg, ctx, ctxAttr) : EGL_NO_CONTEXT;
+    if (sharedSurf != EGL_NO_SURFACE && sharedCtx != EGL_NO_CONTEXT) {
+        std::lock_guard lk(S.m);
+        S.eglDisplay = dpy;
+        S.sharedContext = sharedCtx;
+        S.sharedSurface = sharedSurf;
+        S.sharedContextReady.store(true, std::memory_order_release);
+    } else {
+        LOGE("Could not create shared GLES render context; GLES VDP renderer unavailable");
+        if (sharedCtx != EGL_NO_CONTEXT) eglDestroyContext(dpy, sharedCtx);
+        if (sharedSurf != EGL_NO_SURFACE) eglDestroySurface(dpy, sharedSurf);
     }
 
     EGLSurface surf = EGL_NO_SURFACE;
@@ -298,6 +325,7 @@ void Loop() {
     uint32_t lw = 0, lh = 0;
     bool haveFrame = false;
     int frameSlot = -1; // slot of the new frame (zero-copy path), -1 = frame in `local`
+    GLsync frameFence = nullptr;
     struct SlotGl { GLuint tex = 0; EGLImageKHR img = EGL_NO_IMAGE_KHR; uint32_t gen = 0; } slotGl[State::kSlots];
     auto eglGetNativeClientBuffer = (PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC)eglGetProcAddress("eglGetNativeClientBufferANDROID");
     auto imageTargetTexture = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)eglGetProcAddress("glEGLImageTargetTexture2DOES");
@@ -405,6 +433,8 @@ void Loop() {
                 previousShownSlot = S.shownSlot;
                 if (S.readySlot >= 0) {
                     frameSlot = S.readySlot;
+                    frameFence = (GLsync)S.slots[frameSlot].readyFence;
+                    S.slots[frameSlot].readyFence = nullptr;
                     S.readySlot = -1;
                 } else {
                     frameSlot = -1;
@@ -421,6 +451,12 @@ void Loop() {
         }
         if (surf == EGL_NO_SURFACE || !haveFrame || !prog) {
             continue;
+        }
+
+        if (newFrame && frameFence) {
+            glWaitSync(frameFence, 0, GL_TIMEOUT_IGNORED);
+            glDeleteSync(frameFence);
+            frameFence = nullptr;
         }
 
         if (newFrame && frameSlot >= 0) {
@@ -530,6 +566,15 @@ void Loop() {
     if (win) {
         ANativeWindow_release(win);
     }
+    if (sharedCtx != EGL_NO_CONTEXT) eglDestroyContext(dpy, sharedCtx);
+    if (sharedSurf != EGL_NO_SURFACE) eglDestroySurface(dpy, sharedSurf);
+    {
+        std::lock_guard lk(S.m);
+        S.sharedContextReady.store(false, std::memory_order_release);
+        S.eglDisplay = EGL_NO_DISPLAY;
+        S.sharedContext = EGL_NO_CONTEXT;
+        S.sharedSurface = EGL_NO_SURFACE;
+    }
     eglDestroyContext(dpy, ctx);
     eglTerminate(dpy);
 }
@@ -538,6 +583,11 @@ void EnsureThread() {
     if (!S.started) {
         S.started = true;
         S.stop = false;
+        S.eglDisplay = EGL_NO_DISPLAY;
+        S.sharedContext = EGL_NO_CONTEXT;
+        S.sharedSurface = EGL_NO_SURFACE;
+        S.sharedContextReady.store(false, std::memory_order_release);
+        S.glesTargetDisabled.store(false, std::memory_order_release);
         S.th = std::thread(Loop);
     }
 }
@@ -552,6 +602,83 @@ void SetWindow(ANativeWindow *window) {
     S.pendingWindow = window;
     S.windowPending = true;
     EnsureThread();
+    S.cv.notify_all();
+}
+
+bool GetSharedGlesContext(SharedGlesContext *out) {
+    if (!out || !S.sharedContextReady.load(std::memory_order_acquire)) return false;
+    std::lock_guard lk(S.m);
+    if (!S.sharedContextReady.load(std::memory_order_relaxed)) return false;
+    out->display = (void *)S.eglDisplay;
+    out->context = (void *)S.sharedContext;
+    out->surface = (void *)S.sharedSurface;
+    return true;
+}
+
+GlesTarget AcquireGlesTarget(uint32_t width, uint32_t height) {
+    int idx = -1;
+    {
+        std::lock_guard lk(S.m);
+        if (!S.started || !S.windowReady.load(std::memory_order_acquire) ||
+            !S.hbSupportReady.load(std::memory_order_acquire) || S.hbDisabled.load() ||
+            S.glesTargetDisabled.load()) return {};
+        for (int i = 0; i < State::kSlots; ++i) {
+            if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot) { idx = i; break; }
+        }
+        if (idx < 0) return {};
+        S.writingSlot = idx;
+    }
+    auto &sl = S.slots[idx];
+    const uint64_t usage = AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
+                           AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT;
+    bool ok = true;
+    if (!sl.hb || sl.w != width || sl.h != height || (sl.usage & usage) != usage) {
+        if (sl.hb) { AHardwareBuffer_release(sl.hb); sl.hb = nullptr; }
+        AHardwareBuffer_Desc d{};
+        d.width = width;
+        d.height = height;
+        d.layers = 1;
+        d.format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
+        d.usage = usage;
+        ok = AHardwareBuffer_allocate(&d, &sl.hb) == 0;
+        if (ok) {
+            AHardwareBuffer_describe(sl.hb, &d);
+            sl.w = width; sl.h = height; sl.stride = d.stride; sl.usage = usage; sl.gen++;
+        }
+    }
+    std::lock_guard lk(S.m);
+    if (!ok || !sl.hb) {
+        S.writingSlot = -1;
+        S.glesTargetDisabled = true;
+        LOGE("GLES VDP AHardwareBuffer target unavailable");
+        return {};
+    }
+    sl.vulkanTarget = true; // same presenter-side lifetime fence as Vulkan targets
+    const uint64_t token = ((uint64_t)sl.gen << 32) | (uint32_t)idx;
+    return {sl.hb, token, sl.stride};
+}
+
+void SubmitGlesTarget(uint64_t token, uint32_t width, uint32_t height, uint32_t scale, void *fence) {
+    const uint32_t idx = (uint32_t)token;
+    const uint32_t gen = (uint32_t)(token >> 32);
+    std::lock_guard lk(S.m);
+    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen || !S.slots[idx].hb) return;
+    S.slots[idx].readyFence = fence;
+    S.writingSlot = -1;
+    S.readySlot = (int)idx;
+    S.fw = width;
+    S.fh = height;
+    S.fscale = scale ? scale : 1;
+    S.frameReady = true;
+    S.cv.notify_all();
+}
+
+void CancelGlesTarget(uint64_t token) {
+    const uint32_t idx = (uint32_t)token;
+    const uint32_t gen = (uint32_t)(token >> 32);
+    std::lock_guard lk(S.m);
+    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen) return;
+    S.writingSlot = -1;
     S.cv.notify_all();
 }
 

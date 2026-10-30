@@ -11,6 +11,25 @@
 
 namespace glr {
 
+// GLES VDP backends use this child context to share textures and sync objects with the presenter.
+// GBFrame owns the handles; they remain valid until Shutdown().
+struct SharedGlesContext {
+    void *display = nullptr; // EGLDisplay
+    void *context = nullptr; // EGLContext shared with the presenter
+    void *surface = nullptr; // 1x1 EGLSurface for off-screen rendering
+};
+
+struct GlesTarget {
+    AHardwareBuffer *buffer = nullptr; // retained by GBFrame until the slot is recycled
+    uint64_t token = 0;
+    uint32_t stride = 0;
+};
+
+bool GetSharedGlesContext(SharedGlesContext *out);
+GlesTarget AcquireGlesTarget(uint32_t width, uint32_t height);
+void SubmitGlesTarget(uint64_t token, uint32_t width, uint32_t height, uint32_t scale, void *fence);
+void CancelGlesTarget(uint64_t token);
+
 struct VulkanTarget {
     AHardwareBuffer *buffer = nullptr;
     uint64_t token = 0; // slot index + allocation generation; valid until SubmitVulkanTarget/CancelVulkanTarget
