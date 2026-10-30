@@ -44,6 +44,10 @@ line here whenever a new app teaches something that would have saved time.
 - On the same Entry device, NiGHTS with 250-349 VDP1 commands/frame measured 48.7 fps with threaded SCSP vs 36.8 fps
   without it (ABBA, same savestate); sound-scheduler time fell 11.29 -> 0.74 ms and underruns 44 -> 31/s. A measured
   per-tier game profile should supersede a stale Auto result, while an explicit per-game On/Off choice still wins.
+- Further RG DS A/B/B/A tests with the same savestate confirmed threaded SCSP for VF2 (55.3 vs 41.9 fps at 200-399
+  VDP1 commands), Daytona CCE (57.7 vs 44.5) and Guardian Heroes (57.4 vs 47.3), with lower sound-scheduler time and
+  fewer underruns in all three. The tested Entry-tier profiles should start with it enabled and supersede stale Auto
+  cache results; the user can still choose On or Off per game.
 - CPU profiles don't show waits: log per frame how long the emulation thread waits for each helper thread (sound,
   VDP1, VDP2) together with the active settings; it found what profiles could not.
 - Keep one Android performance hint session, on the emulation thread only; recreating it leaves lasting slowdowns.
