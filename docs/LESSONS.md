@@ -38,6 +38,25 @@ line here whenever a new app teaches something that would have saved time.
 - A thread per chip is not free: with only 2 fast cores (T618), a threaded sound chip took the core the background
   renderer needed (VF2: 30 fps threaded vs 50-60 fps unthreaded). But other games (Burning Rangers, NiGHTS) need it: tune it per game
   at runtime (Auto mode: try the other mode when slow, keep the faster, remember per game).
+- The trade-off changes with core count: on the RG DS (4x A55), threaded SCSP was faster in both VF2 (53.7 vs 40.45 fps)
+  and Burning Rangers (30.9 vs 25.6 fps). Turning it off removed the sound-thread wait but moved its work onto emulation,
+  increased audio underruns, and lowered FPS. Judge the mode by throughput and audio health, not wait time alone.
+- On the same Entry device, NiGHTS with 250-349 VDP1 commands/frame measured 48.7 fps with threaded SCSP vs 36.8 fps
+  without it (ABBA, same savestate); sound-scheduler time fell 11.29 -> 0.74 ms and underruns 44 -> 31/s. A measured
+  per-tier game profile should supersede a stale Auto result, while an explicit per-game On/Off choice still wins.
+- Further RG DS A/B/B/A tests with the same savestate confirmed threaded SCSP for VF2 (55.3 vs 41.9 fps at 200-399
+  VDP1 commands), Daytona CCE (57.7 vs 44.5) and Guardian Heroes (57.4 vs 47.3), with lower sound-scheduler time and
+  fewer underruns in all three. The tested Entry-tier profiles should start with it enabled and supersede stale Auto
+  cache results; the user can still choose On or Off per game.
+- On the RG DS, Fast SH-2 sync (128 cycles) beat Accurate (32) by 4-10% in NiGHTS, VF2, Daytona and Guardian Heroes
+  with the recompiler held off; Burning Rangers stayed at 32 because of `PreciseSH2Sync`. Keep Fast as the app default
+  and preserve such core game-database exceptions.
+- Approximate SH-2 recompiler On beat Off at Fast sync in the same four games (about 4% in Guardian Heroes, 21% in
+  VF2, 24% in NiGHTS and 31% in Daytona). Burning Rangers' precise-sync rule disabled the JIT either way. Keep the
+  measured global default On, with the core deciding when the game requires the interpreter.
+- Compare both emulated and displayed FPS when evaluating Adaptive graphics: on the RG DS it improved emulation
+  throughput and audio underruns in those four games, while reducing the number of rendered frames. In Burning
+  Rangers it did not improve throughput or underruns, so GBSat's Entry profile opts out there for smoother video.
 - CPU profiles don't show waits: log per frame how long the emulation thread waits for each helper thread (sound,
   VDP1, VDP2) together with the active settings; it found what profiles could not.
 - Keep one Android performance hint session, on the emulation thread only; recreating it leaves lasting slowdowns.
@@ -52,6 +71,11 @@ line here whenever a new app teaches something that would have saved time.
   thread layout was already right (emulation alone on one core, VDP/sound on the other three). Longer SH-2 sync
   steps barely help there (128 -> 1024 cycles: 21.7 -> 20.1 ms) and 512 made VF2 hang on a black screen at boot:
   keep Fast at 128 cycles.
+- Before attributing an Entry-tier CPU bottleneck to thermal throttling, sample the device governor, current/max
+  frequency and thermal status during gameplay. On the RG DS, VF2's four A55s reported a shared `performance`
+  policy at 1.992 GHz throughout a 25-second CPU-renderer capture; thermal status stayed 0 at 60 °C (70 °C
+  threshold). This rules out observed clock scaling and thermal throttling in that capture; affinity and CPU
+  utilization are separate measurements and must not be inferred from frequency alone.
 - Reusing alternate VDP2 background rows in 448-line interlaced software output (Yaba-style half-height backgrounds)
   was tested on the RG DS with the same VF2 Slot 1 state and adaptive graphics on. 30 s averaged 58.7 -> 58.9 emulated
   FPS, but average frame time rose 16.2 -> 16.9 ms and slow-frame count rose 578 -> 625; the image also lost too much
