@@ -49,7 +49,9 @@ The consuming app owns its launcher icon in its own Android resources; GBFrame m
     support RG DS must declare a second launcher alias targeting the existing main activity, with a distinct resource name
     that resolves to the transparent adaptive icon. Use `LauncherIconCompatibility` to enable that alias only on RG DS;
     declare the bitmap and adaptive alias names in application metadata so the shared package-replacement receiver can
-    select the right one. Keep the main activity enabled and preserve the plain-bitmap alias on other devices.
+    select the right one. Call `LauncherIconCompatibility.applyFromMetadata(this)` from the consumer `Application.onCreate`
+    as well: first installs do not receive `MY_PACKAGE_REPLACED`, so waiting for the receiver leaves RG DS on the bitmap
+    alias until an update. Keep the main activity enabled and preserve the plain-bitmap alias on other devices.
   - `drawable-nodpi/<name>_legacy.png`: the adaptive foreground trimmed to its visible bounds plus ~2% margin, square.
     `tools/make-legacy-icon.py <ic_launcher_foreground.png> <out.png>` makes it.
   - Check the installed result on one device of each kind (the launcher's look, not only the resources).
