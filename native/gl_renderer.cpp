@@ -240,9 +240,10 @@ struct State {
         uint32_t gen = 0; // bumped when the buffer is reallocated
         uint64_t usage = 0;
         bool vulkanTarget = false;
+        bool writing = false;
         void *readyFence = nullptr; // GLsync created in the shared GLES context
     } slots[kSlots];
-    int readySlot = -1, shownSlot = -1, writingSlot = -1;
+    int readySlot = -1, shownSlot = -1;
     std::atomic<bool> hbDisabled{false}; // set when the device lacks the EGL/GL extensions or allocation fails
     std::atomic<bool> hbSupportReady{false};
 
@@ -664,10 +665,10 @@ GlesTarget AcquireGlesTarget(uint32_t width, uint32_t height) {
             !S.hbSupportReady.load(std::memory_order_acquire) || S.hbDisabled.load() ||
             S.glesTargetDisabled.load()) return {};
         for (int i = 0; i < State::kSlots; ++i) {
-            if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot) { idx = i; break; }
+            if (i != S.readySlot && i != S.shownSlot && !S.slots[i].writing) { idx = i; break; }
         }
         if (idx < 0) return {};
-        S.writingSlot = idx;
+        S.slots[idx].writing = true;
     }
     auto &sl = S.slots[idx];
     const uint64_t usage = AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
@@ -689,7 +690,7 @@ GlesTarget AcquireGlesTarget(uint32_t width, uint32_t height) {
     }
     std::lock_guard lk(S.m);
     if (!ok || !sl.hb) {
-        S.writingSlot = -1;
+        sl.writing = false;
         S.glesTargetDisabled = true;
         LOGE("GLES VDP AHardwareBuffer target unavailable");
         return {};
@@ -703,9 +704,11 @@ void SubmitGlesTarget(uint64_t token, uint32_t width, uint32_t height, uint32_t 
     const uint32_t idx = (uint32_t)token;
     const uint32_t gen = (uint32_t)(token >> 32);
     std::lock_guard lk(S.m);
-    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen || !S.slots[idx].hb) return;
+    if (idx >= State::kSlots || !S.slots[idx].writing || S.slots[idx].gen != gen || !S.slots[idx].hb) {
+        return;
+    }
     S.slots[idx].readyFence = fence;
-    S.writingSlot = -1;
+    S.slots[idx].writing = false;
     S.readySlot = (int)idx;
     S.fw = width;
     S.fh = height;
@@ -718,8 +721,8 @@ void CancelGlesTarget(uint64_t token) {
     const uint32_t idx = (uint32_t)token;
     const uint32_t gen = (uint32_t)(token >> 32);
     std::lock_guard lk(S.m);
-    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen) return;
-    S.writingSlot = -1;
+    if (idx >= State::kSlots || !S.slots[idx].writing || S.slots[idx].gen != gen) return;
+    S.slots[idx].writing = false;
     S.cv.notify_all();
 }
 
@@ -729,10 +732,10 @@ bool SubmitHardwareBuffer(const uint32_t *fb, uint32_t width, uint32_t height, u
         std::lock_guard lk(S.m);
         if (!S.started) return true;
         for (int i = 0; i < State::kSlots; i++) {
-            if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot) { idx = i; break; }
+            if (i != S.readySlot && i != S.shownSlot && !S.slots[i].writing) { idx = i; break; }
         }
         if (idx < 0) return false;
-        S.writingSlot = idx;
+        S.slots[idx].writing = true;
     }
     auto &sl = S.slots[idx];
     bool ok = true;
@@ -764,7 +767,7 @@ bool SubmitHardwareBuffer(const uint32_t *fb, uint32_t width, uint32_t height, u
         AHardwareBuffer_unlock(sl.hb, nullptr);
     }
     std::lock_guard lk(S.m);
-    S.writingSlot = -1;
+    sl.writing = false;
     if (!ok) {
         S.hbDisabled = true;
         LOGE("AHardwareBuffer path unavailable, using texture uploads");
@@ -788,10 +791,10 @@ VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height) {
             !S.hbSupportReady.load(std::memory_order_acquire) || S.hbDisabled.load() ||
             S.vulkanTargetDisabled.load()) return {};
         for (int i = 0; i < State::kSlots; ++i) {
-            if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot) { idx = i; break; }
+            if (i != S.readySlot && i != S.shownSlot && !S.slots[i].writing) { idx = i; break; }
         }
         if (idx < 0) return {};
-        S.writingSlot = idx;
+        S.slots[idx].writing = true;
     }
     auto &sl = S.slots[idx];
     const uint64_t usage = AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
@@ -813,7 +816,7 @@ VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height) {
     }
     std::lock_guard lk(S.m);
     if (!ok || !sl.hb) {
-        S.writingSlot = -1;
+        sl.writing = false;
         S.vulkanTargetDisabled = true;
         LOGE("Vulkan AHardwareBuffer target unavailable, using readback presentation");
         return {};
@@ -828,8 +831,8 @@ void SubmitVulkanTarget(uint64_t token, uint32_t width, uint32_t height, uint32_
     const uint32_t idx = (uint32_t)token;
     const uint32_t gen = (uint32_t)(token >> 32);
     std::lock_guard lk(S.m);
-    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen || !S.slots[idx].hb) return;
-    S.writingSlot = -1;
+    if (idx >= State::kSlots || !S.slots[idx].writing || S.slots[idx].gen != gen || !S.slots[idx].hb) return;
+    S.slots[idx].writing = false;
     S.readySlot = (int)idx;
     S.fw = width;
     S.fh = height;
@@ -842,8 +845,8 @@ void CancelVulkanTarget(uint64_t token) {
     const uint32_t idx = (uint32_t)token;
     const uint32_t gen = (uint32_t)(token >> 32);
     std::lock_guard lk(S.m);
-    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen) return;
-    S.writingSlot = -1;
+    if (idx >= State::kSlots || !S.slots[idx].writing || S.slots[idx].gen != gen) return;
+    S.slots[idx].writing = false;
     S.cv.notify_all();
 }
 
