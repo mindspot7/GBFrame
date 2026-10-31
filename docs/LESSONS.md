@@ -2,8 +2,25 @@
 
 - Treat widescreen and frame-rate patches as distinct shared kit capabilities in Video and the in-game Performance menu. Prefer the core's native hack, then a curated game-specific code patch, then a matching database code; do not stack sources. Both default on and are suppressed in RetroAchievements Hardcore; reapply the effective patch set when the toggle, display mode or Hardcore state changes.
 
-What building GBSat (Sega Saturn, Ymir core) taught us, to apply from day one in every app of the family. Add a
-line here whenever a new app teaches something that would have saved time.
+Record discoveries from GBFrame and each consumer here so the next emulator can start from measured behavior instead
+of repeating the same investigation. Add a line whenever an app teaches something that would have saved time.
+
+## Lessons by project
+
+- **GBSat / Ymir (Sega Saturn):** renderer changes must be evaluated separately from CPU bottlenecks. On the RK3568,
+  Vulkan presentation overhead and Saturn CPU limits are distinct; renderer experiments did not justify changing the
+  proven OpenGL CPU path. Keep tested per-game CPU recommendations in GBFrame profiles and document the device/game
+  scope of every exception.
+- **GBCast / Flycast (Dreamcast):** keep shaders and picture scaling filters in the GBFrame presenter so OpenGL and
+  Vulkan produce the same output. The Vulkan path can render off-screen and copy into GBFrame's AHardwareBuffer ring;
+  submit a slot only after its Vulkan fence signals, and preserve CPU readback when import/copy support is unavailable.
+  The Vulkan-to-AHardwareBuffer copy is still a GPU copy; it avoids the GPU-to-CPU readback and keeps effects in one
+  implementation. Validate format, ownership transitions, synchronization, resize, and fallback on device before
+  treating this path as production-ready.
+- **GBFrame / shared Android behavior:** intent launch requests from frontends may contain either the ROM filename or
+  the library's displayed title. Resolve exact and case-insensitive filenames first, then titles, so title-based
+  requests (for example `Crazy Taxi`) keep using the indexed game path, per-game settings, and multi-file disc data.
+  Keep the matching rule and its tests in the kit so every consumer behaves the same.
 
 ## Measure before optimizing
 

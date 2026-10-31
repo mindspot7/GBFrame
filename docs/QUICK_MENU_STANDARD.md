@@ -217,6 +217,8 @@ val achievementsPage = QuickMenuPage("achievements", "Achievements", fullScreen 
 The app must initialize `RetroAchievements` with its `RaBackend` adapter and provide `appCheatsBackend` as a `CheatsBackend` implementation. The backend handles core-specific code formats and native calls; the shared screen handles presentation, editing flow, file selection, controller-compatible navigation and feedback.
 
 In real code, keep the standard root order from this document, and create submenu entries only when the app capability model confirms that the action is implemented. Use `fullScreen = true` for existing full-window subpages such as cheat/achievement screens that still need to participate in the same Back stack.
+
+The shared quick-menu scrim and side panel fill the app window from top to bottom. Keep vertical system-bar insets off the panel content so the panel does not shrink differently between consumers; apply horizontal safe-drawing insets only for cutouts. The panel width is responsive to the available window, capped at 340 dp, and uses 85% of narrower windows.
 ## Implementation contract
 
 The quick-menu visuals may be shared in GBFrame, but console/core operations belong to the app's adapter layer. Keep the separation clear:
