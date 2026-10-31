@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -195,7 +196,11 @@ fun QuickMenuHost(
         }
     } else {
         val p = palette
-        Box(modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier.fillMaxSize()) {
+            // Keep a single width for the root and every submenu. Deriving width from each page's
+            // labels made sparse pages (notably Video) look narrower than the main quick menu.
+            val panelWidth = minOf(maxWidth * .76f, 320.dp)
+            Box(Modifier.fillMaxSize()) {
             AnimatedVisibility(
                 visible = true,
                 enter = fadeIn(),
@@ -217,7 +222,7 @@ fun QuickMenuHost(
                     color = p.panel,
                     shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
                     border = BorderStroke(1.dp, p.border),
-                    modifier = Modifier.fillMaxHeight().fillMaxWidth(.85f).widthIn(max = 340.dp)
+                    modifier = Modifier.fillMaxHeight().width(panelWidth)
                         .pointerInput(Unit) { detectTapGestures(onTap = {}) },
                 ) {
                     // The panel itself reaches the top and bottom of the app window. Only inset
@@ -281,6 +286,7 @@ fun QuickMenuHost(
                         }
                     }
                 }
+            }
             }
         }
     }
@@ -403,7 +409,8 @@ fun QuickMenuItemContainer(
                 focused = it.isFocused
                 focusScope?.onFocused(id, it.isFocused)
             }
-            .background(if (focused) palette.accent.copy(alpha = .16f) else Color.Transparent)
+            .background(if (focused) palette.accent.copy(alpha = .30f) else Color.Transparent)
+            .then(if (focused) Modifier.border(2.dp, palette.accent, RoundedCornerShape(14.dp)) else Modifier)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

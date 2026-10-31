@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.FastForward
@@ -80,13 +80,34 @@ fun AudioSettingsGroups(settings: AudioSettings) {
     }
 }
 
-/** The standard rows of the quick menu's Audio page: volume down/up (10% steps) and fast-forward audio. */
+/** The standard controls of the quick menu's Audio page: output volume and fast-forward audio. */
 @Composable
 fun AudioQuickMenuRows(settings: AudioSettings) {
-    QuickMenuItemRow(id = "volume_down", icon = Icons.AutoMirrored.Filled.VolumeDown, label = "Volume down",
-        value = "${settings.volume}%") { settings.volume = (settings.volume - 10).coerceAtLeast(0); settings.save() }
-    QuickMenuItemRow(id = "volume_up", icon = Icons.AutoMirrored.Filled.VolumeUp, label = "Volume up",
-        value = "${settings.volume}%") { settings.volume = (settings.volume + 10).coerceAtMost(100); settings.save() }
+    QuickMenuItemContainer(id = "volume", onClick = {}) {
+        Icon(
+            if (settings.volume == 0) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
+            null,
+            tint = palette.accent,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text("Volume", color = Color.White, style = MaterialTheme.typography.bodyLarge)
+        Slider(
+            value = settings.volume.coerceIn(0, 100).toFloat(),
+            valueRange = 0f..100f,
+            steps = 19,
+            onValueChange = { settings.volume = it.toInt() },
+            onValueChangeFinished = { settings.save() },
+            modifier = Modifier.weight(1f).padding(start = 6.dp),
+            colors = SliderDefaults.colors(thumbColor = palette.accent, activeTrackColor = palette.accent),
+        )
+        Text(
+            "${settings.volume}%",
+            color = palette.highlight,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
     QuickMenuItemRow(id = "fast_forward_audio", icon = Icons.Default.FastForward, label = "Fast-forward audio",
         value = FastForwardAudio.labels[settings.fastForwardAudio.coerceIn(0, 2)]) {
         settings.fastForwardAudio = (settings.fastForwardAudio + 1) % 3; settings.save()
