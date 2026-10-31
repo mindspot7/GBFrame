@@ -55,6 +55,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -199,7 +200,8 @@ fun QuickMenuHost(
         BoxWithConstraints(modifier.fillMaxSize()) {
             // Keep a single width for the root and every submenu. Deriving width from each page's
             // labels made sparse pages (notably Video) look narrower than the main quick menu.
-            val panelWidth = minOf(maxWidth * .76f, 320.dp)
+            val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+            val panelWidth = minOf(screenWidth * .76f, 320.dp)
             Box(Modifier.fillMaxSize()) {
             AnimatedVisibility(
                 visible = true,
