@@ -205,7 +205,7 @@ fun QuickMenuHost(
             val rootWidthPx = LocalView.current.rootView.width
             val panelWidth = with(density) {
                 val screenWidthPx = rootWidthPx.takeIf { it > 0 }?.toFloat() ?: maxWidth.toPx()
-                minOf(screenWidthPx * .56f, 480f).toDp()
+                minOf(maxOf(screenWidthPx * .50f, minOf(screenWidthPx, 280f)), 400f).toDp()
             }
             Box(Modifier.fillMaxSize()) {
             AnimatedVisibility(
@@ -277,18 +277,25 @@ fun QuickMenuHost(
                             Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                             color = Color.White.copy(alpha = .1f),
                         )
-                        Column(
-                            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 8.dp)
-                                .onPreviewKeyEvent { event ->
-                                    val vertical = event.key == androidx.compose.ui.input.key.Key.DirectionUp ||
-                                        event.key == androidx.compose.ui.input.key.Key.DirectionDown
-                                    if (event.type == KeyEventType.KeyDown && vertical) {
-                                        focusScope.wrapVertical(event.key)
-                                    } else false
-                                },
-                        ) {
-                            CompositionLocalProviderQuickMenuFocus(focusScope) {
-                                current.page.content(scope)
+                        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                            Column(
+                                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 8.dp)
+                                    .onPreviewKeyEvent { event ->
+                                        val vertical = event.key == androidx.compose.ui.input.key.Key.DirectionUp ||
+                                            event.key == androidx.compose.ui.input.key.Key.DirectionDown
+                                        if (event.type == KeyEventType.KeyDown && vertical) {
+                                            focusScope.wrapVertical(event.key)
+                                        } else false
+                                    },
+                            ) {
+                                Column(
+                                    Modifier.fillMaxWidth().heightIn(min = maxHeight),
+                                    verticalArrangement = if (scope.isRoot) Arrangement.SpaceBetween else Arrangement.Top,
+                                ) {
+                                    CompositionLocalProviderQuickMenuFocus(focusScope) {
+                                        current.page.content(scope)
+                                    }
+                                }
                             }
                         }
                     }
