@@ -122,9 +122,9 @@ For video settings, use `RendererSettingsRow`, `EnhancedResolutionSettingsRow`,
 Keep core texture sampling separate from GBFrame's final picture scaling filter.
 Use `AutoFrameSkipSettingsRow`/`AutoFrameSkipQuickMenuItem` when the core
 implements the Normal/Max policy represented by the shared labels. Dreamcast
-system settings use `DreamcastRegionSettingsRow`, `DreamcastCableSettingsRow`,
-`DreamcastBroadcastSettingsRow`, and `DreamcastRamModSettingsRow`; apps still
-map their returned values to core/JNI calls.
+Dreamcast controls use the shared `DreamcastSystemSettings` block for the
+user-adjustable cable and broadcast options. Region and expanded-RAM policy
+are automatic core behavior and must not be exposed as user toggles.
 
 ### Overlays
 

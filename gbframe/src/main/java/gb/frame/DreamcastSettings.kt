@@ -1,7 +1,6 @@
 package gb.frame
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.runtime.Composable
 
@@ -28,12 +27,6 @@ fun EnhancedResolutionSettingsRow(value: Int, values: List<Int>, labels: List<St
 }
 
 @Composable
-fun DreamcastRegionSettingsRow(value: Int, onChange: (Int) -> Unit) = ChoiceRow(
-    "Region", "Console region for BIOS and disc compatibility. Default follows the disc; applies on the next boot.",
-    listOf("Japan", "USA", "Europe", "Default"), value.coerceIn(0, 3),
-) { onChange(it) }
-
-@Composable
 fun DreamcastCableSettingsRow(value: Int, onChange: (Int) -> Unit) {
     val values = listOf(0, 2, 3)
     val labels = listOf("VGA", "RGB", "TV")
@@ -49,10 +42,10 @@ fun DreamcastBroadcastSettingsRow(value: Int, onChange: (Int) -> Unit) = ChoiceR
 ) { onChange(it) }
 
 @Composable
-fun DreamcastRamModSettingsRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
-    Icons.Default.Memory,
-    "32 MB RAM",
-    "Doubles console RAM from 16 to 32 MB for homebrew or games that need it. It does not improve speed and may affect compatibility; arcade boards ignore it.",
-    value,
-    onChange,
-)
+fun DreamcastSystemSettings(cable: Int, onCableChange: (Int) -> Unit, broadcast: Int, onBroadcastChange: (Int) -> Unit) {
+    SettingsGroup("Dreamcast", Icons.Default.Tune) {
+        DreamcastCableSettingsRow(cable, onCableChange)
+        SettingsDivider()
+        DreamcastBroadcastSettingsRow(broadcast, onBroadcastChange)
+    }
+}

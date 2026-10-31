@@ -16,7 +16,13 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   submit a slot only after its Vulkan fence signals, and preserve CPU readback when import/copy support is unavailable.
   The Vulkan-to-AHardwareBuffer copy is still a GPU copy; it avoids the GPU-to-CPU readback and keeps effects in one
   implementation. Validate format, ownership transitions, synchronization, resize, and fallback on device before
-  treating this path as production-ready.
+  treating this path as production-ready. Region should retain the emulator's existing default and fall back only when
+  the disc metadata excludes it. The 32 MB Dreamcast RAM map can break otherwise ordinary retail titles and does not
+  improve speed; hide the global toggle and enable it only for product IDs confirmed to need the expanded map.
+- **GBSat / Ymir (Saturn BIOS):** Yaba Sanshiro's HLE BIOS is marked deprecated/debug-only by its own libretro frontend
+  and that frontend still requires a real BIOS file. Its implementation is GPLv2 while GBSat is GPLv3, so do not
+  transplant that source. Any GBSat HLE must be implemented independently in Ymir, remain a fallback only when the real
+  IPL is missing, and report compatibility limits rather than treating HLE as equivalent firmware.
 - **GBFrame / shared Android behavior:** intent launch requests from frontends may contain either the ROM filename or
   the library's displayed title. Resolve exact and case-insensitive filenames first, then titles, so title-based
   requests (for example `Crazy Taxi`) keep using the indexed game path, per-game settings, and multi-file disc data.
