@@ -36,15 +36,15 @@ fun AutoFrameSkipQuickMenuItem(value: Int, id: String = "auto-frame-skip", onCha
 @Composable
 fun CpuRecompilerSettingsRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
     Icons.Default.Speed,
-    "CPU recompiler (Dynarec)",
-    "Faster CPU emulation on supported cores. Turn it off if a game has compatibility issues.",
+    "Dynarec",
+    "Dynamic CPU recompiler. Faster on weak devices. Turn it off if a game misbehaves.",
     value,
     onChange,
 )
 
 @Composable
 fun CpuRecompilerQuickMenuItem(value: Boolean, id: String = "cpu-recompiler", onChange: (Boolean) -> Unit) {
-    QuickMenuItemRow(id = id, icon = Icons.Default.Speed, label = "CPU recompiler (Dynarec)", value = if (value) "On" else "Off") {
+    QuickMenuItemRow(id = id, icon = Icons.Default.Speed, label = "Dynarec", value = if (value) "On" else "Off") {
         onChange(!value)
     }
 }

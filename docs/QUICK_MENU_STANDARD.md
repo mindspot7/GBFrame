@@ -102,7 +102,7 @@ options after them. Put the app's options in their own group in settings (e.g. "
 Expose the applicable GBSat-style controls in this order:
 
 - **Adaptive graphics / frame skip** (Auto/Off when the core supports adaptive render skipping). Use GBFrame's `AdaptiveGraphicsItem`; the consumer supplies and persists the setting. It skips rendering below the speed target, preserves normal audio pacing, and remains independent of Fast Forward.
-- **CPU recompiler (Dynarec)** when supported. Use GBFrame's `CpuRecompilerSettingsRow` and `CpuRecompilerQuickMenuItem`; the app supplies the live core value.
+- **Dynarec** when supported. Use GBFrame's `CpuRecompilerSettingsRow` and `CpuRecompilerQuickMenuItem`; the app supplies the live core value.
 - **Threaded audio** (Auto/On/Off only if supported).
 - **Skip loading screens**.
 - **Skip transitions**.
