@@ -139,6 +139,17 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   frame (80-100 ms frames, white sprite smears) because the core gave the VDP1 4x its real cycle budget and it reached
   the loop's jump before the game rewrote the table; the game database's accurate-VDP1-timing flag fixed it.
 
+## GBCast GLES on RK3568
+
+- Crazy Taxi (Slot 1, 640x480, Auto frame skip Off) was profiled on the RG DS with the Mali-G52. The GLES driver does
+  not expose `GL_EXT_multi_draw_arrays`, so multi-draw batching cannot be used on this device.
+- Grouping adjacent sorted translucent triangles by identical `polyIndex` was A/B tested as a way to avoid repeated
+  `SetGPState` work while preserving draw order. Two 12-sample OSD runs measured optimized medians of 36.4 and 29.8
+  FPS; the two baseline medians were 29.8 and 30.7 FPS. Attract-mode variance is high, so this did not show a
+  repeatable gain and the renderer change was removed. Do not infer a performance win from one run.
+- Keep the Crazy Taxi low-tier profile's Auto frame skip Off while investigating raw renderer throughput; its previous
+  Normal setting caused the profile to override the user's Off setting during the test.
+
 ## Frame pacing
 
 - Automatic frame skip helps only when rendering is the bottleneck; when the CPU emulation is, skipping just makes
