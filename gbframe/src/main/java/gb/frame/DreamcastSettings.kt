@@ -7,7 +7,49 @@ import androidx.compose.material.icons.filled.Tv
 import androidx.compose.runtime.Composable
 
 data class RendererChoice(val value: Int, val label: String)
-data class DisplayModeChoice(val value: Int, val label: String)
+data class DisplayModeChoice(
+    val value: Int,
+    val label: String,
+    val supportsSuperWidescreen: Boolean = false,
+)
+
+private fun supportsSuperWidescreen(value: Int, options: List<DisplayModeChoice>) =
+    options.any { it.value == value && it.supportsSuperWidescreen }
+
+@Composable
+fun DisplayModeSettingsRow(
+    value: Int,
+    options: List<DisplayModeChoice>,
+    description: String,
+    onChange: (Int) -> Unit,
+) {
+    require(options.isNotEmpty())
+    val selected = options.indexOfFirst { it.value == value }.coerceAtLeast(0)
+    ChoiceRow("Display mode", description, options.map { it.label }, selected) {
+        onChange(options[it].value)
+    }
+}
+
+/** The kit owns both the shared toggle row and its visibility for widescreen-capable display modes. */
+@Composable
+fun SuperWidescreenSettingsRow(
+    displayModeValue: Int,
+    displayModes: List<DisplayModeChoice>,
+    value: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    SettingsDivider()
+    if (supportsSuperWidescreen(displayModeValue, displayModes)) {
+        ToggleRow(
+            Icons.Default.AspectRatio,
+            "Super widescreen",
+            "Expands the view beyond 16:9 to the screen ratio. It can reveal more of the scene, but may cause edge or HUD glitches.",
+            value,
+            onChange,
+        )
+        SettingsDivider()
+    }
+}
 
 @Composable
 fun RendererSettingsRow(
@@ -33,6 +75,26 @@ fun DisplayModeQuickMenuItem(
     val selected = options.indexOfFirst { it.value == value }.let { if (it < 0) 0 else it }
     QuickMenuItemRow(id = id, icon = Icons.Default.AspectRatio, label = "Display", value = options[selected].label) {
         onChange(options[(selected + 1) % options.size].value)
+    }
+}
+
+/** Shared in-game toggle; omitted when the selected display mode does not support Super widescreen. */
+@Composable
+fun SuperWidescreenQuickMenuItem(
+    displayModeValue: Int,
+    displayModes: List<DisplayModeChoice>,
+    value: Boolean,
+    id: String = "super-widescreen",
+    onChange: (Boolean) -> Unit,
+) {
+    if (supportsSuperWidescreen(displayModeValue, displayModes)) {
+        QuickMenuItemRow(
+            id = id,
+            icon = Icons.Default.AspectRatio,
+            label = "Super widescreen",
+            value = if (value) "On" else "Off",
+            onClick = { onChange(!value) },
+        )
     }
 }
 

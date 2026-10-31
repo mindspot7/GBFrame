@@ -66,13 +66,15 @@ Do not reorder these standard rows or rename them without a clear usability reas
 Use this order for common Video controls:
 
 1. **Display**.
-2. **Widescreen game hacks**, only when the current display is Fullscreen or 16:9
+2. **Super widescreen**, as a separate GBFrame toggle and only when the selected
+   Display mode supports widescreen (when the core has this capability).
+3. **Widescreen game hacks**, only when the current display is Fullscreen or 16:9
    and the current game has a matching hack.
-3. **Renderer**.
-4. **Resolution**.
-5. **Filter**.
-6. **Shader**.
-7. Core-specific controls, including texture filtering (when available), VSync
+4. **Renderer**.
+5. **Resolution**.
+6. **Filter**.
+7. **Shader**.
+8. Core-specific controls, including texture filtering (when available), VSync
    and renderer features. If the shared output filter is removed for a core,
    its texture filter may occupy item 5 with the shared **Filter** label; do not
    show a second texture-filter row later in the menu.
@@ -83,7 +85,7 @@ The presenter filter acts after the core has drawn the frame; keep a separate
 **Texture filtering** control when a core exposes texture sampling, unless the
 app uses that control in place of the presenter filter. The standard choices
 are **Nearest** and **Bilinear**, with Bilinear as the shared default.
-Use GBFrame's `DisplayModeQuickMenuItem`, `RendererQuickMenuItem`, and
+Use GBFrame's `DisplayModeQuickMenuItem`, `SuperWidescreenQuickMenuItem`, `RendererQuickMenuItem`, and
 `EnhancedResolutionQuickMenuItem` for these standard rows. Apps provide supported
 choices and callbacks; GBFrame provides consistent row presentation and cycling.
 Use the label **Resolution** in settings and in-game menus. Use
