@@ -9,9 +9,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +60,16 @@ object FastForwardAudio {
     }
 }
 
+private const val VOLUME_STEP_PERCENT = 10
+
+private fun AudioSettings.adjustVolume(delta: Int) {
+    val next = (volume + delta).coerceIn(0, 100)
+    if (next != volume) {
+        volume = next
+        save()
+    }
+}
+
 /** The standard groups of Settings → Audio: Output (volume) and Fast-forward. */
 @Composable
 fun AudioSettingsGroups(settings: AudioSettings) {
@@ -70,12 +81,27 @@ fun AudioSettingsGroups(settings: AudioSettings) {
                 Text("Volume", style = MaterialTheme.typography.titleSmall, color = Color.White, modifier = Modifier.weight(1f))
                 Text("${settings.volume}%", color = palette.highlight, fontWeight = FontWeight.SemiBold)
             }
-            Slider(
-                value = settings.volume.toFloat(), valueRange = 0f..100f, steps = 19,
-                onValueChange = { settings.volume = it.toInt() },
-                onValueChangeFinished = { settings.save() },
-                colors = SliderDefaults.colors(thumbColor = palette.accent, activeTrackColor = palette.accent),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { settings.adjustVolume(-VOLUME_STEP_PERCENT) },
+                    enabled = settings.volume > 0,
+                ) {
+                    Icon(Icons.Default.Remove, "Decrease volume by 10%", tint = palette.accent)
+                }
+                Slider(
+                    value = settings.volume.coerceIn(0, 100).toFloat(), valueRange = 0f..100f, steps = 19,
+                    onValueChange = { settings.volume = it.toInt() },
+                    onValueChangeFinished = { settings.save() },
+                    modifier = Modifier.weight(1f),
+                    colors = SliderDefaults.colors(thumbColor = palette.accent, activeTrackColor = palette.accent),
+                )
+                IconButton(
+                    onClick = { settings.adjustVolume(VOLUME_STEP_PERCENT) },
+                    enabled = settings.volume < 100,
+                ) {
+                    Icon(Icons.Default.Add, "Increase volume by 10%", tint = palette.accent)
+                }
+            }
         }
     }
     SettingsGroup("Fast-forward", Icons.Default.FastForward) {
@@ -87,17 +113,10 @@ fun AudioSettingsGroups(settings: AudioSettings) {
 /** The standard controls of the quick menu's Audio page: output volume and fast-forward audio. */
 @Composable
 fun AudioQuickMenuRows(settings: AudioSettings) {
-    fun adjustVolume(delta: Int) {
-        val next = (settings.volume + delta).coerceIn(0, 100)
-        if (next != settings.volume) {
-            settings.volume = next
-            settings.save()
-        }
-    }
     QuickMenuAdjustableItemContainer(
         id = "volume",
-        onLeft = { adjustVolume(-10) },
-        onRight = { adjustVolume(10) },
+        onLeft = { settings.adjustVolume(-VOLUME_STEP_PERCENT) },
+        onRight = { settings.adjustVolume(VOLUME_STEP_PERCENT) },
         onClick = {},
     ) {
         Icon(
@@ -119,11 +138,11 @@ fun AudioQuickMenuRows(settings: AudioSettings) {
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
-                    onClick = { adjustVolume(-10) },
+                    onClick = { settings.adjustVolume(-VOLUME_STEP_PERCENT) },
                     enabled = settings.volume > 0,
                     modifier = Modifier.size(36.dp).focusProperties { canFocus = false },
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.VolumeDown, "Decrease volume", tint = palette.accent)
+                    Icon(Icons.Default.Remove, "Decrease volume by 10%", tint = palette.accent)
                 }
                 Slider(
                     value = settings.volume.coerceIn(0, 100).toFloat(),
@@ -135,11 +154,11 @@ fun AudioQuickMenuRows(settings: AudioSettings) {
                     colors = SliderDefaults.colors(thumbColor = palette.accent, activeTrackColor = palette.accent),
                 )
                 IconButton(
-                    onClick = { adjustVolume(10) },
+                    onClick = { settings.adjustVolume(VOLUME_STEP_PERCENT) },
                     enabled = settings.volume < 100,
                     modifier = Modifier.size(36.dp).focusProperties { canFocus = false },
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.VolumeUp, "Increase volume", tint = palette.accent)
+                    Icon(Icons.Default.Add, "Increase volume by 10%", tint = palette.accent)
                 }
             }
         }

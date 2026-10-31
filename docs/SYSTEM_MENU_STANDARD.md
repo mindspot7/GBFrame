@@ -8,7 +8,8 @@ The shared component owns these sections, in order:
 3. **Save states**: common Auto save and Auto load.
 4. **Per-game profiles**: the GBFrame-managed Recommended settings per game toggle, when the app supplies a measured profile catalog.
 5. **Loading Times Hacks**: Fast boot, Skip loading screens, Skip transitions, Skip save waits,
-   in that order, followed by supported core-specific loading options such as Fast CD load.
+   in that order, followed by supported core-specific options such as Fast CD load and
+   CD read speed.
 6. Remaining core-specific settings.
 7. App-specific file options, such as GBSat's cartridge ROM imports, at the bottom of System.
 

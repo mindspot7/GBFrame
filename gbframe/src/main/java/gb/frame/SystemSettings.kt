@@ -12,6 +12,12 @@ import androidx.compose.runtime.*
 data class SystemFolderSetting(val path: String?, val description: String, val onChoose: () -> Unit)
 data class SystemBiosFile(val name: String, val loaded: Boolean)
 data class SystemToggleSetting(val value: Boolean, val onChange: (Boolean) -> Unit, val description: String? = null)
+data class SystemCdReadSpeedSetting(
+    val value: Int,
+    val options: List<CdReadSpeedOption>,
+    val onChange: (Int) -> Unit,
+    val description: String? = null,
+)
 /** Fast boot is mandatory in every app (on by default); the skip functions only when the core supports them. */
 data class SystemStartupOptions(
     val fastBoot: SystemToggleSetting,
@@ -49,6 +55,7 @@ fun SystemSettings(
     coreSettings: @Composable () -> Unit = {},
     appFileSettings: (@Composable () -> Unit)? = null,
     recommendedSettingsPerGame: SystemToggleSetting? = null,
+    cdReadSpeed: SystemCdReadSpeedSetting? = null,
 ) {
     SettingsGroup("Data", Icons.Default.Folder) {
         DataFolderControls(dataFolder, compact = true)
@@ -73,8 +80,17 @@ fun SystemSettings(
             option!!
             ToggleRow(Icons.Default.FastForward, title, option.description ?: description, option.value, option.onChange)
         }
-        if (startupExtras != null) SettingsDivider()
+        if (startupExtras != null && startupRows.isNotEmpty()) SettingsDivider()
         startupExtras?.invoke()
+        if (cdReadSpeed != null) {
+            if (startupRows.isNotEmpty() || startupExtras != null) SettingsDivider()
+            CdReadSpeedSettingsRow(
+                value = cdReadSpeed.value,
+                options = cdReadSpeed.options,
+                sub = cdReadSpeed.description,
+                onChange = cdReadSpeed.onChange,
+            )
+        }
     }
     coreSettings()
     appFileSettings?.invoke()

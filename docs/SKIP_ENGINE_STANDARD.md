@@ -55,9 +55,9 @@ GBCast's **Fast CD load** changes emulated GD-ROM DMA transfer scheduling in
 `getGDROMTicks()`; it does not automatically fast-forward the whole machine and
 does not cover scene transitions or VMU waits. GBCast's **CD read speed** is a
 separate drive-speed multiplier. Keep both as distinct, explicitly selected
-options: put Fast CD load in System > Loading Times Hacks and CD read speed in
-Performance. Do not merge either with the automatic skip flags or enable them
-automatically. Existing games may depend on original drive timing.
+options in System > Loading Times Hacks. The quick-menu shortcut may remain in
+Performance for in-game access. Do not merge either with the automatic skip flags
+or enable them automatically. Existing games may depend on original drive timing.
 
 ## Validation
 
