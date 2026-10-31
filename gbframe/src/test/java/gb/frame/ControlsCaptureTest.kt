@@ -60,7 +60,7 @@ class ControlsCaptureTest {
         override var hotkeyCapture: HotkeyAction? = null
         override var hotkeyCaptureKeys: Set<Int> = emptySet()
         override var fastForwardToggle = false
-        override var showTouchControls = true
+        override var touchControlsMode = TouchControlsMode.AUTO
         override fun resetKeyMap() = Unit
     }
 }

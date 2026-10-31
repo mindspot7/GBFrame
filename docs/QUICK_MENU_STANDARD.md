@@ -66,10 +66,10 @@ Do not reorder these standard rows or rename them without a clear usability reas
 Use this order for common Video controls:
 
 1. **Display**.
-2. **Super widescreen**, as a separate GBFrame toggle and only when the selected
-   Display mode supports widescreen (when the core has this capability).
-3. **Widescreen game hacks**, only when the current display is Fullscreen or 16:9
+2. **Widescreen game hacks**, only when the current display is Fullscreen or 16:9
    and the current game has a matching hack.
+3. **Super widescreen**, as a separate GBFrame toggle after Widescreen game hacks,
+   only when the selected Display mode supports it (when the core has this capability).
 4. **Renderer**.
 5. **Resolution**.
 6. **Filter**.
