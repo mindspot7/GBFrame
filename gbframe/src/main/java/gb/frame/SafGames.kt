@@ -109,7 +109,7 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
     }
 
     /** Lists the disc images in the games folder (and up to [maxDepth] levels of subfolders). */
-    fun scan(dir: String, maxDepth: Int = 3): List<Game> = scanFolder(dir, maxDepth).also { games ->
+    fun scan(dir: String, maxDepth: Int = 3): List<Game> = scanFolder(dir, maxDepth, keepFirstDisc = true).also { games ->
         lastScan = dir to android.os.SystemClock.elapsedRealtime()
         val text = games.joinToString("\n") { it.title + "\t" + it.path }
         val prefs = appContext.getSharedPreferences("gbframe.games", Context.MODE_PRIVATE)
@@ -118,8 +118,15 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         }
     }
 
-    private fun scanFolder(dir: String, maxDepth: Int): List<Game> {
-        if (!dir.startsWith("content://")) return keepFirstDiscOnly(scanFiles(dir, maxDepth)) // plain folders (tests)
+    /** Lists every supported disc image, including later discs hidden from the main library list. */
+    fun scanAllDiscs(dir: String, maxDepth: Int = 3): List<Game> =
+        scanFolder(dir, maxDepth, keepFirstDisc = false)
+
+    private fun scanFolder(dir: String, maxDepth: Int, keepFirstDisc: Boolean): List<Game> {
+        if (!dir.startsWith("content://")) {
+            val games = scanFiles(dir, maxDepth)
+            return if (keepFirstDisc) keepFirstDiscOnly(games) else games
+        }
         val tree = tree() ?: return emptyList()
         val out = mutableListOf<Game>()
         fun walk(docId: String, rel: String, depth: Int) {
@@ -131,7 +138,7 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
             }
         }
         walk(DocumentsContract.getTreeDocumentId(tree), "", 0)
-        return keepFirstDiscOnly(out).sortedBy { it.title.lowercase() }
+        return (if (keepFirstDisc) keepFirstDiscOnly(out) else out).sortedBy { it.title.lowercase() }
     }
 
     private fun scanFiles(dir: String, maxDepth: Int): List<Game> {
