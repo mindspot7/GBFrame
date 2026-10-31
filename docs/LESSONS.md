@@ -1,5 +1,9 @@
 # Lessons learned
 
+## Device class names
+
+The kit now uses **Low / Mid / High**. Historical performance notes below use the tier names that were current when each test ran: old Entry maps to Low, old Low maps to Mid, and old Mid/High map to High. App-level performance presets and per-game measured choices remain unchanged; GPU capability still selects graphics options independently.
+
 - Treat widescreen and frame-rate patches as distinct shared kit capabilities in Video and the in-game Performance menu. Prefer the core's native hack, then a curated game-specific code patch, then a matching database code; do not stack sources. Both default on and are suppressed in RetroAchievements Hardcore; reapply the effective patch set when the toggle, display mode or Hardcore state changes.
 
 Record discoveries from GBFrame and each consumer here so the next emulator can start from measured behavior instead

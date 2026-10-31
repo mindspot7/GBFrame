@@ -61,10 +61,10 @@ fun SystemSettings(
     emulatorFiles?.invoke()
     SaveStateSettings(autoSave, autoLoad, onAutoSave, onAutoLoad)
     val startupRows = listOf(
-        Triple("Fast boot", "Skip the firmware intro and its setup screens", startup.fastBoot),
-        Triple("Skip loading screens", "Run at maximum speed during detected loading screens", startup.skipLoadingScreens),
-        Triple("Skip transitions", "Run at maximum speed through detected scene transitions", startup.skipTransitions),
-        Triple("Skip save waits", "Run at maximum speed while the game reads or writes saves", startup.skipSaveWaits),
+        Triple("Fast boot", "Skips the console startup screen. Games start sooner; compatibility is usually unchanged.", startup.fastBoot),
+        Triple("Skip loading screens", "Speeds through supported loading screens. It reduces waiting, not gameplay speed.", startup.skipLoadingScreens),
+        Triple("Skip transitions", "Speeds through supported scene changes. It reduces waiting, not gameplay speed.", startup.skipTransitions),
+        Triple("Skip save waits", "Speeds through supported save and load waits. It does not change the saved data.", startup.skipSaveWaits),
     ).filter { it.third != null }
     SettingsGroup("Loading Times", Icons.Default.FastForward) {
         startupRows.forEachIndexed { index, (title, description, option) ->

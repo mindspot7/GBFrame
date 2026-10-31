@@ -37,9 +37,20 @@ interface MonitoringSettings {
 
 @Composable
 fun MonitoringSettingsRows(settings: MonitoringSettings) {
+    val help = mapOf(
+        "all" to "Shows every available live performance reading. The overlay has a small rendering cost.",
+        "fps" to "Shows frames drawn each second. The overlay has a small rendering cost.",
+        "speed" to "Shows emulation speed compared with the console's normal speed.",
+        "cpu" to "Shows CPU usage reported by this emulator.",
+        "gpu" to "Shows GPU usage when the device reports it.",
+        "renderer" to "Shows which graphics renderer is active.",
+        "resolution" to "Shows the current internal rendering resolution.",
+        "frameTime" to "Shows how long each frame takes; spikes can reveal slowdowns.",
+        "fastForwardButton" to "Adds a fast-forward control over the game screen."
+    )
     settings.items().forEachIndexed { index, (key, label, enabled) ->
         if (index > 0) SettingsDivider()
-        ToggleRow(Icons.Default.Speed, label, null, enabled) { settings.set(key, it) }
+        ToggleRow(Icons.Default.Speed, label, help[key], enabled) { settings.set(key, it) }
     }
 }
 

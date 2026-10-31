@@ -10,7 +10,9 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -70,15 +72,22 @@ fun performanceWizardStep(
     listOf(androidx.compose.ui.graphics.Color(0xFFFFB15A), androidx.compose.ui.graphics.Color(0xFF8A4B12)),
     "",
 ) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Recommended profile: $preset", style = MaterialTheme.typography.titleMedium)
-        Text("Device class: ${device.summary}", style = MaterialTheme.typography.bodyMedium)
-        Text(device.classificationReason, style = MaterialTheme.typography.bodySmall)
-        Text(
-            "This profile was selected and applied automatically for this hardware to aim for the best performance it can sustain. You can review or change these settings later in the app's settings.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        options.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ElevatedCard(Modifier.fillMaxWidth(), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("YOUR PROFILE", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(preset.uppercase(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
+                Text("${device.tier.name} device · ${device.gpu.ifBlank { "Graphics detected" }}", style = MaterialTheme.typography.bodyMedium)
+                Text(device.classificationReason, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Text("Auto-tuned for the best performance this device can sustain.", style = MaterialTheme.typography.bodySmall)
+        Text("SETTINGS APPLIED", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        options.forEach { option ->
+            Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .65f)) {
+                Text(option, Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
     }
 }
 

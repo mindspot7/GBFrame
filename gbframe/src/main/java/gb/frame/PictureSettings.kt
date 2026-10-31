@@ -30,7 +30,7 @@ object TextureFilter {
 @Composable
 fun ShaderSettingsRow(value: Int, onChange: (Int) -> Unit) {
     val ids = Shaders.menuOrder
-    ChoiceRow("Shader", "Applied by the GBFrame OpenGL ES presenter", ids.map(Shaders::name),
+    ChoiceRow("Shader", "Adds a visual effect after the game is rendered. It does not change emulation accuracy; complex effects may use more GPU power.", ids.map(Shaders::name),
         ids.indexOf(Shaders.sanitize(value)).coerceAtLeast(0)) { onChange(ids[it]) }
 }
 
@@ -44,14 +44,14 @@ fun ShaderQuickMenuItem(value: Int, id: String = "shader", onChange: (Int) -> Un
 
 /** Output filter after the emulated frame; independent of the core's texture sampling filter. */
 @Composable
-fun PictureFilterSettingsRow(value: Int, title: String = "Filter", sub: String? = null, onChange: (Int) -> Unit) {
+fun PictureFilterSettingsRow(value: Int, title: String = "Output filter", sub: String? = "Changes how the finished game image is scaled. Nearest keeps pixels crisp; Bilinear looks smoother and softer.", onChange: (Int) -> Unit) {
     ChoiceRow(title, sub, PictureFilter.labels, PictureFilter.sanitize(value)) {
         onChange(PictureFilter.sanitize(it))
     }
 }
 
 @Composable
-fun PictureFilterQuickMenuItem(value: Int, id: String = "filter", title: String = "Filter", onChange: (Int) -> Unit) {
+fun PictureFilterQuickMenuItem(value: Int, id: String = "filter", title: String = "Output filter", onChange: (Int) -> Unit) {
     val current = PictureFilter.sanitize(value)
     QuickMenuItemRow(id = id, icon = Icons.Default.FilterAlt, label = title, value = PictureFilter.labels[current]) {
         onChange((current + 1) % PictureFilter.labels.size)
@@ -61,7 +61,7 @@ fun PictureFilterQuickMenuItem(value: Int, id: String = "filter", title: String 
 /** Core texture sampling filter; values are the core's Nearest=1 and Bilinear=2. */
 @Composable
 fun TextureFilterSettingsRow(value: Int, onChange: (Int) -> Unit) {
-    ChoiceRow("Texture filtering", "Sampling used by the emulated graphics core", TextureFilter.labels,
+    ChoiceRow("Texture filtering", "Controls how game textures look. Nearest keeps sharp pixels; Bilinear smooths them. The speed difference is usually small.", TextureFilter.labels,
         TextureFilter.index(value)) { onChange(TextureFilter.valueAt(it)) }
 }
 

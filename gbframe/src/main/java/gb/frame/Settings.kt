@@ -77,7 +77,7 @@ fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, en
 fun WidescreenGameHacksRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
     Icons.Default.Tune,
     "Widescreen game hacks",
-    "Apply built-in widescreen cheat codes for supported games. Separate toggle from your own cheats.",
+    "Uses built-in widescreen codes in supported games. It can show more of the scene, but may cause visual glitches. Your own cheats stay separate.",
     value,
     onChange,
 )
@@ -87,7 +87,7 @@ fun WidescreenGameHacksRow(value: Boolean, onChange: (Boolean) -> Unit) = Toggle
 fun AdaptiveGraphicsSettingsRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
     Icons.Default.SkipNext,
     "Adaptive graphics",
-    "Automatically skips rendering only while the game is below its speed target. Audio keeps its normal pace; Fast Forward stays separate.",
+    "When the game slows down, skips drawing some frames so the CPU can keep running the game. This may improve speed, but motion looks less smooth. Audio timing stays normal.",
     value,
     onChange,
 )

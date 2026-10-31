@@ -19,7 +19,7 @@ fun AutoFrameSkipSettingsRow(value: Int, onChange: (Int) -> Unit) {
     val selected = DREAMCAST_AUTO_FRAME_SKIP_OPTIONS.indexOfFirst { it.value == value }.coerceAtLeast(0)
     ChoiceRow(
         "Auto frame skip",
-        "Normal skips when both the GPU and emulation CPU are behind. Max also skips when only the GPU is behind, so it drops more frames.",
+        "Skips drawing frames when the graphics chip falls behind. Normal also needs the emulated CPU to be behind; Max skips for graphics lag alone and looks less smooth. This cannot fix a slow emulated CPU.",
         DREAMCAST_AUTO_FRAME_SKIP_OPTIONS.map { it.label },
         selected,
     ) { onChange(DREAMCAST_AUTO_FRAME_SKIP_OPTIONS[it].value) }
@@ -50,7 +50,7 @@ fun CpuRecompilerQuickMenuItem(value: Boolean, id: String = "cpu-recompiler", on
 }
 
 @Composable
-fun FastCdLoadSettingsRow(value: Boolean, onChange: (Boolean) -> Unit, sub: String = "Shortens emulated CD transfer delays. Some games need original timing.") = ToggleRow(
+fun FastCdLoadSettingsRow(value: Boolean, onChange: (Boolean) -> Unit, sub: String = "Reduces the delay while the game reads the disc, so loading can be faster. It does not speed up gameplay, and some games need the original timing.") = ToggleRow(
     Icons.Default.Speed, "Fast CD load", sub, value, onChange,
 )
 
@@ -94,7 +94,7 @@ fun CdReadSpeedQuickMenuItem(
 fun RecommendedSettingsPerGameRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
     Icons.Default.Tune,
     "Recommended settings per game",
-    "Applies measured settings for this game and device class. Your saved per-game choices take priority.",
+    "Applies settings measured for this game on similar devices. They may trade image quality for speed. Your saved choices for a game take priority.",
     value,
     onChange,
 )

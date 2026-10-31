@@ -25,12 +25,12 @@ of these repositories.
 
   | Device | Chip / GPU | Screen | Tier |
   |---|---|---|---|
-  | Anbernic RG DS | Rockchip RK3568 (4x A55) / Mali-G52 2EE | 640x480 4.0" 4:3 | Entry |
-  | Anbernic RG Rotate | Unisoc T618 / Mali-G52 | 720x720 3.5" 1:1 | Low |
-  | Retroid Pocket Classic | Snapdragon G1 Gen 2 (2 fast cores) / Adreno A12 | 1240x1080 3.92" 5:4 | Low |
-  | Mangmi Air X | Snapdragon 662 (4x A73) / Adreno 610 | 1920x1080 5.5" 16:9 | Low |
-  | Anbernic RG Cube | Unisoc T820 / Mali-G57 | 720x720 3.95" 1:1 | Mid |
-  | Anbernic RG476H | Unisoc T820 / Mali-G57 | 1280x960 4.7" 4:3 | Mid |
+  | Anbernic RG DS | Rockchip RK3568 (4x A55) / Mali-G52 2EE | 640x480 4.0" 4:3 | Low |
+  | Anbernic RG Rotate | Unisoc T618 / Mali-G52 | 720x720 3.5" 1:1 | Mid |
+  | Retroid Pocket Classic | Snapdragon G1 Gen 2 (2 fast cores) / Adreno A12 | 1240x1080 3.92" 5:4 | Mid |
+  | Mangmi Air X | Snapdragon 662 (4x A73) / Adreno 610 | 1920x1080 5.5" 16:9 | Mid |
+  | Anbernic RG Cube | Unisoc T820 / Mali-G57 | 720x720 3.95" 1:1 | High |
+  | Anbernic RG476H | Unisoc T820 / Mali-G57 | 1280x960 4.7" 4:3 | High |
   | Anbernic RG477V | Dimensity 8300 / Mali-G615 MC6 | 1280x960 4.7" 4:3 | High (Native 2x) |
   | Retroid Pocket Nova | Snapdragon 8 Gen 2 / Adreno 740 | 1280x960 4.5" 4:3 | High (Native 4x) |
 - Build and test locally before pushing when the consumer's toolchain and signing key are available. Use GitHub Actions

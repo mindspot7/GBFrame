@@ -41,6 +41,12 @@ fun SetupWizard(steps: List<WizardStep>, onFinish: () -> Unit, message: String? 
     val compact = LocalConfiguration.current.screenHeightDp < 560
     val pad = if (compact) 12.dp else 24.dp
     Column(Modifier.fillMaxSize().background(palette.backgroundBrush).safeDrawingPadding().padding(horizontal = 24.dp, vertical = pad)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("GBFRAME SETUP", style = MaterialTheme.typography.labelLarge, color = palette.highlight, fontWeight = FontWeight.Bold)
+            Text("${(step + 1).toString().padStart(2, '0')} / ${steps.size.toString().padStart(2, '0')}",
+                style = MaterialTheme.typography.labelMedium, color = palette.dim)
+        }
+        Spacer(Modifier.height(8.dp))
         LinearProgressIndicator(progress = { (step + 1f) / steps.size }, modifier = Modifier.fillMaxWidth())
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = pad),

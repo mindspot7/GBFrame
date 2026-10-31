@@ -16,10 +16,9 @@ import org.json.JSONObject
  *       "titles": ["VIRTUA FIGHTER 2"],          // disc/ROM header titles (matched case-insensitively, trimmed)
  *       "ids": ["GS-9079", "MK-81041"],           // optional product codes
  *       "all":   { "renderer": "cpu" },           // any device
- *       "entry": { "frameSkip": true },           // little cores only (e.g. Rockchip RK3566)
- *       "low":   { "threadedAudio": false },      // 2 fast cores or fewer (e.g. Unisoc T618)
- *       "mid":   { },                             // 3+ fast cores, modest GPU (e.g. Unisoc T820)
- *       "high":  { }                              // 3+ fast cores, strong GPU (e.g. Snapdragon 865)
+ *       "low":   { "frameSkip": true },           // little cores only (e.g. Rockchip RK3566)
+ *       "mid":   { "threadedAudio": false },      // 2 fast cores or fewer (e.g. Unisoc T618)
+ *       "high":  { }                              // 3+ fast cores; GPU is reported separately
  *     }
  *   ]
  * }

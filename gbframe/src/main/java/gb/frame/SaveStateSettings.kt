@@ -9,8 +9,8 @@ import androidx.compose.runtime.Composable
 @Composable
 fun SaveStateSettings(autoSave: Boolean, autoLoad: Boolean, onAutoSave: (Boolean) -> Unit, onAutoLoad: (Boolean) -> Unit) {
     SettingsGroup("Save states", Icons.Default.Save) {
-        ToggleRow(Icons.Default.Save, "Auto save", "Save the game's state when you close it or leave the app", autoSave, onAutoSave)
+        ToggleRow(Icons.Default.Save, "Auto save", "Saves your place when you close the game or leave the app. Uses extra storage for save-state files.", autoSave, onAutoSave)
         SettingsDivider()
-        ToggleRow(Icons.Default.Restore, "Auto load", "Continue from the game's latest save state (auto, quick or slot) when you start it", autoLoad, onAutoLoad)
+        ToggleRow(Icons.Default.Restore, "Auto load", "Continues from the most recent save state when you start this game. Turn it off to boot from the game’s normal start.", autoLoad, onAutoLoad)
     }
 }

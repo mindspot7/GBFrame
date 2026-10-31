@@ -7,18 +7,17 @@ import java.io.File
 /**
  * Device class for recommended settings (setup wizard preset, [GameProfiles]), from the CPU cores and the GPU:
  *
- * - **Entry**: only in-order "little" cores (Cortex-A53/A55, e.g. Rockchip RK3566). Every core is slow, but they are
+ * - **Low**: only in-order "little" cores (Cortex-A53/A55, e.g. Rockchip RK3566). Every core is slow, but they are
  *   equal, so helper threads (sound, video) each get a core of their own.
- * - **Low**: 2 fast cores or fewer (e.g. Unisoc T618, Snapdragon G1 Gen 2): the second fast core is precious; or big cores
+ * - **Mid**: 2 fast cores or fewer (e.g. Unisoc T618, Snapdragon G1 Gen 2): the second fast core is precious; or big cores
  *   of the Cortex-A73 generation or older (e.g. Snapdragon 662), slower per core than a T618.
- * - **Mid**: 3+ fast cores but a GPU that isn't strong enough for GPU emulation (e.g. Unisoc T820 / Mali-G57).
- * - **High**: 3+ fast cores and a strong GPU (e.g. Snapdragon 865 / Adreno 650 and newer, Dimensity 8300 / Mali-G615 MC6).
+ * - **High**: 3+ fast cores. The GPU is reported separately to guide graphics settings.
  *
  * The GPU name comes from a throwaway OpenGL ES context, so call [detect] once at startup (any thread); the result is
  * cached.
  */
 object DeviceTier {
-    enum class Tier(val key: String) { Entry("entry"), Low("low"), Mid("mid"), High("high") }
+    enum class Tier(val key: String) { Low("low"), Mid("mid"), High("high") }
 
     data class Info(
         val tier: Tier,
@@ -30,19 +29,22 @@ object DeviceTier {
         val gpu: String,
         /** Highest internal resolution scale worth suggesting for GPU emulation on this GPU (1 = weak GPU). */
         val gpuMaxScale: Int,
+        /** Retains the former Entry/Low grouping so apps can keep their existing measured presets. */
+        val cpuLimited: Boolean = littleOnly || fastCores <= 2,
     ) {
         val summary get() = "${tier.name} · $fastCores fast core${if (fastCores == 1) "" else "s"}" + (if (gpu.isNotBlank()) " · $gpu" else "")
 
         /** A short user-facing explanation of the hardware signals behind this class. */
         val classificationReason: String get() = when (tier) {
-            Tier.Entry -> "Only efficiency-class CPU cores were detected (such as Cortex-A53/A55-class cores), with no high-performance cores."
-            Tier.Low -> if (fastCores <= 2) {
+            Tier.Low -> "Only efficiency-class CPU cores were detected (such as Cortex-A53/A55-class cores), with no high-performance cores."
+            Tier.Mid -> if (cpuLimited && !littleOnly && fastCores <= 2) {
                 "Only $fastCores high-performance CPU core${if (fastCores == 1) " was" else "s were"} detected, so CPU headroom for emulation and helper work is limited."
-            } else {
+            } else if (cpuLimited) {
                 "The fastest CPU cores are from an older high-performance generation (Cortex-A73 class or earlier), with less per-core performance than newer designs."
+            } else {
+                "The device has a newer CPU, but its graphics hardware has limited headroom for demanding rendering options."
             }
-            Tier.Mid -> "The CPU has $fastCores fast cores, but ${gpu.ifBlank { "the detected GPU" }} does not meet the kit's threshold for heavier GPU emulation."
-            Tier.High -> "The CPU has at least three fast cores and ${gpu.ifBlank { "the detected GPU" }} meets the kit's threshold for modern GPU emulation."
+            Tier.High -> "The device has at least three fast CPU cores. Graphics options are suggested separately based on ${gpu.ifBlank { "the detected GPU" }}."
         }
     }
 
@@ -60,13 +62,13 @@ object DeviceTier {
         val littleOnly = top?.part?.let { it in LITTLE_PARTS } ?: false
         val oldBig = top?.part?.let { it in OLD_BIG_PARTS } ?: false
         val gpuMaxScale = gpuMaxScale(gpu)
+        val cpuLimited = littleOnly || fastCores <= 2 || oldBig
         val tier = when {
-            littleOnly -> Tier.Entry
-            fastCores <= 2 || oldBig -> Tier.Low
-            gpuMaxScale >= 2 -> Tier.High
-            else -> Tier.Mid
+            littleOnly -> Tier.Low
+            cpuLimited -> Tier.Mid
+            else -> Tier.High
         }
-        return Info(tier, fastCores, littleOnly, gpu, gpuMaxScale)
+        return Info(tier, fastCores, littleOnly, gpu, gpuMaxScale, cpuLimited)
     }
 
     private data class Core(val score: Long, val part: Int?)
