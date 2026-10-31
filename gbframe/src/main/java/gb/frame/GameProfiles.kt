@@ -24,7 +24,9 @@ import org.json.JSONObject
  *   ]
  * }
  * ```
- * Only "all" and the device's own class apply. The keys inside them are app-defined (GBSat: renderer = cpu|gpu, threadedAudio, frameSkip).
+ * Only "all" and the device's own class apply. Keys are app-defined: GBFrame provides lookup and priority, while each
+ * emulator maps its measured settings into its own core options (for example Saturn renderer=cpu|gpu, Dreamcast
+ * renderer=opengl|vulkan).
  */
 object GameProfiles {
     private var games: List<JSONObject> = emptyList()
