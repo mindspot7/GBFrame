@@ -62,6 +62,9 @@ data class ControlButton(
     val color: Color = Color(0xFF47435F),
 )
 
+/** Visibility policy for the on-screen controls shared by all GBFrame apps. */
+enum class TouchControlsMode { AUTO, SHOW }
+
 /**
  * What the standard Controls page ([ControlsPage], [ControlsCapturePrompts], [ControlsCapture]) needs from an app: its
  * console's controller drawing and buttons, and where bindings and options live. Everything else (tabs, drawing, rows,
@@ -89,8 +92,8 @@ interface ControlsHost {
     var hotkeyCaptureKeys: Set<Int>
     /** Fast-forward hotkey: false = hold, true = toggle. The app saves the change. */
     var fastForwardToggle: Boolean
-    /** Show the on-screen controls (they hide by themselves while a controller is connected). The app saves the change. */
-    var showTouchControls: Boolean
+    /** On-screen controls visibility policy. The app saves the change. */
+    var touchControlsMode: TouchControlsMode
 }
 
 /**
@@ -156,8 +159,10 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
         }
         else -> {
             SettingsGroup("On-screen controls", Icons.Default.TouchApp) {
-                ToggleRow(Icons.Default.TouchApp, "Show touch controls", "Shows the on-screen buttons. They hide automatically when a physical controller is connected.",
-                    host.showTouchControls) { host.showTouchControls = it }
+                ChoiceRow("Touch controls", "Auto hides the on-screen buttons when a physical controller is connected. Show keeps them visible.",
+                    listOf("Auto", "Show"), if (host.touchControlsMode == TouchControlsMode.AUTO) 0 else 1) {
+                    host.touchControlsMode = if (it == 0) TouchControlsMode.AUTO else TouchControlsMode.SHOW
+                }
             }
         }
     }
