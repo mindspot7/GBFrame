@@ -23,6 +23,17 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   treating this path as production-ready. Region should retain the emulator's existing default and fall back only when
   the disc metadata excludes it. The 32 MB Dreamcast RAM map can break otherwise ordinary retail titles and does not
   improve speed; hide the global toggle and enable it only for product IDs confirmed to need the expanded map.
+- **GBCast / Flycast (Crazy Taxi on RG DS / RK3568):** repeated attract-mode samples favored GLES at native 640x480,
+  Bilinear, Normal auto frame skip, Dynarec On, threaded rendering On, and frame pacing On. Normal's median was about
+  37 FPS versus 35 FPS with frame skip Off and 33 FPS with Max; threaded rendering On measured about 37 FPS versus
+  26 FPS Off. GLES OIT measured about 25 FPS, 2x resolution about 20 FPS, and framebuffer emulation On about 16 FPS.
+  Scene variation is high, so treat small differences (including VSync, Fog, and anisotropic filtering) as inconclusive.
+  `top -H` sampled the Flycast render thread around 70% of one core and emulation around 41%; the overlay cannot read
+  Mali GPU load on this device, so this is evidence of CPU render-thread pressure, not proof that the GPU is idle.
+  Fast CD load Off/On and Original/16x read speed changed intent-to-savestate load time by less than 0.1 s in one run
+  each; these are loading controls, not gameplay-FPS optimizations. Keep the RG DS Low profile on native GLES and do
+  not infer that Saturn/Ymir-specific optimizations transfer to Flycast. Full readings and caveats are in the GBCast
+  `docs/RGDS_CRAZY_TAXI_PROFILE.md` report.
 - **GBSat / Ymir (Saturn BIOS):** Yaba Sanshiro's HLE BIOS is marked deprecated/debug-only by its own libretro frontend
   and that frontend still requires a real BIOS file. Its implementation is GPLv2 while GBSat is GPLv3, so do not
   transplant that source. Any GBSat HLE must be implemented independently in Ymir, remain a fallback only when the real
