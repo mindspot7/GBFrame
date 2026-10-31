@@ -1,11 +1,14 @@
 package gb.frame
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.HighQuality
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.runtime.Composable
 
 data class RendererChoice(val value: Int, val label: String)
+data class DisplayModeChoice(val value: Int, val label: String)
 
 @Composable
 fun RendererSettingsRow(
@@ -21,10 +24,38 @@ fun RendererSettingsRow(
 }
 
 @Composable
+fun DisplayModeQuickMenuItem(
+    value: Int,
+    options: List<DisplayModeChoice>,
+    id: String = "display-mode",
+    onChange: (Int) -> Unit,
+) {
+    require(options.isNotEmpty())
+    val selected = options.indexOfFirst { it.value == value }.let { if (it < 0) 0 else it }
+    QuickMenuItemRow(id = id, icon = Icons.Default.AspectRatio, label = "Display", value = options[selected].label) {
+        onChange(options[(selected + 1) % options.size].value)
+    }
+}
+
+@Composable
+fun RendererQuickMenuItem(
+    value: Int,
+    options: List<RendererChoice>,
+    id: String = "renderer",
+    onChange: (Int) -> Unit,
+) {
+    require(options.isNotEmpty())
+    val selected = options.indexOfFirst { it.value == value }.let { if (it < 0) 0 else it }
+    QuickMenuItemRow(id = id, icon = Icons.Default.Tv, label = "Renderer", value = options[selected].label) {
+        onChange(options[(selected + 1) % options.size].value)
+    }
+}
+
+@Composable
 fun EnhancedResolutionSettingsRow(value: Int, values: List<Int>, labels: List<String>, sub: String, onChange: (Int) -> Unit) {
     require(values.isNotEmpty() && values.size == labels.size)
     val selected = values.indexOf(value).coerceAtLeast(0)
-    ChoiceRow("Enhanced resolution", sub, labels, selected) { onChange(values[it]) }
+    ChoiceRow("Resolution", sub, labels, selected) { onChange(values[it]) }
 }
 
 /** Shared quick-menu presentation for core-provided enhanced-resolution choices. */
@@ -34,7 +65,7 @@ fun EnhancedResolutionQuickMenuItem(
     values: List<Int>,
     labels: List<String>,
     id: String = "enhanced-resolution",
-    title: String = "Enhanced resolution",
+    title: String = "Resolution",
     onChange: (Int) -> Unit,
 ) {
     require(values.isNotEmpty() && values.size == labels.size)

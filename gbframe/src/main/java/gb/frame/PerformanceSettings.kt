@@ -123,3 +123,10 @@ fun RecommendedSettingsPerGameRow(value: Boolean, onChange: (Boolean) -> Unit) =
     value,
     onChange,
 )
+
+@Composable
+fun RecommendedSettingsPerGameGroup(value: Boolean, onChange: (Boolean) -> Unit) {
+    SettingsGroup("Per-game profiles", Icons.Default.Tune) {
+        RecommendedSettingsPerGameRow(value, onChange)
+    }
+}

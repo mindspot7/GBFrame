@@ -63,20 +63,29 @@ Do not reorder these standard rows or rename them without a clear usability reas
 
 ### Video
 
-Keep the GBFrame options at the top of the page, then list the app/core's controls:
+Use this order for common Video controls:
 
-- **Widescreen game hacks**, when supported.
-- **Texture filtering**, when the core exposes it.
-- **Shader** and **Output filter**, when supported by the GBFrame presenter.
-- Then core-specific options such as **Display mode**, **Renderer**, **Enhanced resolution**, VSync and renderer features.
+1. **Display**.
+2. **Widescreen game hacks**, only when the current display is Fullscreen or 16:9
+   and the current game has a matching hack.
+3. **Renderer**.
+4. **Resolution**.
+5. **Filter**.
+6. **Shader**.
+7. Core-specific controls, including texture filtering (when available), VSync
+   and renderer features.
 
 Use GBFrame's `ShaderSettingsRow`/`ShaderQuickMenuItem` and
 `PictureFilterSettingsRow`/`PictureFilterQuickMenuItem` for the shared presenter.
 The presenter filter acts after the core has drawn the frame; keep a separate
 **Texture filtering** control when a core exposes texture sampling. The standard
 choices are **Nearest** and **Bilinear**, with Bilinear as the shared default.
-Use `EnhancedResolutionQuickMenuItem` for the shared presentation of enhanced
-resolution choices; the app supplies the values and labels supported by its
+Use GBFrame's `DisplayModeQuickMenuItem`, `RendererQuickMenuItem`, and
+`EnhancedResolutionQuickMenuItem` for these standard rows. Apps provide supported
+choices and callbacks; GBFrame provides consistent row presentation and cycling.
+Use the label **Resolution** in settings and in-game menus. Use
+`EnhancedResolutionQuickMenuItem` for the shared presentation of resolution
+choices; the app supplies the values and labels supported by its
 renderer. This is a common control even when the cores use different units or
 supported scales.
 
@@ -152,12 +161,14 @@ Main settings **Video > Overlays** must expose the same supported monitoring pre
 
 ### Game
 
-List shared GBFrame destinations first, followed by the app/core's session controls.
+Use this order: **Cheats**, **Achievements**, **Swap disc**, **Reset**, followed
+by any additional core-specific session controls. Keep shared destinations first
+and app/core actions after them.
 Use the GBSat pattern for session/game-specific actions:
 
 - **Cheats** — use the shared GBFrame `CheatsScreen` with an app/core-specific `CheatsBackend`. Every GB-family app should use this component; the adapter owns code validation/parsing, database lookup, per-game persistence and applying cheats to the core. If the core cannot apply cheats, keep the shared screen and clearly report the limitation rather than exposing fake controls.
 - **Achievements** — use the shared GBFrame `AchievementsScreen` and `RetroAchievements` UI with the app's `RaBackend` adapter. Keep the menu entry available when the app has initialized the backend, even if RetroAchievements is disabled or the user is not logged in; the screen/settings should explain how to enable or sign in rather than hiding the feature.
-- Then include supported core/session actions such as **Reset**, **Disc tray**, disc swap,
+- After **Reset**, include additional supported core/session actions such as
   per-game overrides and native advanced settings.
 
 These are standard GB-family features, not opportunities to create separate per-app UI. The specific native/core implementation still belongs to the app. Keep nested screens inside the quick-menu navigation stack. Back from Cheats or Achievements must return to the Game submenu and restore focus to the row that opened it.
@@ -229,13 +240,16 @@ The shared quick-menu scrim and side panel fill the app window from top to botto
 
 The currently shared controls visible in both GBSat and GBCast are widescreen
 game hacks, shader, output filter, Dynarec, audio volume/fast-forward audio,
-monitoring, touch controls, enhanced resolution, and CD read speed. Their UI,
+monitoring, touch controls, resolution, and CD read speed. Their UI,
 labels, cycling behavior and explanations belong in GBFrame. Apps provide the
 core values, capability checks, persistence and callbacks. Keep Texture filtering
 as a separate GBFrame control when the core offers texture sampling. Adaptive
 graphics and Auto frame skip are also GBFrame components, but they are different
-core policies and must keep separate settings and explanatory copy. Renderer,
-display mode, and core timing/rendering switches remain app-specific.
+core policies and must keep separate settings and explanatory copy. Apps supply
+capabilities and supported values for display mode and renderer choices.
+Place **Recommended settings per game** under System > **Per-game profiles**;
+profiles can affect video and performance, so keep the toggle outside the
+renderer-only group.
 
 For cores integrated with the GBFrame Skip Engine, render its three optional
 controls with `SkipEngineQuickMenuRows`; the app provides the persisted values

@@ -44,14 +44,14 @@ fun ShaderQuickMenuItem(value: Int, id: String = "shader", onChange: (Int) -> Un
 
 /** Output filter after the emulated frame; independent of the core's texture sampling filter. */
 @Composable
-fun PictureFilterSettingsRow(value: Int, title: String = "Output filter", sub: String? = "Changes how the finished game image is scaled. Nearest keeps pixels crisp; Bilinear looks smoother and softer.", onChange: (Int) -> Unit) {
+fun PictureFilterSettingsRow(value: Int, title: String = "Filter", sub: String? = "Changes how the finished game image is scaled. Nearest keeps pixels crisp; Bilinear looks smoother and softer.", onChange: (Int) -> Unit) {
     ChoiceRow(title, sub, PictureFilter.labels, PictureFilter.sanitize(value)) {
         onChange(PictureFilter.sanitize(it))
     }
 }
 
 @Composable
-fun PictureFilterQuickMenuItem(value: Int, id: String = "filter", title: String = "Output filter", onChange: (Int) -> Unit) {
+fun PictureFilterQuickMenuItem(value: Int, id: String = "filter", title: String = "Filter", onChange: (Int) -> Unit) {
     val current = PictureFilter.sanitize(value)
     QuickMenuItemRow(id = id, icon = Icons.Default.FilterAlt, label = title, value = PictureFilter.labels[current]) {
         onChange((current + 1) % PictureFilter.labels.size)
