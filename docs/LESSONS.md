@@ -320,3 +320,9 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   its UI interpreted until the device compiles it while idle (first library frames ~300 ms instead of ~110 ms).
 - Store covers small (WebP, at most ~600 px on the long side): downloaded PNGs and picked photos were 0.5-3 MB each
   (16 covers 10 MB -> 0.7 MB).
+
+## Dreamcast / Flycast GLES on RK3568
+
+- On the RG DS (RK3568, Mali-G52, GLES 3.2) at native 640x480, Crazy Taxi's measured profile favors GLES, bilinear filtering, threaded rendering, dynarec, normal auto frame skip, and frame pacing. Per-strip sorting did not show a repeatable FPS gain over Off in repeated attract-scene samples; keep it off by default unless a specific game is validated.
+- `simpleperf` placed most render-thread work under Flycast's `DrawStrips`, with opaque Mali GLES driver frames dominating the call tree. This indicates CPU-side draw submission overhead, not proof that the GPU itself is saturated. The game scene changes quickly, so compare medians across repeated intent-launched savestate runs and use render-thread profiles, not isolated OSD samples.
+- Avoid transferring Saturn/Ymir-specific optimizations to Flycast without evidence: Dreamcast's PVR polygon lists, sorting, and renderer thread have different semantics. Investigate compatible draw-call batching only with strict ordering preservation and a runtime extension/fallback check.
