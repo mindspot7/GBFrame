@@ -71,6 +71,12 @@ Follow GBSat's hierarchy and expose available options in this order:
 - **Shader**: cycle through the supported shader choices, if applicable.
 - **Filter**: cycle through supported image filters, if applicable.
 
+Use GBFrame's `ShaderSettingsRow`/`ShaderQuickMenuItem` and
+`PictureFilterSettingsRow`/`PictureFilterQuickMenuItem` for the shared presenter.
+The presenter filter acts after the core has drawn the frame; keep a separate
+**Texture filtering** control when a core exposes texture sampling. The standard
+choices are **Nearest** and **Bilinear**, with Bilinear as the shared default.
+
 Only show dependent options when they work with the active renderer. When a choice changes, apply it to the running game, persist it where appropriate and update the displayed value immediately.
 
 Use one mutually exclusive display-mode choice, shared with main Video settings. Include only supported modes; distinguish original aspect, 16:9, device-ratio expanded view and Fullscreen stretch. Clear incompatible mode flags when changing the choice. Monitoring belongs in Overlays: do not duplicate Show FPS here. Do not expose Rotate in quick-menu Video; respect device orientation and retain any supported core-specific rotation setting in main settings.
@@ -96,12 +102,29 @@ options after them. Put the app's options in their own group in settings (e.g. "
 Expose the applicable GBSat-style controls in this order:
 
 - **Adaptive graphics / frame skip** (Auto/Off when the core supports adaptive render skipping). Use GBFrame's `AdaptiveGraphicsItem`; the consumer supplies and persists the setting. It skips rendering below the speed target, preserves normal audio pacing, and remains independent of Fast Forward.
+- **CPU recompiler (Dynarec)** when supported. Use GBFrame's `CpuRecompilerSettingsRow` and `CpuRecompilerQuickMenuItem`; the app supplies the live core value.
 - **Threaded audio** (Auto/On/Off only if supported).
 - **Skip loading screens**.
 - **Skip transitions**.
 - **Skip save waits**.
 
 The last three are conditional capabilities: include them only if the app has a tested equivalent to the GB family's Skip Engine and can reliably detect those situations. Do not fake or approximate them with unconditional fast-forward.
+
+Use `FastCdLoadSettingsRow`/`FastCdLoadQuickMenuItem` for a core's one-step
+accelerated CD transfer setting and `CdReadSpeedSettingsRow`/
+`CdReadSpeedQuickMenuItem` for a separate drive-speed multiplier. Keep both when
+the core implements distinct mechanisms; apps provide only the supported values.
+Apply `RecommendedSettingsPerGameRow` in main Video settings when an app ships a
+measured `game_profiles.json` and honors user per-game choices before profiles.
+
+For video settings, use `RendererSettingsRow`, `EnhancedResolutionSettingsRow`,
+`TextureFilterSettingsRow`, `ShaderSettingsRow`, and `PictureFilterSettingsRow`.
+Keep core texture sampling separate from GBFrame's final picture scaling filter.
+Use `AutoFrameSkipSettingsRow`/`AutoFrameSkipQuickMenuItem` when the core
+implements the Normal/Max policy represented by the shared labels. Dreamcast
+system settings use `DreamcastRegionSettingsRow`, `DreamcastCableSettingsRow`,
+`DreamcastBroadcastSettingsRow`, and `DreamcastRamModSettingsRow`; apps still
+map their returned values to core/JNI calls.
 
 ### Overlays
 

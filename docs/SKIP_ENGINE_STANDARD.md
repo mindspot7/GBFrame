@@ -51,11 +51,12 @@ accesses. GBCast supplies sampled OpenGL/Vulkan game pictures, AICA audio, disc
 sector reads through both the native GD-ROM and HLE BIOS paths, and VMU/Naomi
 EEPROM activity. Both use the same detector and the shared System controls.
 
-GBCast's **Fast GD-ROM load** changes emulated DMA transfer scheduling in
+GBCast's **Fast CD load** changes emulated GD-ROM DMA transfer scheduling in
 `getGDROMTicks()`; it does not automatically fast-forward the whole machine and
-does not cover scene transitions or VMU waits. Keep it as a distinct, explicitly
-selected advanced option after the three common controls in Loading Times. Do
-not rename it to Skip loading screens, merge their stored flags, or enable it
+does not cover scene transitions or VMU waits. GBCast's **CD read speed** is a
+separate drive-speed multiplier. Keep both as distinct, explicitly selected
+options: put Fast CD load in System > Loading Times and CD read speed in
+Performance. Do not merge either with the automatic skip flags or enable them
 automatically. Existing games may depend on original drive timing.
 
 ## Validation
