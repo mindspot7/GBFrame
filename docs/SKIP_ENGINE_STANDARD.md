@@ -1,7 +1,7 @@
 # Shared automatic Skip Engine
 
 GBFrame owns `gb::AutoSkip` (`native/auto_skip.hpp/.cpp`) and the common three
-Loading Times controls: Skip loading screens, Skip transitions, Skip save waits.
+Loading Times Hacks controls: Skip loading screens, Skip transitions, Skip save waits.
 Every consumer must integrate these functions when its core supplies the required
 signals. Unsupported integrations must document the missing technical capability;
 do not add inert switches or implement a second console-specific detector.
@@ -55,7 +55,7 @@ GBCast's **Fast CD load** changes emulated GD-ROM DMA transfer scheduling in
 `getGDROMTicks()`; it does not automatically fast-forward the whole machine and
 does not cover scene transitions or VMU waits. GBCast's **CD read speed** is a
 separate drive-speed multiplier. Keep both as distinct, explicitly selected
-options: put Fast CD load in System > Loading Times and CD read speed in
+options: put Fast CD load in System > Loading Times Hacks and CD read speed in
 Performance. Do not merge either with the automatic skip flags or enable them
 automatically. Existing games may depend on original drive timing.
 

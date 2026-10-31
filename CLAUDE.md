@@ -121,7 +121,7 @@ of these repositories.
   the app goes to the background** during a game (Home, recent apps: Android may close it there). **Auto load**
   continues from the game's **latest save state in any slot** (auto, quick or numbered), so it also works with Auto
   save off; the Resume view and the "Open" game option (without auto load) still start where the user chooses.
-- **Fast boot** is mandatory in every emulator and **on by default** (System → Loading Times, `SystemStartupOptions.fastBoot`
+- **Fast boot** is mandatory in every emulator and **on by default** (System → Loading Times Hacks, `SystemStartupOptions.fastBoot`
   is required): mark the firmware's first-run setup (clock, language) as done so the BIOS skips those screens, and run
   the BIOS intro animation at maximum speed (muted) until the disc's code takes over. See
   [docs/SYSTEM_MENU_STANDARD.md](docs/SYSTEM_MENU_STANDARD.md).

@@ -160,4 +160,4 @@ Every consumer must use GBFrame's `EmuTheme` as the single root theme provider. 
 
 ## System settings layout
 
-All consumers use `SystemSettings` and the order, folder descriptions, BIOS statuses and capability-aware startup controls in [SYSTEM_MENU_STANDARD.md](SYSTEM_MENU_STANDARD.md). System starts with Data folder, Games folder and Bios folder under Data. HLE, emulator files, automatic states, Loading Times controls and remaining emulator options follow in that order.
+All consumers use `SystemSettings` and the order, folder descriptions, BIOS statuses and capability-aware startup controls in [SYSTEM_MENU_STANDARD.md](SYSTEM_MENU_STANDARD.md). System starts with Data folder, Games folder and Bios folder under Data. Supported HLE, automatic states and the GBFrame-managed per-game profile toggle precede Loading Times Hacks; core-specific settings follow the kit sections, with app-specific file groups last.

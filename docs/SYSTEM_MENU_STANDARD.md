@@ -5,11 +5,12 @@ The shared component owns these sections, in order:
 
 1. **Data**: exactly **Data folder**, **Games folder**, **Bios folder**, in that order.
 2. **BIOS emulation**: HLE BIOS and related firmware emulation, only when supported.
-3. Emulator-specific file options, such as cartridge ROM imports.
-4. **Save states**: common Auto save and Auto load.
-5. **Loading Times**: Fast boot, Skip loading screens, Skip transitions, Skip save waits,
-   in that order, followed by additional supported loading options.
-6. Remaining emulator-specific settings.
+3. **Save states**: common Auto save and Auto load.
+4. **Per-game profiles**: the GBFrame-managed Recommended settings per game toggle, when the app supplies a measured profile catalog.
+5. **Loading Times Hacks**: Fast boot, Skip loading screens, Skip transitions, Skip save waits,
+   in that order, followed by supported core-specific loading options such as Fast CD load.
+6. Remaining core-specific settings.
+7. App-specific file options, such as GBSat's cartridge ROM imports, at the bottom of System.
 
 Do not show Getting started or Paths as substitute headings in System. Wizard
 steps may retain their onboarding-specific headings. Do not duplicate the moved
@@ -63,4 +64,7 @@ according to [SKIP_ENGINE_STANDARD.md](SKIP_ENGINE_STANDARD.md) whenever possibl
 Validate empty-folder hints, selected paths, all per-file BIOS states, optional
 capability visibility, section order, toggle persistence, folder/file pickers and
 physical controller/touch navigation on a compact screen. Use the shared layout
-in every consuming app; extra functions belong in the supplied extension slots.
+in every consuming app. GBFrame renders the optional per-game profiles toggle
+in its fixed position; apps supply only its value and callback. Use
+`coreSettings` for core options after the shared kit sections and
+`appFileSettings` for app-specific file groups at the very end.

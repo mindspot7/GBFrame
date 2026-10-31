@@ -33,7 +33,7 @@ data class SystemBiosFolderSetting(
     }.joinToString("\n")
 }
 
-/** The System layout is shared; consumers supply capabilities, paths and real actions only. */
+/** Shared System order: common kit sections first, core extras next, app-specific file imports last. */
 @Composable
 fun SystemSettings(
     dataFolder: AppDataFolder,
@@ -46,8 +46,9 @@ fun SystemSettings(
     startup: SystemStartupOptions,
     startupExtras: (@Composable () -> Unit)? = null,
     hleBios: (@Composable () -> Unit)? = null,
-    emulatorFiles: (@Composable () -> Unit)? = null,
-    extraSettings: @Composable () -> Unit = {},
+    coreSettings: @Composable () -> Unit = {},
+    appFileSettings: (@Composable () -> Unit)? = null,
+    recommendedSettingsPerGame: SystemToggleSetting? = null,
 ) {
     SettingsGroup("Data", Icons.Default.Folder) {
         DataFolderControls(dataFolder, compact = true)
@@ -58,15 +59,15 @@ fun SystemSettings(
         BiosFolderRow(biosFolder)
     }
     hleBios?.let { SettingsGroup("BIOS emulation", Icons.Default.Memory) { it() } }
-    emulatorFiles?.invoke()
     SaveStateSettings(autoSave, autoLoad, onAutoSave, onAutoLoad)
+    recommendedSettingsPerGame?.let { RecommendedSettingsPerGameGroup(it.value, it.onChange) }
     val startupRows = listOf(
         Triple("Fast boot", "Skips the console startup screen. Games start sooner; compatibility is usually unchanged.", startup.fastBoot),
         Triple("Skip loading screens", "Speeds through supported loading screens. It reduces waiting, not gameplay speed.", startup.skipLoadingScreens),
         Triple("Skip transitions", "Speeds through supported scene changes. It reduces waiting, not gameplay speed.", startup.skipTransitions),
         Triple("Skip save waits", "Speeds through supported save and load waits. It does not change the saved data.", startup.skipSaveWaits),
     ).filter { it.third != null }
-    SettingsGroup("Loading Times", Icons.Default.FastForward) {
+    SettingsGroup("Loading Times Hacks", Icons.Default.FastForward) {
         startupRows.forEachIndexed { index, (title, description, option) ->
             if (index > 0) SettingsDivider()
             option!!
@@ -75,7 +76,8 @@ fun SystemSettings(
         if (startupExtras != null) SettingsDivider()
         startupExtras?.invoke()
     }
-    extraSettings()
+    coreSettings()
+    appFileSettings?.invoke()
 }
 
 @Composable
