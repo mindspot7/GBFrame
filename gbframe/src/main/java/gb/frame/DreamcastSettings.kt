@@ -16,6 +16,18 @@ data class DisplayModeChoice(
 private fun supportsSuperWidescreen(value: Int, options: List<DisplayModeChoice>) =
     options.any { it.value == value && it.supportsSuperWidescreen }
 
+internal fun orderedDisplayModeChoices(options: List<DisplayModeChoice>): List<DisplayModeChoice> =
+    options.withIndex()
+        .sortedWith(compareBy({ displayModePriority(it.value.label) }, { it.index }))
+        .map { it.value }
+
+private fun displayModePriority(label: String): Int = when {
+    label.contains("4:3", ignoreCase = true) -> 0
+    label.contains("16:9", ignoreCase = true) -> 1
+    label.equals("Fullscreen", ignoreCase = true) || label.equals("Full screen", ignoreCase = true) -> 2
+    else -> 3
+}
+
 @Composable
 fun DisplayModeSettingsRow(
     value: Int,
@@ -24,9 +36,10 @@ fun DisplayModeSettingsRow(
     onChange: (Int) -> Unit,
 ) {
     require(options.isNotEmpty())
-    val selected = options.indexOfFirst { it.value == value }.coerceAtLeast(0)
-    ChoiceRow("Display mode", description, options.map { it.label }, selected) {
-        onChange(options[it].value)
+    val orderedOptions = orderedDisplayModeChoices(options)
+    val selected = orderedOptions.indexOfFirst { it.value == value }.coerceAtLeast(0)
+    ChoiceRow("Display mode", description, orderedOptions.map { it.label }, selected) {
+        onChange(orderedOptions[it].value)
     }
 }
 
@@ -72,9 +85,10 @@ fun DisplayModeQuickMenuItem(
     onChange: (Int) -> Unit,
 ) {
     require(options.isNotEmpty())
-    val selected = options.indexOfFirst { it.value == value }.let { if (it < 0) 0 else it }
-    QuickMenuItemRow(id = id, icon = Icons.Default.AspectRatio, label = "Display", value = options[selected].label) {
-        onChange(options[(selected + 1) % options.size].value)
+    val orderedOptions = orderedDisplayModeChoices(options)
+    val selected = orderedOptions.indexOfFirst { it.value == value }.let { if (it < 0) 0 else it }
+    QuickMenuItemRow(id = id, icon = Icons.Default.AspectRatio, label = "Display", value = orderedOptions[selected].label) {
+        onChange(orderedOptions[(selected + 1) % orderedOptions.size].value)
     }
 }
 
