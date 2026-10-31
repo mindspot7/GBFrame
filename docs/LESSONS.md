@@ -83,6 +83,13 @@ line here whenever a new app teaches something that would have saved time.
   the picture choppy, so back off (stop skipping for a while) when skipping doesn't catch up.
 - Fast forward should render ~60 frames per real second and skip the rest.
 - Present frames zero-copy through `AHardwareBuffer`.
+- For the Vulkan Saturn renderer, copy into a presenter-owned `AHardwareBuffer` and import it as an `EGLImage` when
+  the driver supports the path; keep CPU readback as a fallback for failed imports. This removes the routine full-frame
+  CPU transfer, but does not prove the entire path is synchronization-free.
+- Track each acquired hardware-buffer slot's in-flight writer and completion fence independently. A producer may acquire
+  another slot before the prior frame is ready; a single global "current writer" can overwrite the earlier reservation.
+- Do not conflate CPU access for frame-skip metadata with CPU framebuffer presentation. Locking a shared buffer to
+  inspect a small frame sample can still synchronize, even when the pixels are ultimately presented GPU-to-GPU.
 
 ## Android foreground lifecycle
 
