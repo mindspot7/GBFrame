@@ -30,6 +30,9 @@ data class Game(val title: String, val path: String)
 
 /** A disc opened for the emulator: [path] is a real file path for the core; close it when the game ends. */
 class OpenDisc(val path: String, private val fds: List<android.os.ParcelFileDescriptor>) : AutoCloseable {
+    /** Number of SAF descriptors retained for native readers using /proc/self/fd links. */
+    val descriptorCount: Int get() = fds.size
+
     override fun close() { fds.forEach { runCatching { it.close() } } }
 }
 

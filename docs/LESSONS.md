@@ -193,6 +193,12 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   `chd_open_core_file_callbacks` + `pread`, ISO/CUE/MDS/CCD text and headers use `InputFile`, file mappings use `mio` on the
   descriptor. The copy of a CHD/ISO stays only as a fallback, and `SafGames.openAndLoad` / `useDisc` do the retry for every
   app (the app only supplies the core's load call). Not covered: GBSat's wide-char MDS filename read.
+- A path-based core with asynchronous game startup cannot use `SafGames.openAndLoad` as its load callback may return
+  before the core opens the disc. Adapt the core's file abstraction instead: Flycast's Android `StdStorage::openFile`
+  detects GBFrame's `/proc/self/fd/N` staging links, duplicates the live descriptor, and wraps it with `fdopen`. The app
+  validates the link target with `readlink` (never by `FileInputStream`, which repeats the failing path open), keeps the
+  `OpenDisc` alive for the session, and only materializes CHD/ISO when staging descriptors are incomplete. Old state
+  folders named after hashed cache copies must be migrated to the original game folder when retiring that fallback.
 - Export (saves + save states only) / Import, game-named save folders.
 - Give games a save (backup memory) cartridge when they don't need a RAM cartridge: some games ask for one.
 - Google Play: targetSdk 36, 16 KB pages, AAB in the build artifacts only, edge-to-edge, privacy policy, no console
