@@ -73,13 +73,16 @@ Use this order for common Video controls:
 5. **Filter**.
 6. **Shader**.
 7. Core-specific controls, including texture filtering (when available), VSync
-   and renderer features.
+   and renderer features. If the shared output filter is removed for a core,
+   its texture filter may occupy item 5 with the shared **Filter** label; do not
+   show a second texture-filter row later in the menu.
 
 Use GBFrame's `ShaderSettingsRow`/`ShaderQuickMenuItem` and
 `PictureFilterSettingsRow`/`PictureFilterQuickMenuItem` for the shared presenter.
 The presenter filter acts after the core has drawn the frame; keep a separate
-**Texture filtering** control when a core exposes texture sampling. The standard
-choices are **Nearest** and **Bilinear**, with Bilinear as the shared default.
+**Texture filtering** control when a core exposes texture sampling, unless the
+app uses that control in place of the presenter filter. The standard choices
+are **Nearest** and **Bilinear**, with Bilinear as the shared default.
 Use GBFrame's `DisplayModeQuickMenuItem`, `RendererQuickMenuItem`, and
 `EnhancedResolutionQuickMenuItem` for these standard rows. Apps provide supported
 choices and callbacks; GBFrame provides consistent row presentation and cycling.
@@ -133,7 +136,8 @@ measured `game_profiles.json` and honors user per-game choices before profiles.
 
 For video settings, use `RendererSettingsRow`, `EnhancedResolutionSettingsRow`,
 `TextureFilterSettingsRow`, `ShaderSettingsRow`, and `PictureFilterSettingsRow`.
-Keep core texture sampling separate from GBFrame's final picture scaling filter.
+Keep core texture sampling separate from GBFrame's final picture scaling filter,
+unless the app intentionally uses the core filter as its only Filter option.
 Use `AutoFrameSkipSettingsRow`/`AutoFrameSkipQuickMenuItem` when the core
 implements the Normal/Max policy represented by the shared labels. Dreamcast
 cable and broadcast configuration stay automatic: keep the core's normal
@@ -163,8 +167,9 @@ Main settings **Video > Overlays** must expose the same supported monitoring pre
 ### Game
 
 Use this order: **Cheats**, **Achievements**, **Swap disc**, **Reset**, followed
-by any additional core-specific session controls. Keep shared destinations first
-and app/core actions after them.
+by any additional core-specific session controls. Render Reset with the shared
+`ResetQuickMenuItem`; apps provide only the core-specific callback. Keep shared
+destinations first and app/core actions after them.
 Use the GBSat pattern for session/game-specific actions:
 
 - **Cheats** — use the shared GBFrame `CheatsScreen` with an app/core-specific `CheatsBackend`. Every GB-family app should use this component; the adapter owns code validation/parsing, database lookup, per-game persistence and applying cheats to the core. If the core cannot apply cheats, keep the shared screen and clearly report the limitation rather than exposing fake controls.

@@ -60,15 +60,15 @@ fun PictureFilterQuickMenuItem(value: Int, id: String = "filter", title: String 
 
 /** Core texture sampling filter; values are the core's Nearest=1 and Bilinear=2. */
 @Composable
-fun TextureFilterSettingsRow(value: Int, onChange: (Int) -> Unit) {
-    ChoiceRow("Texture filtering", "Controls how game textures look. Nearest keeps sharp pixels; Bilinear smooths them. The speed difference is usually small.", TextureFilter.labels,
+fun TextureFilterSettingsRow(value: Int, title: String = "Texture filtering", onChange: (Int) -> Unit) {
+    ChoiceRow(title, "Controls how game textures look. Nearest keeps sharp pixels; Bilinear smooths them. The speed difference is usually small.", TextureFilter.labels,
         TextureFilter.index(value)) { onChange(TextureFilter.valueAt(it)) }
 }
 
 @Composable
-fun TextureFilterQuickMenuItem(value: Int, id: String = "texture-filter", onChange: (Int) -> Unit) {
+fun TextureFilterQuickMenuItem(value: Int, id: String = "texture-filter", title: String = "Texture filtering", onChange: (Int) -> Unit) {
     val index = TextureFilter.index(value)
-    QuickMenuItemRow(id = id, icon = Icons.Default.FilterAlt, label = "Texture filtering", value = TextureFilter.labels[index]) {
+    QuickMenuItemRow(id = id, icon = Icons.Default.FilterAlt, label = title, value = TextureFilter.labels[index]) {
         onChange(TextureFilter.valueAt((index + 1) % TextureFilter.labels.size))
     }
 }

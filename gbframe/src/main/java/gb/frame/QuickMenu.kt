@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SkipNext
@@ -344,6 +345,15 @@ fun QuickMenuItemRow(
         }
     }
 }
+
+/** Standard Game-menu reset action. The app supplies the core-specific restart callback. */
+@Composable
+fun ResetQuickMenuItem(id: String = "reset", onClick: () -> Unit) = QuickMenuItemRow(
+    id = id,
+    icon = Icons.Default.RestartAlt,
+    label = "Reset",
+    onClick = onClick,
+)
 
 /** Standard quick-menu switch row for a consumer's core-provided widescreen patches. */
 @Composable
