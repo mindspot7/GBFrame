@@ -63,13 +63,12 @@ Do not reorder these standard rows or rename them without a clear usability reas
 
 ### Video
 
-Follow GBSat's hierarchy and expose available options in this order:
+Keep the GBFrame options at the top of the page, then list the app/core's controls:
 
-- **Display**: aspect/display mode such as 4:3, Fullscreen and 16:9, if supported by the core and frontend.
-- **Renderer**: cycle/select among the renderers the app actually implements.
-- **Enhanced resolution**: show only when the active renderer supports an internal-resolution scale; display the real current value.
-- **Shader**: cycle through the supported shader choices, if applicable.
-- **Filter**: cycle through supported image filters, if applicable.
+- **Widescreen game hacks**, when supported.
+- **Texture filtering**, when the core exposes it.
+- **Shader** and **Output filter**, when supported by the GBFrame presenter.
+- Then core-specific options such as **Display mode**, **Renderer**, **Enhanced resolution**, VSync and renderer features.
 
 Use GBFrame's `ShaderSettingsRow`/`ShaderQuickMenuItem` and
 `PictureFilterSettingsRow`/`PictureFilterQuickMenuItem` for the shared presenter.
@@ -149,12 +148,13 @@ Main settings **Video > Overlays** must expose the same supported monitoring pre
 
 ### Game
 
+List shared GBFrame destinations first, followed by the app/core's session controls.
 Use the GBSat pattern for session/game-specific actions:
 
-- **Reset** — reset the current game after performing any required confirmation.
-- **Disc tray** — expose real open/close or disc-switching behavior when the core supports a disc tray or equivalent multi-disc operation.
 - **Cheats** — use the shared GBFrame `CheatsScreen` with an app/core-specific `CheatsBackend`. Every GB-family app should use this component; the adapter owns code validation/parsing, database lookup, per-game persistence and applying cheats to the core. If the core cannot apply cheats, keep the shared screen and clearly report the limitation rather than exposing fake controls.
 - **Achievements** — use the shared GBFrame `AchievementsScreen` and `RetroAchievements` UI with the app's `RaBackend` adapter. Keep the menu entry available when the app has initialized the backend, even if RetroAchievements is disabled or the user is not logged in; the screen/settings should explain how to enable or sign in rather than hiding the feature.
+- Then include supported core/session actions such as **Reset**, **Disc tray**, disc swap,
+  per-game overrides and native advanced settings.
 
 These are standard GB-family features, not opportunities to create separate per-app UI. The specific native/core implementation still belongs to the app. Keep nested screens inside the quick-menu navigation stack. Back from Cheats or Achievements must return to the Game submenu and restore focus to the row that opened it.
 
