@@ -392,6 +392,26 @@ fun QuickMenuItemContainer(
     enabled: Boolean = true,
     onClick: () -> Unit,
     content: @Composable RowScope.() -> Unit,
+) = QuickMenuFocusableItemContainer(id, enabled, null, null, onClick, content)
+
+/** A standard quick-menu row that can also adjust its value with left/right on a controller. */
+@Composable
+fun QuickMenuAdjustableItemContainer(
+    id: String,
+    onLeft: () -> Unit,
+    onRight: () -> Unit,
+    onClick: () -> Unit,
+    content: @Composable RowScope.() -> Unit,
+) = QuickMenuFocusableItemContainer(id, true, onLeft, onRight, onClick, content)
+
+@Composable
+private fun QuickMenuFocusableItemContainer(
+    id: String,
+    enabled: Boolean,
+    onLeft: (() -> Unit)?,
+    onRight: (() -> Unit)?,
+    onClick: () -> Unit,
+    content: @Composable RowScope.() -> Unit,
 ) {
     var focused by remember { androidx.compose.runtime.mutableStateOf(false) }
     val requester = remember(id) { FocusRequester() }
@@ -411,6 +431,14 @@ fun QuickMenuItemContainer(
             }
             .background(if (focused) palette.accent.copy(alpha = .30f) else Color.Transparent)
             .then(if (focused) Modifier.border(2.dp, palette.accent, RoundedCornerShape(14.dp)) else Modifier)
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.key) {
+                    androidx.compose.ui.input.key.Key.DirectionLeft -> onLeft?.let { it(); true } ?: false
+                    androidx.compose.ui.input.key.Key.DirectionRight -> onRight?.let { it(); true } ?: false
+                    else -> false
+                }
+            }
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

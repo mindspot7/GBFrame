@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeDown
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -19,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -84,7 +87,19 @@ fun AudioSettingsGroups(settings: AudioSettings) {
 /** The standard controls of the quick menu's Audio page: output volume and fast-forward audio. */
 @Composable
 fun AudioQuickMenuRows(settings: AudioSettings) {
-    QuickMenuItemContainer(id = "volume", onClick = {}) {
+    fun adjustVolume(delta: Int) {
+        val next = (settings.volume + delta).coerceIn(0, 100)
+        if (next != settings.volume) {
+            settings.volume = next
+            settings.save()
+        }
+    }
+    QuickMenuAdjustableItemContainer(
+        id = "volume",
+        onLeft = { adjustVolume(-10) },
+        onRight = { adjustVolume(10) },
+        onClick = {},
+    ) {
         Icon(
             if (settings.volume == 0) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
             null,
@@ -92,22 +107,42 @@ fun AudioQuickMenuRows(settings: AudioSettings) {
             modifier = Modifier.size(24.dp),
         )
         Spacer(Modifier.width(10.dp))
-        Text("Volume", color = Color.White, style = MaterialTheme.typography.bodyLarge)
-        Slider(
-            value = settings.volume.coerceIn(0, 100).toFloat(),
-            valueRange = 0f..100f,
-            steps = 19,
-            onValueChange = { settings.volume = it.toInt() },
-            onValueChangeFinished = { settings.save() },
-            modifier = Modifier.weight(1f).padding(start = 6.dp),
-            colors = SliderDefaults.colors(thumbColor = palette.accent, activeTrackColor = palette.accent),
-        )
-        Text(
-            "${settings.volume}%",
-            color = palette.highlight,
-            fontWeight = FontWeight.SemiBold,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Volume", color = Color.White, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text(
+                    "${settings.volume}%",
+                    color = palette.highlight,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { adjustVolume(-10) },
+                    enabled = settings.volume > 0,
+                    modifier = Modifier.size(36.dp).focusProperties { canFocus = false },
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.VolumeDown, "Decrease volume", tint = palette.accent)
+                }
+                Slider(
+                    value = settings.volume.coerceIn(0, 100).toFloat(),
+                    valueRange = 0f..100f,
+                    steps = 19,
+                    onValueChange = { settings.volume = it.toInt() },
+                    onValueChangeFinished = { settings.save() },
+                    modifier = Modifier.weight(1f).focusProperties { canFocus = false },
+                    colors = SliderDefaults.colors(thumbColor = palette.accent, activeTrackColor = palette.accent),
+                )
+                IconButton(
+                    onClick = { adjustVolume(10) },
+                    enabled = settings.volume < 100,
+                    modifier = Modifier.size(36.dp).focusProperties { canFocus = false },
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.VolumeUp, "Increase volume", tint = palette.accent)
+                }
+            }
+        }
     }
     QuickMenuItemRow(id = "fast_forward_audio", icon = Icons.Default.FastForward, label = "Fast-forward audio",
         value = FastForwardAudio.labels[settings.fastForwardAudio.coerceIn(0, 2)]) {

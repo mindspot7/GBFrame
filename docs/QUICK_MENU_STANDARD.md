@@ -84,10 +84,11 @@ Use one mutually exclusive display-mode choice, shared with main Video settings.
 ### Audio
 
 The standard controls come from the kit: implement `AudioSettings` (volume 0..100, fast-forward audio mode) over the core and
-call `AudioQuickMenuRows(settings)` first. The quick menu uses a volume slider and fast-forward audio choice; Settings → Audio
-uses `AudioSettingsGroups(settings)` the same way.
+call `AudioQuickMenuRows(settings)` first. The quick menu uses a volume slider plus 10% decrease/increase buttons (also
+available with left/right on a controller) and a fast-forward audio choice; Settings → Audio uses
+`AudioSettingsGroups(settings)` the same way.
 
-- **Volume**, adjusted with the slider and applied while dragging; save the setting when the drag ends.
+- **Volume**, adjusted with the slider or 10% buttons and applied immediately.
 - **Fast-forward audio**: Default (normal pitch, in pieces), Speed up (faster and higher, following the game speed),
   Mute. The core must honor all three, and must not wait for the audio output while fast-forwarding.
 
