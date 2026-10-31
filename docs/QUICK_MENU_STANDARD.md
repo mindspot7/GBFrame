@@ -75,6 +75,10 @@ Use GBFrame's `ShaderSettingsRow`/`ShaderQuickMenuItem` and
 The presenter filter acts after the core has drawn the frame; keep a separate
 **Texture filtering** control when a core exposes texture sampling. The standard
 choices are **Nearest** and **Bilinear**, with Bilinear as the shared default.
+Use `EnhancedResolutionQuickMenuItem` for the shared presentation of enhanced
+resolution choices; the app supplies the values and labels supported by its
+renderer. This is a common control even when the cores use different units or
+supported scales.
 
 Only show dependent options when they work with the active renderer. When a choice changes, apply it to the running game, persist it where appropriate and update the displayed value immediately.
 
@@ -222,6 +226,21 @@ In real code, keep the standard root order from this document, and create submen
 
 The shared quick-menu scrim and side panel fill the app window from top to bottom. Keep vertical system-bar insets off the panel content so the panel does not shrink differently between consumers; apply horizontal safe-drawing insets only for cutouts. The panel width is responsive to the available window, capped at 340 dp, and uses 85% of narrower windows.
 ## Implementation contract
+
+The currently shared controls visible in both GBSat and GBCast are widescreen
+game hacks, shader, output filter, Dynarec, audio volume/fast-forward audio,
+monitoring, touch controls, enhanced resolution, and CD read speed. Their UI,
+labels, cycling behavior and explanations belong in GBFrame. Apps provide the
+core values, capability checks, persistence and callbacks. Keep Texture filtering
+as a separate GBFrame control when the core offers texture sampling. Adaptive
+graphics and Auto frame skip are also GBFrame components, but they are different
+core policies and must keep separate settings and explanatory copy. Renderer,
+display mode, and core timing/rendering switches remain app-specific.
+
+For cores integrated with the GBFrame Skip Engine, render its three optional
+controls with `SkipEngineQuickMenuRows`; the app provides the persisted values
+and callbacks. Omit this helper when the core cannot detect load, transition and
+save-wait states reliably.
 
 The quick-menu visuals may be shared in GBFrame, but console/core operations belong to the app's adapter layer. Keep the separation clear:
 

@@ -3,6 +3,7 @@ package gb.frame
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.runtime.Composable
 
 /** A core-implemented CD speed choice. Apps supply the values their core supports. */
@@ -87,6 +88,30 @@ fun CdReadSpeedQuickMenuItem(
     QuickMenuItemRow(id = id, icon = Icons.Default.Speed, label = title, value = options[selected].label) {
         onChange(options[(selected + 1) % options.size].value)
     }
+}
+
+/** Shared controls for cores integrated with GBFrame's load/transition/save-wait Skip Engine. */
+@Composable
+fun SkipEngineQuickMenuRows(
+    skipLoadingScreens: Boolean,
+    onSkipLoadingScreensChange: (Boolean) -> Unit,
+    skipTransitions: Boolean,
+    onSkipTransitionsChange: (Boolean) -> Unit,
+    skipSaveWaits: Boolean,
+    onSkipSaveWaitsChange: (Boolean) -> Unit,
+) {
+    QuickMenuItemRow(
+        id = "skip_loads", icon = Icons.Default.FastForward,
+        label = "Skip loading screens", value = if (skipLoadingScreens) "On" else "Off",
+    ) { onSkipLoadingScreensChange(!skipLoadingScreens) }
+    QuickMenuItemRow(
+        id = "skip_transitions", icon = Icons.Default.FastForward,
+        label = "Skip transitions", value = if (skipTransitions) "On" else "Off",
+    ) { onSkipTransitionsChange(!skipTransitions) }
+    QuickMenuItemRow(
+        id = "skip_saves", icon = Icons.Default.FastForward,
+        label = "Skip save waits", value = if (skipSaveWaits) "On" else "Off",
+    ) { onSkipSaveWaitsChange(!skipSaveWaits) }
 }
 
 /** Standard opt-in for the measured per-game profiles supplied by an app. */
