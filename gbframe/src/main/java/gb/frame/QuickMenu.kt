@@ -203,10 +203,15 @@ fun QuickMenuHost(
             // Keep a single width for the root and every submenu. Deriving width from each page's
             // labels made sparse pages (notably Video) look narrower than the main quick menu.
             val density = LocalDensity.current
-            val rootWidthPx = LocalView.current.rootView.width
+            val rootView = LocalView.current.rootView
+            val rootWidthPx = rootView.width
             val panelWidth = with(density) {
                 val screenWidthPx = rootWidthPx.takeIf { it > 0 }?.toFloat() ?: maxWidth.toPx()
-                minOf(maxOf(screenWidthPx * .50f, minOf(screenWidthPx, 280f)), 400f).toDp()
+                val screenHeightPx = rootView.height.toFloat().takeIf { it > 0f } ?: maxHeight.toPx()
+                val aspectRatio = screenWidthPx / screenHeightPx
+                val isLandscapeFourByThree = screenWidthPx > screenHeightPx && aspectRatio <= 1.45f
+                val widthFraction = if (isLandscapeFourByThree) .46f else .50f
+                minOf(maxOf(screenWidthPx * widthFraction, minOf(screenWidthPx, 280f)), 400f).toDp()
             }
             Box(Modifier.fillMaxSize()) {
             AnimatedVisibility(
