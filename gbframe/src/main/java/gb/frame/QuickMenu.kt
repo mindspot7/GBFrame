@@ -219,7 +219,15 @@ fun QuickMenuHost(
                     modifier = Modifier.fillMaxHeight().widthIn(max = 340.dp).fillMaxWidth(.85f)
                         .pointerInput(Unit) { detectTapGestures(onTap = {}) },
                 ) {
-                    Column(Modifier.fillMaxSize().safeDrawingPadding().padding(vertical = 12.dp)) {
+                    // The panel itself reaches the top and bottom of the app window. Only inset
+                    // content horizontally for cutouts; vertical safe-drawing insets made the
+                    // same shared menu appear shorter on apps/windows with different edge-to-edge
+                    // policies. Both consumers hide the system bars while gameplay is active.
+                    Column(
+                        Modifier.fillMaxSize()
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                            .padding(vertical = 12.dp),
+                    ) {
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,

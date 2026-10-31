@@ -31,7 +31,7 @@ public:
     std::atomic<bool> skipLoads{false}, skipTransitions{false}, skipSaves{false};
 
     // Emulation thread: every delivered frame (32-bit pixels, any channel order)
-    void OnFrame(const uint32_t *fb, uint32_t width, uint32_t height);
+    void OnFrame(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t stridePixels = 0);
     // Sound thread: every output sample (before muting it while skipping)
     void OnSample(int16_t l, int16_t r) {
         const int peak = (l < 0 ? -l : l) > (r < 0 ? -r : r) ? (l < 0 ? -l : l) : (r < 0 ? -r : r);

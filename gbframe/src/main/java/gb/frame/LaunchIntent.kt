@@ -7,6 +7,7 @@ import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import java.net.URLDecoder
 
 /**
  * Starting a game straight from an intent, for frontends (ES-DE, Daijishou, Pegasus) and scripts:
@@ -16,9 +17,10 @@ import androidx.compose.runtime.mutableStateOf
  * adb shell am start -n <appId>/<activity> --es ROM "/storage/emulated/0/ROMS/SATURN/Virtua Fighter 2.chd"
  * ```
  *
- * The game must be in the app's games folder: the request is matched to a library game by its file name, so the disc is
- * opened through the folder the app already has access to (multi-file discs find their tracks, and save states, play
- * time and per-game options stay with the same game). The Activity calls [handle] from `onCreate` (when
+ * The request is matched to a library game by file name first, then by its displayed title. This lets frontends pass
+ * either a ROM path or a title such as `Crazy Taxi`; the disc is still opened through the configured games folder, so
+ * multi-file discs find their tracks and save states, play time and per-game options stay with the same game. The
+ * Activity calls [handle] from `onCreate` (when
  * `savedInstanceState` is null) and `onNewIntent`; the app watches [pending] once it can start games, resolves it with
  * [resolve] and calls [done].
  */
@@ -41,16 +43,25 @@ object LaunchIntent {
         pending.value = name
     }
 
-    /** The library game whose file is named [name] (exact name first, then ignoring case), or null. */
+    /** The matching library game (file name first, then displayed title; exact case before case-insensitive), or null. */
     fun resolve(name: String, games: List<Game>): Game? {
-        fun file(g: Game) = Uri.decode(g.path.substringAfterLast('/'))
-        return games.firstOrNull { file(it) == name } ?: games.firstOrNull { file(it).equals(name, ignoreCase = true) }
+        val request = decodeSegment(name.trim())
+        fun file(g: Game) = decodeSegment(g.path.substringAfterLast('/').substringAfterLast(':'))
+        return games.firstOrNull { file(it) == request }
+            ?: games.firstOrNull { file(it).equals(request, ignoreCase = true) }
+            ?: games.firstOrNull { it.title == request }
+            ?: games.firstOrNull { it.title.equals(request, ignoreCase = true) }
     }
 
     fun done() { pending.value = null }
 
     /** Message for a request that matches no library game. */
     fun notFound(name: String) = "\"$name\" is not in the games folder"
+
+    private fun decodeSegment(value: String): String = runCatching {
+        // URLDecoder treats '+' as a space; in a URI path it is a literal plus.
+        URLDecoder.decode(value.replace("+", "%2B"), Charsets.UTF_8)
+    }.getOrDefault(value)
 
     private fun fileName(context: Context, uri: Uri): String? {
         if (uri.scheme == "content") {

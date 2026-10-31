@@ -22,7 +22,7 @@ menu; subsequent Back presses traverse its shared page stack before dismissing.
 Use the same basic GBSat arrangement:
 
 - A dimmed, tappable scrim over the game; tapping outside the panel dismisses the quick menu and resumes emulation.
-- A panel entering from the left, occupying the full available height and approximately 85% of the width, capped at about 340 dp on wider screens. Round the top-right and bottom-right corners and use a subtle border.
+- A panel entering from the left, occupying the full game-window height from the top edge to the bottom edge. Size it responsively to approximately 85% of the available width, capped at about 340 dp on wider screens. Insets for system bars or cutouts may protect the panel's content horizontally, but must not shorten the panel vertically; the game window is immersive. Round the top-right and bottom-right corners and use a subtle border.
 - A header showing a pause icon and **Paused** on the root page, with the current game's title beneath it. In a submenu, replace the pause icon with a Back arrow and show the submenu title. A close control dismisses the menu.
 - A divider below the header and a vertically scrollable list of menu rows.
 - Each row uses a meaningful icon, a concise label, and—where relevant—the current value aligned on the trailing side. Rows that open submenus show a disclosure arrow.
@@ -217,6 +217,8 @@ val achievementsPage = QuickMenuPage("achievements", "Achievements", fullScreen 
 The app must initialize `RetroAchievements` with its `RaBackend` adapter and provide `appCheatsBackend` as a `CheatsBackend` implementation. The backend handles core-specific code formats and native calls; the shared screen handles presentation, editing flow, file selection, controller-compatible navigation and feedback.
 
 In real code, keep the standard root order from this document, and create submenu entries only when the app capability model confirms that the action is implemented. Use `fullScreen = true` for existing full-window subpages such as cheat/achievement screens that still need to participate in the same Back stack.
+
+The shared quick-menu scrim and side panel fill the app window from top to bottom. Keep vertical system-bar insets off the panel content so the panel does not shrink differently between consumers; apply horizontal safe-drawing insets only for cutouts. The panel width is responsive to the available window, capped at 340 dp, and uses 85% of narrower windows.
 ## Implementation contract
 
 The quick-menu visuals may be shared in GBFrame, but console/core operations belong to the app's adapter layer. Keep the separation clear:
