@@ -37,6 +37,8 @@ data class PadButton(
     val id: String, val label: String? = null, val icon: ImageVector? = null,
     val x: Float, val y: Float, val w: Float, val h: Float, val wOfWidth: Boolean = false,
     val shape: Shape = CircleShape, val color: Color = Color(0xFF4A4468),
+    /** Keep the hitbox clickable while letting labels and shapes in controller artwork show through. */
+    val drawOverlay: Boolean = true,
 )
 
 /** A console controller drawn for button mapping: its body and buttons. */
@@ -86,16 +88,20 @@ fun PadDiagram(layout: PadLayout, highlight: String?, onSelect: (String) -> Unit
             val bw = if (b.wOfWidth) w * b.w else h * b.w
             val bh = h * b.h
             val sel = highlight == b.id
-            Box(
-                Modifier.offset(w * b.x - bw / 2, h * b.y - bh / 2).size(bw, bh).clip(b.shape)
-                    .background(if (sel) p.highlight else b.color)
+            val showOverlay = b.drawOverlay || sel
+            val buttonModifier = Modifier.offset(w * b.x - bw / 2, h * b.y - bh / 2).size(bw, bh).clip(b.shape)
+                .then(if (showOverlay) Modifier.background(if (sel) p.highlight else b.color)
                     .border(if (sel) 2.dp else 1.dp, if (sel) Color.White else Color.White.copy(alpha = .25f), b.shape)
-                    .clickable { onSelect(b.id) },
+                else Modifier)
+            Box(
+                buttonModifier.clickable { onSelect(b.id) },
                 contentAlignment = Alignment.Center,
             ) {
-                if (b.icon != null) Icon(b.icon, b.id, tint = if (sel) Color.Black else Color.White, modifier = Modifier.size(bh * .8f))
-                else if (b.label != null) Text(b.label, color = if (sel) Color.Black else Color.White, fontWeight = FontWeight.Bold,
-                    fontSize = (bh.value * .42f).sp, textAlign = TextAlign.Center)
+                if (showOverlay) {
+                    if (b.icon != null) Icon(b.icon, b.id, tint = if (sel) Color.Black else Color.White, modifier = Modifier.size(bh * .8f))
+                    else if (b.label != null) Text(b.label, color = if (sel) Color.Black else Color.White, fontWeight = FontWeight.Bold,
+                        fontSize = (bh.value * .42f).sp, textAlign = TextAlign.Center)
+                }
             }
         }
     }
