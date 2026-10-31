@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.Tv
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.runtime.Composable
 
 data class RendererChoice(val value: Int, val label: String)
@@ -76,28 +75,4 @@ fun EnhancedResolutionQuickMenuItem(
         label = title,
         value = labels[selected],
     ) { onChange(values[(selected + 1) % values.size]) }
-}
-
-@Composable
-fun DreamcastCableSettingsRow(value: Int, onChange: (Int) -> Unit) {
-    val values = listOf(0, 2, 3)
-    val labels = listOf("VGA", "RGB", "TV")
-    ChoiceRow("Cable", "Video output type. Some games do not support VGA or RGB.", labels, values.indexOf(value).coerceAtLeast(0)) {
-        onChange(values[it])
-    }
-}
-
-@Composable
-fun DreamcastBroadcastSettingsRow(value: Int, onChange: (Int) -> Unit) = ChoiceRow(
-    "Broadcast", "Video standard stored in the Dreamcast system settings. Default keeps the existing system value.",
-    listOf("NTSC", "PAL", "PAL-M", "PAL-N", "Default"), value.coerceIn(0, 4),
-) { onChange(it) }
-
-@Composable
-fun DreamcastSystemSettings(cable: Int, onCableChange: (Int) -> Unit, broadcast: Int, onBroadcastChange: (Int) -> Unit) {
-    SettingsGroup("Dreamcast", Icons.Default.Tune) {
-        DreamcastCableSettingsRow(cable, onCableChange)
-        SettingsDivider()
-        DreamcastBroadcastSettingsRow(broadcast, onBroadcastChange)
-    }
 }
