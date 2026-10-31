@@ -278,6 +278,7 @@ fun QuickMenuHost(
                             color = Color.White.copy(alpha = .1f),
                         )
                         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                            val contentViewportHeight = maxHeight
                             Column(
                                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 8.dp)
                                     .onPreviewKeyEvent { event ->
@@ -289,7 +290,7 @@ fun QuickMenuHost(
                                     },
                             ) {
                                 Column(
-                                    Modifier.fillMaxWidth().heightIn(min = maxHeight),
+                                    Modifier.fillMaxWidth().heightIn(min = contentViewportHeight),
                                     verticalArrangement = if (scope.isRoot) Arrangement.SpaceBetween else Arrangement.Top,
                                 ) {
                                     CompositionLocalProviderQuickMenuFocus(focusScope) {
