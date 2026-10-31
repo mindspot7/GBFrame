@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -216,7 +217,7 @@ fun QuickMenuHost(
                     color = p.panel,
                     shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
                     border = BorderStroke(1.dp, p.border),
-                    modifier = Modifier.fillMaxHeight().widthIn(max = 340.dp).fillMaxWidth(.85f)
+                    modifier = Modifier.fillMaxHeight().fillMaxWidth(.85f).widthIn(max = 340.dp)
                         .pointerInput(Unit) { detectTapGestures(onTap = {}) },
                 ) {
                     // The panel itself reaches the top and bottom of the app window. Only inset
@@ -333,6 +334,20 @@ fun WidescreenGameHacksItem(id: String = "widescreen-game-hacks", value: Boolean
         value = if (value) "On" else "Off",
         onClick = { onChange(!value) },
     )
+
+/** Shared quick-menu row for the touch-control policy used by every GBFrame app. */
+@Composable
+fun TouchControlsQuickMenuItem(
+    id: String = "touch-controls",
+    value: TouchControlsMode,
+    onChange: (TouchControlsMode) -> Unit,
+) = QuickMenuItemRow(
+    id = id,
+    icon = Icons.Default.TouchApp,
+    label = "Touch controls",
+    value = if (value == TouchControlsMode.AUTO) "Auto" else "Show",
+    onClick = { onChange(if (value == TouchControlsMode.AUTO) TouchControlsMode.SHOW else TouchControlsMode.AUTO) },
+)
 
 /** Shared in-game Performance row for adaptive render skipping; app supplies and persists the core setting. */
 @Composable
