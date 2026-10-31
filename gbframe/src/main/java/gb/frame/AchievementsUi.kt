@@ -146,7 +146,7 @@ fun AchievementsScreen(
 fun RetroAchievementsSettings(appName: String) {
     val ra = RetroAchievements
     SettingsGroup("RetroAchievements", Icons.Default.EmojiEvents) {
-        ToggleRow(Icons.Default.EmojiEvents, "Enable RetroAchievements", "Earn achievements from retroachievements.org (account and internet needed)",
+        ToggleRow(Icons.Default.EmojiEvents, "Enable RetroAchievements", "Earn achievements while playing. You need a RetroAchievements account and an internet connection; this does not affect emulation speed.",
             ra.enabled) { ra.changeEnabled(it) }
         if (ra.enabled) {
             SettingsDivider()
@@ -173,11 +173,11 @@ fun RetroAchievementsSettings(appName: String) {
             }
             SettingsDivider()
             ToggleRow(Icons.Default.LocalFireDepartment, "Hardcore mode",
-                "More points; save state loading and cheats are disabled. Turning it on during a game resets the game.",
+                "Enables stricter achievement rules and extra points. Cheats and save states are disabled; turning it on during a game resets the game.",
                 ra.hardcore) { ra.changeHardcore(it) }
             SettingsDivider()
             ToggleRow(Icons.Default.CloudOff, "Offline achievements",
-                "Casual mode only: without a connection, unlocks are kept and sent when you are back online (the game must have been started online once)" +
+                "Casual mode only: stores unlocks while offline and sends them when you reconnect. Start the game online once first; this does not change game speed." +
                     if (ra.pendingSync > 0) " · ${ra.pendingSync} waiting to sync" else "",
                 ra.offlineEnabled) { ra.changeOffline(it) }
         }

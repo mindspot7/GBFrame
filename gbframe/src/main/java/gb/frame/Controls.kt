@@ -156,7 +156,7 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
         }
         else -> {
             SettingsGroup("On-screen controls", Icons.Default.TouchApp) {
-                ToggleRow(Icons.Default.TouchApp, "Show touch controls", "Hidden automatically while a controller is connected (handhelds included)",
+                ToggleRow(Icons.Default.TouchApp, "Show touch controls", "Shows the on-screen buttons. They hide automatically when a physical controller is connected.",
                     host.showTouchControls) { host.showTouchControls = it }
             }
         }

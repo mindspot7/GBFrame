@@ -51,7 +51,7 @@ object FastForwardAudio {
     fun description(mode: Int) = when (mode) {
         SPEED_UP -> "Plays all the audio faster (higher pitch), following the game speed"
         MUTE -> "No sound while fast-forwarding"
-        else -> "Plays short pieces of audio at normal pitch"
+        else -> "Keeps the original pitch during fast-forward; sound may be choppy while the game runs faster"
     }
 }
 
