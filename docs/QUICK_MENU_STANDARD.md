@@ -22,7 +22,7 @@ menu; subsequent Back presses traverse its shared page stack before dismissing.
 Use the same basic GBSat arrangement:
 
 - A dimmed, tappable scrim over the game; tapping outside the panel dismisses the quick menu and resumes emulation.
-- A panel entering from the left, occupying the full available height and approximately 85% of the width, capped at about 340 dp on wider screens. Round the top-right and bottom-right corners and use a subtle border.
+- A panel entering from the left, occupying the full game-window height from the top edge to the bottom edge. Size it responsively to approximately 85% of the available width, capped at about 340 dp on wider screens. Insets for system bars or cutouts may protect the panel's content horizontally, but must not shorten the panel vertically; the game window is immersive. Round the top-right and bottom-right corners and use a subtle border.
 - A header showing a pause icon and **Paused** on the root page, with the current game's title beneath it. In a submenu, replace the pause icon with a Back arrow and show the submenu title. A close control dismisses the menu.
 - A divider below the header and a vertically scrollable list of menu rows.
 - Each row uses a meaningful icon, a concise label, and—where relevant—the current value aligned on the trailing side. Rows that open submenus show a disclosure arrow.
