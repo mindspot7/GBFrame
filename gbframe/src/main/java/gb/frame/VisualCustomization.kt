@@ -224,9 +224,12 @@ object VisualCustomization {
         }
 
         private fun grant(purchase: Purchase) {
+            val showPurchaseConfirmation = dialogVisible.value
             setOwned(true)
-            dialogVisible.value = false
             message.value = null
+            if (showPurchaseConfirmation) {
+                message.value = "Theme layouts and custom cover images are now unlocked."
+            }
             if (!purchase.isAcknowledged) {
                 val params = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
                 client.acknowledgePurchase(params) { result ->
@@ -287,36 +290,46 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
     val status by VisualCustomization.status
     val price by VisualCustomization.price
     val message by VisualCustomization.message
-    if (visible && !unlocked) {
+    if (visible) {
         val activity = remember(context) { context.findActivity() }
         AlertDialog(
             onDismissRequest = VisualCustomization::dismissDialog,
-            title = { Text("Unlock visual customization") },
+            title = { Text(if (unlocked) "Visual customization unlocked" else "Unlock visual customization") },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("A one-time purchase unlocks optional library layouts and custom cover images in $appName. Each emulator is purchased separately.")
-                    Spacer(Modifier.height(8.dp))
-                    if (price != null) Text("One-time purchase · $price")
-                    if (status == VisualCustomization.Status.Checking) {
-                        Spacer(Modifier.height(12.dp))
-                        CircularProgressIndicator()
-                    }
-                    message?.let {
+                    if (unlocked) {
+                        Text(message ?: "Theme layouts and custom cover images are ready to use in $appName.")
+                    } else {
+                        Text("A one-time purchase unlocks optional library layouts and custom cover images in $appName. Each emulator is purchased separately.")
                         Spacer(Modifier.height(8.dp))
-                        Text(it)
+                        if (price != null) Text("One-time purchase · $price")
+                        if (status == VisualCustomization.Status.Checking) {
+                            Spacer(Modifier.height(12.dp))
+                            CircularProgressIndicator()
+                        }
+                        message?.let {
+                            Spacer(Modifier.height(8.dp))
+                            Text(it)
+                        }
                     }
                 }
             },
             confirmButton = {
-                TextButton(
-                    enabled = status == VisualCustomization.Status.Ready,
-                    onClick = { VisualCustomization.buy(activity) },
-                ) { Text(if (price == null) "Buy once" else "Buy · $price") }
+                if (unlocked) {
+                    TextButton(onClick = VisualCustomization::dismissDialog) { Text("Done") }
+                } else {
+                    TextButton(
+                        enabled = status == VisualCustomization.Status.Ready,
+                        onClick = { VisualCustomization.buy(activity) },
+                    ) { Text(if (price == null) "Buy once" else "Buy · $price") }
+                }
             },
             dismissButton = {
-                Column(horizontalAlignment = Alignment.End) {
-                    TextButton(onClick = VisualCustomization::restore) { Text("Restore purchase") }
-                    TextButton(onClick = VisualCustomization::dismissDialog, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+                if (!unlocked) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        TextButton(onClick = VisualCustomization::restore) { Text("Restore purchase") }
+                        TextButton(onClick = VisualCustomization::dismissDialog, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+                    }
                 }
             },
         )
