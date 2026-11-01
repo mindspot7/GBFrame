@@ -33,7 +33,8 @@ fun emulatorLabel(manufacturer: String, console: String) = "$manufacturer $conso
 /**
  * The standard About page of every app built on the kit (Settings → About): icon, app name, the [emulatorLabel], the
  * version, the Application id (the installed package name), then Credits and License cards. Apps only supply their own
- * name, console, icon, credits and license text; the layout is the same everywhere.
+ * name, console, icon, core/data credits and license text; shared kit data sources are credited here. Credit entries
+ * that name the app itself or GBFrame are suppressed so this card stays focused on external contributions.
  */
 @Composable
 fun AboutPage(
@@ -47,6 +48,13 @@ fun AboutPage(
     val ctx = LocalContext.current
     val version = remember { runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?" }
     val p = palette
+    val visibleCredits = (credits + AboutCredit(
+        "libretro-thumbnails",
+        "Optional game box art source, fetched from the Libretro thumbnail service.",
+    )).filterNot { credit ->
+        val entry = "${credit.name} ${credit.text}"
+        entry.contains("GBFrame", ignoreCase = true) || entry.contains(appName, ignoreCase = true)
+    }
     SettingsGroup(null, null) {
         Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Image(icon, null, Modifier.size(72.dp))
@@ -59,8 +67,8 @@ fun AboutPage(
             Text("appid: ${ctx.packageName}", color = p.dim, style = MaterialTheme.typography.labelMedium)
         }
     }
-    SettingsGroup("Credits", Icons.Default.Favorite) {
-        credits.forEachIndexed { i, credit ->
+    if (visibleCredits.isNotEmpty()) SettingsGroup("Credits", Icons.Default.Favorite) {
+        visibleCredits.forEachIndexed { i, credit ->
             if (i > 0) SettingsDivider()
             InfoRow(credit.name, credit.text)
         }

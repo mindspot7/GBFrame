@@ -19,7 +19,7 @@ Do not treat an app-specific implementation as a standard when it conflicts with
 
 - Use the same lowercase stable slug for Android `applicationId` and Gradle `namespace`: `app.<slug>.emulator`.
 - Use GBFrame's `emulatorLabel(manufacturer, console)` and shared `AboutPage`; do not fork the About layout. The package identity line must read `appid: <applicationId>` (not `Application id`).
-- Provide app-specific credits and license text to `AboutPage`.
+- Provide credits for upstream cores, services and bundled data, plus the app's actual license text, to `AboutPage`. Do not list the app itself or GBFrame as a credit; the kit filters those entries and supplies attribution for the shared Libretro thumbnail source.
 
 ## App icon and in-app identity
 
