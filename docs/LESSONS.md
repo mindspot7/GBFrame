@@ -366,3 +366,13 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 - On the tested Android build, `Threaded rendering` Off crashed during startup on both GLES and Vulkan; On launched the same save state. Keep Off out of recommended profiles until the Android failure is fixed and retested.
 - VSync and frame pacing Off did not produce a repeatable speed gain. Keep presentation defaults based on tear/latency goals, not a few variable attract screenshots.
 - Fast CD load and CD read speed affect read-bound waits, not the emulated CPU/GPU's steady frame rate. Faster reads can desynchronize streamed audio/video unless the core compensates; validate streaming before treating 8x as universal.
+
+### Crazy Taxi
+
+- At 2x without OIT, Crazy Taxi's eight-sample attract-mode medians were Vulkan 58.7 FPS / 97.8% speed / 71.8% GPU and GLES 55.0 FPS / 91.6% / 50.5% GPU. Keep the existing `mid` Vulkan recommendation for this device; do not generalize the renderer ranking to other games or devices.
+- The attract camera and traffic vary, and one Vulkan sample dipped during a transition. Use repeated clean launches from the same state and compare medians; hot-switch renderer results were contaminated by temporary slow/corrupted frames.
+- Dynarec Off reduced the title to 17 FPS / 28.3% speed, with `Flycast-emu` at 100% of one core. Dynarec On restored about 98% speed. CPU execution capacity is essential, but this does not alone identify the normal Vulkan run's limiting thread.
+- Auto frame skip Max regressed to a 45.9 FPS / 76.4% median in this variable scene. Normal (58.25 FPS / 97.1%) only narrowly exceeded Off (55.8 FPS / 93.0%); scene variation prevents declaring that a reliable gain. Keep Off for raw throughput comparisons and avoid Max for this tested profile.
+- A DSP On check had no AudioFlinger underruns, but game speed was not measured in a scene-matched A/B and audio was not monitored by loopback. Do not claim a performance gain from DSP changes based on this check.
+- A single Bilinear-filter sample is not comparable to the Nearest baseline. Keep the current filter default until repeated matched samples show a meaningful throughput or visual benefit.
+- The supported launch intent was received but did not open the game; the test used the library and verified Slot 1 manually. Confirm the actual game/state after every intent before collecting performance samples.
