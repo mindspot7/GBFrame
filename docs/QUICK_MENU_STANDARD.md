@@ -67,9 +67,9 @@ Use this order for common Video controls:
 
 1. **Display**, cycling in this order: 4:3, 16:9, Fullscreen (omit unsupported
    choices while retaining their relative order).
-2. **Widescreen game hacks**, only when the current display is Fullscreen or 16:9
+2. **Widescreen hack**, only when the current display is Fullscreen or 16:9
    and the current game has a matching hack.
-3. **Extended screen**, as a separate GBFrame toggle after Widescreen game hacks,
+3. **Extended screen**, as a separate GBFrame toggle after Widescreen hack,
    only when the selected Display mode supports it (when the core has this capability).
 4. **Renderer**.
 5. **Resolution**.

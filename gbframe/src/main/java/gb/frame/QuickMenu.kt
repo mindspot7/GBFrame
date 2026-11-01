@@ -445,7 +445,7 @@ fun WidescreenGameHacksItem(id: String = "widescreen-game-hacks", value: Boolean
     QuickMenuItemRow(
         id = id,
         icon = Icons.Default.Tune,
-        label = "Widescreen game hacks",
+        label = "Widescreen hack",
         value = if (value) "On" else "Off",
         onClick = { onChange(!value) },
     )

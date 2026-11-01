@@ -83,7 +83,7 @@ fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, en
 @Composable
 fun WidescreenGameHacksRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
     Icons.Default.Tune,
-    "Widescreen game hacks",
+    "Widescreen hack",
     "Uses built-in widescreen codes in supported games. It can show more of the scene, but may cause visual glitches. Your own cheats stay separate.",
     value,
     onChange,
