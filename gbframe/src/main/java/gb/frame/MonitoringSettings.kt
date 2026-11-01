@@ -42,7 +42,7 @@ fun MonitoringSettingsRows(settings: MonitoringSettings) {
         "fps" to "Shows frames drawn each second. The overlay has a small rendering cost.",
         "speed" to "Shows emulation speed compared with the console's normal speed.",
         "cpu" to "Shows CPU usage reported by this emulator.",
-        "gpu" to "Shows GPU usage when the device reports it.",
+        "gpu" to "Shows GPU work for this emulator when available. Some devices cannot report it.",
         "renderer" to "Shows which graphics renderer is active.",
         "resolution" to "Shows the current internal rendering resolution.",
         "frameTime" to "Shows how long each frame takes; spikes can reveal slowdowns.",
