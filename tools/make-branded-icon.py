@@ -186,13 +186,13 @@ def compose(icon, mark):
     if art_w < width * 0.75:
         # Adaptive foregrounds are padded for the launcher mask. Keep a small
         # badge centered below the controller, within the central safe zone.
-        diameter = min(width, height) * 0.12
+        diameter = min(width, height) * 0.14
         center_x = width * 0.50
         center_y = height * 0.69
     else:
         # Standalone launcher PNGs place the same mark in the lower-middle,
         # just below the control's center area.
-        diameter = min(width, height) * 0.20
+        diameter = min(width, height) * 0.22
         center_x = width * 0.50
         center_y = height * 0.80
     badge = make_badge(mark)
