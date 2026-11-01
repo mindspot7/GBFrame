@@ -15,6 +15,14 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   Vulkan presentation overhead and Saturn CPU limits are distinct; renderer experiments did not justify changing the
   proven OpenGL CPU path. Keep tested per-game CPU recommendations in GBFrame profiles and document the device/game
   scope of every exception.
+- **GBSat / Ymir (Extended screen):** do not port Flycast's extended-FOV transform as a SurfaceView aspect change.
+  Ymir's VDP renderers receive the Saturn TVMD resolution and return a completed pixel frame; VDP1 geometry has already
+  been projected and clipped by game commands. Changing only the Android view stretches or crops that frame. Daytona
+  USA: Championship Circuit Edition loaded its gameplay savestate on the RG Rotate and reported 352x224, but GBSat has
+  no bundled widescreen code for that title. The current community Saturn patch list has no Daytona entry; an older
+  compatibility list mentions Daytona but does not provide a code and says its entries were not hardware-confirmed.
+  Add a Saturn Extended screen control only alongside a validated game patch or a renderer path that demonstrably
+  reveals more scene content, with both CPU and Vulkan validation.
 - **GBCast / Flycast (Dreamcast):** keep shaders and picture scaling filters in the GBFrame presenter so OpenGL and
   Vulkan produce the same output. The Vulkan path can render off-screen and copy into GBFrame's AHardwareBuffer ring;
   submit a slot only after its Vulkan fence signals, and preserve CPU readback when import/copy support is unavailable.
@@ -23,6 +31,10 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   treating this path as production-ready. Region should retain the emulator's existing default and fall back only when
   the disc metadata excludes it. The 32 MB Dreamcast RAM map can break otherwise ordinary retail titles and does not
   improve speed; hide the global toggle and enable it only for product IDs confirmed to need the expanded map.
+- **GBCast / Flycast forks (Hollycast):** check commit ancestry before porting fork optimizations. Hollycast is derived
+  from Flycast, and the SH-4 change removing MMU memory-access penalty cycles (`ec56b5f26`) is already in GBCast's
+  history, so it is not a new candidate for this app. Future Hollycast-only changes need a separate code review and
+  validation against GBCast's supported platforms and games.
 - **GBCast / Flycast (Crazy Taxi on RG DS / RK3568):** repeated attract-mode samples favored GLES at native 640x480,
   Bilinear, Normal auto frame skip, Dynarec On, threaded rendering On, and frame pacing On. Normal's median was about
   37 FPS versus 35 FPS with frame skip Off and 33 FPS with Max; threaded rendering On measured about 37 FPS versus
