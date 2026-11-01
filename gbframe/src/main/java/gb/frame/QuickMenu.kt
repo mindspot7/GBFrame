@@ -1,5 +1,6 @@
 package gb.frame
 
+import android.view.ViewTreeObserver
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -39,6 +40,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -104,6 +106,7 @@ private val LocalQuickMenuFocusScope = compositionLocalOf<QuickMenuFocusScope?> 
 private class QuickMenuFocusScope(private val preferredItemId: String?) {
     private val requesters = LinkedHashMap<String, FocusRequester>()
     private var focusedItemId: String? = null
+    private var lastFocusedItemId: String? = null
 
     fun register(id: String, requester: FocusRequester) {
         requesters[id] = requester
@@ -112,12 +115,18 @@ private class QuickMenuFocusScope(private val preferredItemId: String?) {
     fun unregister(id: String, requester: FocusRequester) {
         if (requesters[id] === requester) requesters.remove(id)
         if (focusedItemId == id) focusedItemId = null
+        if (lastFocusedItemId == id) lastFocusedItemId = null
     }
 
-    fun target(): FocusRequester? = requesters[preferredItemId] ?: requesters.values.firstOrNull()
+    fun target(): FocusRequester? = requesters[lastFocusedItemId] ?: requesters[preferredItemId] ?: requesters.values.firstOrNull()
 
     fun onFocused(id: String, focused: Boolean) {
-        if (focused) focusedItemId = id else if (focusedItemId == id) focusedItemId = null
+        if (focused) {
+            focusedItemId = id
+            lastFocusedItemId = id
+        } else if (focusedItemId == id) {
+            focusedItemId = null
+        }
     }
 
     /** Wrap vertical focus between the first and last rows on this page. */
@@ -171,12 +180,25 @@ fun QuickMenuHost(
     val focusScope = remember(current.page.id, current.returnFocusItemId) {
         QuickMenuFocusScope(current.returnFocusItemId)
     }
+    val view = LocalView.current
+    var windowFocusEpoch by remember(view) { mutableIntStateOf(0) }
+
+    DisposableEffect(view) {
+        val observer = view.viewTreeObserver
+        val listener = ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
+            if (hasFocus) windowFocusEpoch++
+        }
+        observer.addOnWindowFocusChangeListener(listener)
+        onDispose {
+            if (observer.isAlive) observer.removeOnWindowFocusChangeListener(listener)
+        }
+    }
 
     BackHandler(enabled = true) { scope.back() }
 
     val inputMode = LocalInputModeManager.current
 
-    LaunchedEffect(focusScope, current.page.id) {
+    LaunchedEffect(focusScope, current.page.id, windowFocusEpoch) {
         // Let the new page and its first rows attach before requesting focus; retry while Compose
         // is laying out or a dynamically supplied menu row becomes available.
         repeat(40) {
