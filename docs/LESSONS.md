@@ -15,6 +15,11 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   Vulkan presentation overhead and Saturn CPU limits are distinct; renderer experiments did not justify changing the
   proven OpenGL CPU path. Keep tested per-game CPU recommendations in GBFrame profiles and document the device/game
   scope of every exception.
+- **GBSat / Ymir (widescreen catalog):** Sega Saturn community lists mix Action Replay codes, emulator-specific
+  codes, and patches that replace files in a disc image. Keep the auto-applied toggle limited to supported
+  Console/AR codes; do not reinterpret emulator codes or modify users' disc images. Match product/version when a code
+  is revision-specific. Die Hard Trilogy's widescreen codes are split between its Die Hard 2 and 3 modes, so the
+  single automatic toggle must not apply both until the active mode can be identified safely.
 - **GBSat / Ymir (Extended screen):** do not port Flycast's extended-FOV transform as a SurfaceView aspect change.
   Ymir's VDP renderers receive the Saturn TVMD resolution and return a completed pixel frame; VDP1 geometry has already
   been projected and clipped by game commands. Changing only the Android view stretches or crops that frame. Daytona
