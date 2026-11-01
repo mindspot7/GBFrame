@@ -169,6 +169,8 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 
 ## Frame pacing
 
+- **GBSat / GBSat Adaptive graphics:** this is a render-only adaptive skip, not a lower emulation rate. It starts when frames miss their pacing target (96% threshold on the software renderer, 92% on the GPU renderer), adapts the spacing between skipped frames, and pauses skipping when measurements show no benefit. CPU emulation and audio timing continue normally.
+- **GBCast / Auto frame skip:** Off waits for every threaded render; Normal drops a queued render when both the render queue and SH-4 are behind; Max drops a queued render whenever graphics are behind. It does not lower SH-4/AICA emulation rate. Flycast also has a separate fixed `ta.skip` setting, but the GBCast Android menu exposes the adaptive Off/Normal/Max control. GBFrame's Skip Engine is separate and only accelerates eligible loading/transition/save waits.
 - Automatic frame skip helps only when rendering is the bottleneck; when the CPU emulation is, skipping just makes
   the picture choppy, so back off (stop skipping for a while) when skipping doesn't catch up.
 - Fast forward should render ~60 frames per real second and skip the rest.
