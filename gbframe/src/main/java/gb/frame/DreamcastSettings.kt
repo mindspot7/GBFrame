@@ -55,8 +55,8 @@ fun SuperWidescreenSettingsRow(
     if (supportsSuperWidescreen(displayModeValue, displayModes)) {
         ToggleRow(
             Icons.Default.AspectRatio,
-            "Super widescreen",
-            "Expands the view beyond 16:9 to the screen ratio. It can reveal more of the scene, but may cause edge or HUD glitches.",
+            "Extended screen",
+            "Extends the view beyond 16:9 to the screen ratio. It can reveal more of the scene, but may cause edge or HUD glitches.",
             value,
             onChange,
         )
@@ -105,7 +105,7 @@ fun SuperWidescreenQuickMenuItem(
         QuickMenuItemRow(
             id = id,
             icon = Icons.Default.AspectRatio,
-            label = "Super widescreen",
+            label = "Extended screen",
             value = if (value) "On" else "Off",
             onClick = { onChange(!value) },
         )
