@@ -92,7 +92,7 @@ fun DisplayModeQuickMenuItem(
     }
 }
 
-/** Shared in-game toggle; omitted when the selected display mode does not support Super widescreen. */
+/** Shared in-game toggle; omitted when the selected display mode does not support Extended screen. */
 @Composable
 fun SuperWidescreenQuickMenuItem(
     displayModeValue: Int,
