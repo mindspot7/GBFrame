@@ -184,17 +184,17 @@ def compose(icon, mark):
     x0, y0, x1, y1 = bounds
     art_w, art_h = x1 - x0, y1 - y0
     if art_w < width * 0.75:
-        # Adaptive foregrounds have a large safe-zone margin. Keep the badge
-        # inside the central mask and anchor it to the artwork's upper-right.
-        diameter = art_w * BADGE_ART_SCALE * 0.875
-        center_x = x0 + art_w * 0.82
-        center_y = y0 - diameter * 0.15
+        # Adaptive foregrounds are padded for the launcher mask. Keep a small
+        # badge centered below the controller, within the central safe zone.
+        diameter = min(width, height) * 0.12
+        center_x = width * 0.50
+        center_y = height * 0.69
     else:
-        # Standalone launcher PNGs use their open top-right corner. The badge
-        # sits above the controller with only a small overlap at the top edge.
-        diameter = min(width, height) * 0.22
-        center_x = width * 0.84
-        center_y = height * 0.20
+        # Standalone launcher PNGs place the same mark in the lower-middle,
+        # just below the control's center area.
+        diameter = min(width, height) * 0.20
+        center_x = width * 0.50
+        center_y = height * 0.80
     badge = make_badge(mark)
     radius = diameter / 2
     left, top = center_x - radius, center_y - radius
