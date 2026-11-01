@@ -15,11 +15,14 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Tune
@@ -37,6 +40,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
@@ -102,6 +106,7 @@ class QuickMenuScope internal constructor(
 
 private data class QuickMenuStackEntry(val page: QuickMenuPage, val returnFocusItemId: String?)
 private val LocalQuickMenuFocusScope = compositionLocalOf<QuickMenuFocusScope?> { null }
+private val LocalQuickMenuCompactRootRows = compositionLocalOf { false }
 
 private class QuickMenuFocusScope(private val preferredItemId: String?) {
     private val requesters = LinkedHashMap<String, FocusRequester>()
@@ -226,12 +231,16 @@ fun QuickMenuHost(
             // labels made sparse pages (notably Video) look narrower than the main quick menu.
             val density = LocalDensity.current
             val rootView = LocalView.current.rootView
-            val rootWidthPx = rootView.width
+            val screenWidthPx = with(density) {
+                rootView.width.takeIf { it > 0 }?.toFloat() ?: maxWidth.toPx()
+            }
+            val screenHeightPx = with(density) {
+                rootView.height.toFloat().takeIf { it > 0f } ?: maxHeight.toPx()
+            }
+            val aspectRatio = screenWidthPx / screenHeightPx
+            val isLandscapeFourByThree = screenWidthPx > screenHeightPx && aspectRatio <= 1.45f
+            val compactRootMenu = scope.isRoot && isLandscapeFourByThree
             val panelWidth = with(density) {
-                val screenWidthPx = rootWidthPx.takeIf { it > 0 }?.toFloat() ?: maxWidth.toPx()
-                val screenHeightPx = rootView.height.toFloat().takeIf { it > 0f } ?: maxHeight.toPx()
-                val aspectRatio = screenWidthPx / screenHeightPx
-                val isLandscapeFourByThree = screenWidthPx > screenHeightPx && aspectRatio <= 1.45f
                 val widthFraction = if (isLandscapeFourByThree) .46f else .50f
                 minOf(maxOf(screenWidthPx * widthFraction, minOf(screenWidthPx, 280f)), 400f).toDp()
             }
@@ -267,10 +276,13 @@ fun QuickMenuHost(
                     Column(
                         Modifier.fillMaxSize()
                             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = if (compactRootMenu) 8.dp else 12.dp),
                     ) {
                         Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                            Modifier.fillMaxWidth().padding(
+                                horizontal = 12.dp,
+                                vertical = if (compactRootMenu) 2.dp else 4.dp,
+                            ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (scope.isRoot) {
@@ -302,27 +314,72 @@ fun QuickMenuHost(
                             }
                         }
                         HorizontalDivider(
-                            Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                            Modifier.padding(horizontal = 16.dp, vertical = if (compactRootMenu) 4.dp else 6.dp),
                             color = Color.White.copy(alpha = .1f),
                         )
                         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                             val contentViewportHeight = maxHeight
-                            Column(
-                                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 8.dp)
-                                    .onPreviewKeyEvent { event ->
-                                        val vertical = event.key == androidx.compose.ui.input.key.Key.DirectionUp ||
-                                            event.key == androidx.compose.ui.input.key.Key.DirectionDown
-                                        if (event.type == KeyEventType.KeyDown && vertical) {
-                                            focusScope.wrapVertical(event.key)
-                                        } else false
-                                    },
-                            ) {
+                            val scrollState = rememberScrollState()
+                            val canScrollUp by remember(scrollState) {
+                                derivedStateOf { scrollState.value > 0 }
+                            }
+                            val canScrollDown by remember(scrollState) {
+                                derivedStateOf { scrollState.value < scrollState.maxValue }
+                            }
+                            Box(Modifier.fillMaxSize()) {
                                 Column(
-                                    Modifier.fillMaxWidth().heightIn(min = contentViewportHeight),
-                                    verticalArrangement = if (scope.isRoot) Arrangement.SpaceBetween else Arrangement.Top,
+                                    Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = 8.dp)
+                                        .onPreviewKeyEvent { event ->
+                                            val vertical = event.key == androidx.compose.ui.input.key.Key.DirectionUp ||
+                                                event.key == androidx.compose.ui.input.key.Key.DirectionDown
+                                            if (event.type == KeyEventType.KeyDown && vertical) {
+                                                focusScope.wrapVertical(event.key)
+                                            } else false
+                                        },
                                 ) {
-                                    CompositionLocalProviderQuickMenuFocus(focusScope) {
-                                        current.page.content(scope)
+                                    Column(
+                                        Modifier.fillMaxWidth().heightIn(min = contentViewportHeight),
+                                        verticalArrangement = if (scope.isRoot) Arrangement.SpaceBetween else Arrangement.Top,
+                                    ) {
+                                        androidx.compose.runtime.CompositionLocalProvider(
+                                            LocalQuickMenuCompactRootRows provides compactRootMenu,
+                                        ) {
+                                            CompositionLocalProviderQuickMenuFocus(focusScope) {
+                                                current.page.content(scope)
+                                            }
+                                        }
+                                    }
+                                }
+                                if (canScrollUp) {
+                                    Box(
+                                        Modifier.align(Alignment.TopEnd)
+                                            .padding(top = 2.dp, end = 4.dp)
+                                            .size(16.dp)
+                                            .background(p.highlight, CircleShape),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Default.KeyboardArrowUp,
+                                            contentDescription = "More options above",
+                                            tint = p.panel,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
+                                }
+                                if (canScrollDown) {
+                                    Box(
+                                        Modifier.align(Alignment.BottomEnd)
+                                            .padding(bottom = 2.dp, end = 4.dp)
+                                            .size(16.dp)
+                                            .background(p.highlight, CircleShape),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Default.KeyboardArrowDown,
+                                            contentDescription = "More options below",
+                                            tint = p.panel,
+                                            modifier = Modifier.size(16.dp),
+                                        )
                                     }
                                 }
                             }
@@ -466,6 +523,7 @@ private fun QuickMenuFocusableItemContainer(
     content: @Composable RowScope.() -> Unit,
 ) {
     var focused by remember { androidx.compose.runtime.mutableStateOf(false) }
+    val compactRootRow = LocalQuickMenuCompactRootRows.current
     val requester = remember(id) { FocusRequester() }
     val focusScope = LocalQuickMenuFocusScope.current
     DisposableEffect(focusScope, id, requester, enabled) {
@@ -474,7 +532,7 @@ private fun QuickMenuFocusableItemContainer(
     }
     Row(
         Modifier.fillMaxWidth()
-            .padding(vertical = 2.dp)
+            .padding(vertical = if (compactRootRow) 1.dp else 2.dp)
             .clip(RoundedCornerShape(14.dp))
             .focusRequester(requester)
             .onFocusChanged {
@@ -492,7 +550,7 @@ private fun QuickMenuFocusableItemContainer(
                 }
             }
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = if (compactRootRow) 8.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
     )
