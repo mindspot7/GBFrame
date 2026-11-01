@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
+    <application
+        android:fullBackupContent="@xml/gbframe_full_backup_content"
+        android:dataExtractionRules="@xml/gbframe_data_extraction_rules">
         <receiver
             android:name="gb.frame.LauncherIconPackageUpdatedReceiver"
             android:enabled="true"

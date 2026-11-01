@@ -1,9 +1,11 @@
 package gb.frame
 
+import android.app.backup.BackupManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.BitmapFactory
 import android.os.Build
+import android.util.AtomicFile
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -16,6 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -59,7 +62,10 @@ object RetroAchievements {
     )
 
     private lateinit var prefs: SharedPreferences
+    private lateinit var legacyPrefs: SharedPreferences
+    private lateinit var tokenFile: File
     private lateinit var cacheDir: File
+    private val tokenLock = Any()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val http = Executors.newFixedThreadPool(2)
 
@@ -82,6 +88,76 @@ object RetroAchievements {
         prefs.edit().putBoolean("offline", on).apply()
     }
 
+    /**
+     * Session credentials live under noBackupFilesDir. SharedPreferences files are included in Android Auto Backup by
+     * default, so keep the legacy file excluded and migrate its non-secret settings to a new, backupable file.
+     */
+    private fun migrateLegacyPreferences() {
+        val oldValues = legacyPrefs.all
+        if (oldValues.isEmpty()) return
+
+        val oldToken = legacyPrefs.getString(TOKEN_KEY, null)
+        if (oldToken != null && readPrivateToken() == null && !writePrivateToken(oldToken)) {
+            // The legacy file is excluded from backups, so it is a safe fallback until private storage is available.
+            prefs = legacyPrefs
+            return
+        }
+
+        val editor = prefs.edit().remove(TOKEN_KEY)
+        oldValues.forEach { (key, value) ->
+            if (key != TOKEN_KEY && !prefs.contains(key)) copyPreference(editor, key, value)
+        }
+        if (!editor.commit()) {
+            prefs = legacyPrefs
+            return
+        }
+        if (!legacyPrefs.edit().clear().commit()) return
+
+        // Ask Android to refresh its snapshot so the excluded legacy preference file is removed from future restores.
+        runCatching { BackupManager(legacyPrefsContext).dataChanged() }
+    }
+
+    private lateinit var legacyPrefsContext: Context
+
+    private fun copyPreference(editor: SharedPreferences.Editor, key: String, value: Any?) {
+        when (value) {
+            is String -> editor.putString(key, value)
+            is Boolean -> editor.putBoolean(key, value)
+            is Int -> editor.putInt(key, value)
+            is Long -> editor.putLong(key, value)
+            is Float -> editor.putFloat(key, value)
+            is Set<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+            null -> Unit
+        }
+    }
+
+    private fun authToken(): String? = readPrivateToken() ?: legacyPrefs.getString(TOKEN_KEY, null)
+
+    private fun readPrivateToken(): String? = synchronized(tokenLock) {
+        runCatching {
+            AtomicFile(tokenFile).openRead().bufferedReader(Charsets.UTF_8).use { it.readText() }
+        }.getOrNull()?.takeIf { it.isNotBlank() }
+    }
+
+    private fun writePrivateToken(token: String?): Boolean = synchronized(tokenLock) {
+        val atomic = AtomicFile(tokenFile)
+        if (token.isNullOrBlank()) {
+            runCatching { atomic.delete() }.isSuccess
+        } else {
+            var stream: FileOutputStream? = null
+            try {
+                stream = atomic.startWrite()
+                stream.write(token.toByteArray(Charsets.UTF_8))
+                atomic.finishWrite(stream)
+                true
+            } catch (error: Exception) {
+                stream?.let { output -> runCatching { atomic.failWrite(output) } }
+                android.util.Log.w("GBFrame.RetroAchievements", "Could not persist the session token in no-backup storage", error)
+                false
+            }
+        }
+    }
+
     /** Profile picture of the logged-in user. */
     var avatarUrl by mutableStateOf<String?>(null); private set
     private var userAgent = "GBApp"
@@ -91,7 +167,11 @@ object RetroAchievements {
 
     fun init(context: Context, appName: String, version: String, backend: RaBackend) {
         this.backend = backend
-        prefs = context.getSharedPreferences("retroachievements", Context.MODE_PRIVATE)
+        legacyPrefsContext = context.applicationContext
+        legacyPrefs = context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
+        prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        tokenFile = File(context.noBackupFilesDir, TOKEN_FILE)
+        migrateLegacyPreferences()
         cacheDir = File(context.cacheDir, "ra_badges").apply { mkdirs() }
         RaOffline.init(prefs, context.filesDir)
         offlineEnabled = prefs.getBoolean("offline", true)
@@ -103,7 +183,7 @@ object RetroAchievements {
         avatarUrl = prefs.getString("avatar", null)
         backend.setHardcore(enabled && hardcore)
         val savedUser = prefs.getString("user", null)
-        val token = prefs.getString("token", null)
+        val token = authToken()
         if (enabled && savedUser != null && token != null) {
             loginPending = true
             backend.login(savedUser, token, true)
@@ -126,7 +206,7 @@ object RetroAchievements {
             gameTitle = null
         } else {
             val savedUser = prefs.getString("user", null)
-            val token = prefs.getString("token", null)
+            val token = authToken()
             if (savedUser != null && token != null) {
                 loginPending = true
                 backend.login(savedUser, token, true)
@@ -143,13 +223,17 @@ object RetroAchievements {
     fun login(username: String, password: String) {
         loginError = null
         loginPending = true
-        prefs.edit().putString("user", username.trim()).remove("token").apply()
+        prefs.edit().putString("user", username.trim()).remove(TOKEN_KEY).apply()
+        writePrivateToken(null)
+        legacyPrefs.edit().remove(TOKEN_KEY).apply()
         backend.login(username.trim(), password, false)
     }
 
     fun logout() {
         backend.logout()
-        prefs.edit().remove("token").apply()
+        writePrivateToken(null)
+        prefs.edit().remove(TOKEN_KEY).apply()
+        legacyPrefs.edit().remove(TOKEN_KEY).apply()
         user = null
         score = 0
         gameTitle = null
@@ -174,7 +258,9 @@ object RetroAchievements {
                 "login" -> {
                     user = a; score = n + (p.getOrElse(5) { "0" }.toIntOrNull() ?: 0); loginPending = false; loginError = null; prefs.edit().putInt("score", score).apply()
                     avatarUrl = url.ifBlank { "https://media.retroachievements.org/UserPic/$a.png" }
-                    prefs.edit().putString("token", b).putString("avatar", avatarUrl).apply()
+                    if (!writePrivateToken(b)) legacyPrefs.edit().putString(TOKEN_KEY, b).apply()
+                    else legacyPrefs.edit().remove(TOKEN_KEY).apply()
+                    prefs.edit().remove(TOKEN_KEY).putString("avatar", avatarUrl).apply()
                     add += Notification("info", "RetroAchievements", "Logged in as $a ($score points)", 0, url)
                 }
                 "loginfail" -> { loginPending = false; loginError = a; user = null }
@@ -232,7 +318,7 @@ object RetroAchievements {
     suspend fun gameAchievements(path: String): Pair<GameSummary?, List<Achievement>> = withContext(Dispatchers.IO) {
         val none = null to emptyList<Achievement>()
         val u = user ?: return@withContext none
-        val t = prefs.getString("token", null) ?: return@withContext none
+        val t = authToken() ?: return@withContext none
         val hash = backend.hashGame(path) ?: return@withContext none
         val gameId = request("r=gameid&m=$hash")?.optLong("GameID", 0L) ?: 0L
         if (gameId <= 0) return@withContext none
@@ -305,7 +391,7 @@ object RetroAchievements {
 
     /** Sends the unlocks made offline, now that the server answered again. */
     private fun syncOffline(url: String, contentType: String?, agent: String) {
-        val token = prefs.getString("token", null) ?: return
+        val token = authToken() ?: return
         http.execute {
             val sent = RaOffline.sync(token) { body -> send(url, body, contentType, agent) }
             scope.launch {
@@ -340,4 +426,9 @@ object RetroAchievements {
             backend.httpResponse(id, status, body)
         }
     }
+
+    private const val LEGACY_PREFS = "retroachievements"
+    private const val PREFS = "retroachievements_settings"
+    private const val TOKEN_KEY = "token"
+    private const val TOKEN_FILE = "retroachievements-session-token"
 }

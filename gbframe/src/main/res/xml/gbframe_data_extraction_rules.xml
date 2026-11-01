@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The legacy RA preference file held a session token. Exclude it from both cloud backup and device transfer. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="retroachievements.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="retroachievements.xml" />
+    </device-transfer>
+</data-extraction-rules>

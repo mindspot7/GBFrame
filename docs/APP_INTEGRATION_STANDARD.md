@@ -115,6 +115,7 @@ for migration, capability checks and Play-compatible storage rules.
 - Keep automatic cover downloads and every fallback provider optional and replaceable. Before enabling a provider in a Play build, document its API authorization, attribution and media-licensing terms; an open-source API client does not by itself license the returned cover artwork.
 - Do not bundle BIOS files, games, console logos or third-party cover art. Store-listing screenshots and promotional art must use material the publisher is authorized to distribute.
 - Keep a repository privacy policy synchronized with every network endpoint, credential/token, crash-report option and Android permission used by the app.
+- Never back up authentication tokens. Store credentials under `Context.noBackupFilesDir` and keep legacy preference files containing tokens excluded in both `fullBackupContent` and Android 12+ `dataExtractionRules` (cloud backup and device transfer). Migrate non-secret preferences to a separate backupable file so users keep ordinary settings. Inspect app-owned `BackupAgent`s too; library backup rules do not replace custom-agent behavior.
 
 ## Gameplay pause and Android foreground lifecycle
 

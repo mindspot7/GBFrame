@@ -377,3 +377,8 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 - A DSP On check had no AudioFlinger underruns, but game speed was not measured in a scene-matched A/B and audio was not monitored by loopback. Do not claim a performance gain from DSP changes based on this check.
 - A single Bilinear-filter sample is not comparable to the Nearest baseline. Keep the current filter default until repeated matched samples show a meaningful throughput or visual benefit.
 - The supported launch intent was received but did not open the game; the test used the library and verified Slot 1 manually. Confirm the actual game/state after every intent before collecting performance samples.
+
+## Android backup and credentials
+
+- `allowBackup="true"` includes app preferences and private files by default. Keep authentication tokens in `noBackupFilesDir`, and exclude legacy preference files that once held tokens from both cloud backup and device transfer. Move non-secret preferences into a separate backupable file so ordinary settings survive migration.
+- Inspect each consumer's `BackupAgent`: GBCast's custom agent serializes selected files from external app storage and does not serialize SharedPreferences. Framework backup rules alone cannot constrain a custom agent's explicit helpers.
