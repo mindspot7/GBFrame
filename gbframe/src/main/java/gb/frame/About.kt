@@ -54,7 +54,7 @@ fun emulatorLabel(manufacturer: String, console: String) = "$manufacturer $conso
  * version, the Application id (the installed package name), then Credits and License cards. Apps only supply their own
  * name, console, icon, core/data credits, license summary and license documents; shared kit data sources are credited
  * here. Credit entries that name the app itself or GBFrame are suppressed so this card stays focused on external
- * contributions.
+ * contributions. Each app supplies its own public privacy-policy URL.
  */
 @Composable
 fun AboutPage(
@@ -64,6 +64,7 @@ fun AboutPage(
     icon: Painter,
     credits: List<AboutCredit>,
     license: String,
+    privacyPolicyUrl: String,
     tagline: String? = null,
     licenseDocuments: List<AboutLicenseDocument> = emptyList(),
 ) {
@@ -118,6 +119,14 @@ fun AboutPage(
         Text(license, style = MaterialTheme.typography.bodySmall, color = p.dim, modifier = Modifier.padding(16.dp))
         licenseDocuments.forEach { document ->
             TextButton(onClick = { openLicense = document }) { Text(document.name) }
+        }
+    }
+    SettingsGroup("Privacy policy", null) {
+        TextButton(
+            onClick = { runCatching { uriHandler.openUri(privacyPolicyUrl) } },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Read the privacy policy")
         }
     }
     openLicense?.let { document ->
