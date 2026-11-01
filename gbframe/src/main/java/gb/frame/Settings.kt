@@ -93,7 +93,7 @@ fun WidescreenGameHacksRow(value: Boolean, onChange: (Boolean) -> Unit) = Toggle
 @Composable
 fun AdaptiveGraphicsSettingsRow(value: Boolean, onChange: (Boolean) -> Unit) = ToggleRow(
     Icons.Default.SkipNext,
-    "Adaptive graphics",
+    "Frameskip",
     "When the game slows down, skips drawing some frames so the CPU can keep running the game. This may improve speed, but motion looks less smooth. Audio timing stays normal.",
     value,
     onChange,
