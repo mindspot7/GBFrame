@@ -121,7 +121,7 @@ options after them. Put the app's options in their own group in settings (e.g. "
 
 Expose the applicable GBSat-style controls in this order:
 
-- **Frameskip** (Auto/Off when the core supports adaptive render skipping). Use GBFrame's `AdaptiveGraphicsItem`; the consumer supplies and persists the setting. It skips rendering below the speed target, preserves normal audio pacing, and remains independent of Fast Forward.
+- **Auto frame skip** (On/Off when the core supports adaptive render skipping). Use GBFrame's `AdaptiveGraphicsItem`; the consumer supplies and persists the setting. When On, it skips rendering below the speed target, preserves normal audio pacing, and remains independent of Fast Forward.
 - **Dynarec** when supported. Use GBFrame's `CpuRecompilerSettingsRow` and `CpuRecompilerQuickMenuItem`; the app supplies the live core value.
 - **Threaded audio** (Auto/On/Off only if supported).
 - **Skip loading screens**.
@@ -252,9 +252,9 @@ game hacks, shader, output filter, Dynarec, audio volume/fast-forward audio,
 monitoring, touch controls, resolution, and CD read speed. Their UI,
 labels, cycling behavior and explanations belong in GBFrame. Apps provide the
 core values, capability checks, persistence and callbacks. Keep Texture filtering
-as a separate GBFrame control when the core offers texture sampling. Frameskip
-(Auto/Off on GBSat) and Auto frame skip (Off/Normal/Max on GBCast) are separate
-GBFrame components, with different core policies and settings. Apps supply
+as a separate GBFrame control when the core offers texture sampling. Auto frame
+skip (On/Off on GBSat; Off/Normal/Max on GBCast) uses separate GBFrame
+components with different core policies and settings. Apps supply
 capabilities and supported values for display mode and renderer choices.
 Place **Recommended settings per game** under System > **Per-game profiles**;
 profiles can affect video and performance, so keep the toggle outside the

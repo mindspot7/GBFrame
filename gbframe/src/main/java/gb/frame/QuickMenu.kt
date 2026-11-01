@@ -470,8 +470,8 @@ fun AdaptiveGraphicsItem(id: String = "adaptive-graphics", value: Boolean, onCha
     QuickMenuItemRow(
         id = id,
         icon = Icons.Default.SkipNext,
-        label = "Frameskip",
-        value = if (value) "Auto" else "Off",
+        label = "Auto frame skip",
+        value = if (value) "On" else "Off",
         onClick = { onChange(!value) },
     )
 
