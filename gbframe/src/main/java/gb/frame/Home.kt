@@ -87,14 +87,17 @@ enum class HomeStyle(val label: String) { Showcase("Showcase"), Grid("Grid"), Co
 object HomeTheme {
     private const val KEY = "gbframe.homeStyle"
     private var prefs: SharedPreferences? = null
+    private val storedStyle = mutableStateOf(HomeStyle.Showcase)
 
     val style = object : MutableState<HomeStyle> {
-        private val state = mutableStateOf(HomeStyle.Showcase)
         override var value: HomeStyle
-            get() = state.value
+            get() = storedStyle.value.takeIf {
+                it == HomeStyle.Showcase || VisualCustomization.unlocked.value
+            } ?: HomeStyle.Showcase
             set(v) {
-                if (state.value == v) return
-                state.value = v
+                if (v != HomeStyle.Showcase && !VisualCustomization.allowCustomization()) return
+                if (storedStyle.value == v) return
+                storedStyle.value = v
                 prefs?.edit()?.putString(KEY, v.name)?.apply()
             }
         override fun component1() = value
@@ -138,7 +141,8 @@ object HomeTheme {
     fun init(prefs: SharedPreferences) {
         this.prefs = prefs
         fullscreen.value = prefs.getBoolean(FULLSCREEN_KEY, false)
-        style.value = HomeStyle.entries.firstOrNull { it.name == prefs.getString(KEY, null) } ?: HomeStyle.Showcase
+        // Restore the saved layout without treating a previously purchased layout as a new user action.
+        storedStyle.value = HomeStyle.entries.firstOrNull { it.name == prefs.getString(KEY, null) } ?: HomeStyle.Showcase
     }
 }
 
@@ -787,8 +791,9 @@ fun HomeMenuPanel(
                     val itemFocus = if (selectedItem >= 0) selectedItem else if (extras.none { it.selected }) 0 else -1
                     // Quick library presentation controls. Theme changes never move focus to a different tile.
                     MenuSection("LIBRARY")
+                    val customizationUnlocked by VisualCustomization.unlocked
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ViewTile(Icons.Default.Palette, "Theme", themeLabel, false,
+                        ViewTile(Icons.Default.Palette, "Theme", if (customizationUnlocked) themeLabel else "Unlock layouts", false,
                             Modifier.weight(1f), onCycleTheme, colorfulIcon = true)
                         ViewTile(Icons.Default.Fullscreen, "Fullscreen", if (fullscreen) "On" else "Off", fullscreen,
                             Modifier.weight(1f), onToggleFullscreen)

@@ -26,6 +26,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
     implementation("androidx.activity:activity-compose:1.9.3") // BackHandler for shared quick-menu navigation
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7") // Refresh purchase ownership on return to the app
     api(composeBom)
     api("androidx.compose.ui:ui")
     api("androidx.compose.material3:material3")
@@ -33,5 +34,6 @@ dependencies {
     implementation("androidx.documentfile:documentfile:1.0.1")
     implementation("org.apache.commons:commons-compress:1.28.0") // ZIP and 7z texture packages
     implementation("com.github.junrar:junrar:8.1.2") // RAR4/RAR5 texture packages
+    implementation("com.android.billingclient:billing:9.1.0") // Shared one-time visual customization purchase
     testImplementation("junit:junit:4.13.2")
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Keep the old preference file out of cloud and device backups; it used to contain the RA session token. -->
+<!-- Keep the old RA token and Play ownership cache out of cloud and device backups. -->
 <full-backup-content>
     <exclude domain="sharedpref" path="retroachievements.xml" />
+    <exclude domain="sharedpref" path="gbframe_visual_customization.xml" />
 </full-backup-content>

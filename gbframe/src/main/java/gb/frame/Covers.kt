@@ -285,9 +285,12 @@ object Covers {
         }
     }
 
-    suspend fun setCustom(context: Context, title: String, uri: Uri) = withContext(Dispatchers.IO) {
-        val input = requireNotNull(context.contentResolver.openInputStream(uri)) { "Could not open image" }
-        input.use { saveCustom(title, it) }
+    suspend fun setCustom(context: Context, title: String, uri: Uri) {
+        if (!VisualCustomization.allowCustomization()) return
+        withContext(Dispatchers.IO) {
+            val input = requireNotNull(context.contentResolver.openInputStream(uri)) { "Could not open image" }
+            input.use { saveCustom(title, it) }
+        }
     }
 
     /** Downloads only the image explicitly selected by the user; never executes page content. */
@@ -338,8 +341,11 @@ object Covers {
         bytes
     }
 
-    suspend fun setCustomWeb(title: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
-        bytes.inputStream().use { saveCustom(title, it) }
+    suspend fun setCustomWeb(title: String, bytes: ByteArray) {
+        if (!VisualCustomization.allowCustomization()) return
+        withContext(Dispatchers.IO) {
+            bytes.inputStream().use { saveCustom(title, it) }
+        }
     }
 
     private fun saveCustom(title: String, input: java.io.InputStream) {
