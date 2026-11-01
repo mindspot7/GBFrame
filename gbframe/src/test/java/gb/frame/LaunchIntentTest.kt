@@ -1,6 +1,7 @@
 package gb.frame
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -24,6 +25,12 @@ class LaunchIntentTest {
         assertEquals(crazyTaxi, LaunchIntent.resolve("Crazy%20Taxi.chd", listOf(crazyTaxi)))
     }
 
+    @Test fun keepsLiteralPlusInFilename() {
+        val game = Game("Crazy+Taxi", "saf:/Crazy+Taxi.chd")
+
+        assertEquals(game, LaunchIntent.resolve("Crazy+Taxi.chd", listOf(game)))
+    }
+
     @Test fun refreshesLibraryIndexWhenIntentTargetIsMissingFromCache() {
         val crazyTaxi = Game("Crazy Taxi", "saf:/Crazy Taxi.chd")
         var refreshed = false
@@ -33,6 +40,17 @@ class LaunchIntentTest {
             listOf(crazyTaxi)
         })
         assertEquals(true, refreshed)
+    }
+
+    @Test fun doesNotRescanWhenCachedIndexAlreadyMatches() {
+        val crazyTaxi = Game("Crazy Taxi", "saf:/Crazy Taxi.chd")
+        var refreshed = false
+
+        assertEquals(crazyTaxi, LaunchIntent.resolveOrRefresh("Crazy%20Taxi.chd", listOf(crazyTaxi)) {
+            refreshed = true
+            emptyList()
+        })
+        assertFalse(refreshed)
     }
 
     @Test fun doesNotMatchUnknownGame() {

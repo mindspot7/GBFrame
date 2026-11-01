@@ -34,9 +34,16 @@ object LaunchIntent {
     fun handle(context: Context, intent: Intent?) {
         if (intent == null || intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return // reopened from recents
         val name = intent.data?.let { fileName(context, it) }
-            ?: EXTRAS.firstNotNullOfOrNull { key -> intent.getStringExtra(key)?.takeIf { it.isNotBlank() } }?.let { value ->
-                if (value.startsWith("content://") || value.startsWith("file://")) fileName(context, Uri.parse(value))
-                else value.substringAfterLast('/')
+            ?: EXTRAS.firstNotNullOfOrNull { key ->
+                val value = runCatching { intent.extras?.get(key) }.getOrNull()
+                when (value) {
+                    is Uri -> fileName(context, value)
+                    is String -> value.takeIf { it.isNotBlank() }?.let {
+                        if (it.startsWith("content://") || it.startsWith("file://")) fileName(context, Uri.parse(it))
+                        else it.substringAfterLast('/')
+                    }
+                    else -> null
+                }
             }
         if (name.isNullOrBlank()) return
         Log.i("GBFrame-Intent", "launch request: $name")
@@ -64,7 +71,9 @@ object LaunchIntent {
 
     private fun decodeSegment(value: String): String = runCatching {
         // URLDecoder treats '+' as a space; in a URI path it is a literal plus.
-        URLDecoder.decode(value.replace("+", "%2B"), Charsets.UTF_8)
+        // Use the String charset-name overload: Charset overload is missing on Android API 31 and
+        // throws NoSuchMethodError there, which would otherwise leave encoded filenames unmatched.
+        URLDecoder.decode(value.replace("+", "%2B"), "UTF-8")
     }.getOrDefault(value)
 
     private fun fileName(context: Context, uri: Uri): String? {

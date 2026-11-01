@@ -59,6 +59,7 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   the library's displayed title. Resolve exact and case-insensitive filenames first, then titles, so title-based
   requests (for example `Crazy Taxi`) keep using the indexed game path, per-game settings, and multi-file disc data.
   Keep the matching rule and its tests in the kit so every consumer behaves the same.
+- **GBFrame / Android intent filenames:** Android API 31 does not provide `URLDecoder.decode(String, Charset)`. A `runCatching` around that call silently leaves `%20` encoded, so a frontend launch such as `Crazy%20Taxi.chd` fails even when the title and SAF path are indexed. Use the API-compatible `URLDecoder.decode(String, "UTF-8")`, preserve literal `+` in path segments, and keep an encoded-filename test in the shared kit.
 
 ## Measure before optimizing
 
