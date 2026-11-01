@@ -18,6 +18,23 @@ class LaunchIntentTest {
         assertEquals(crazyTaxi, LaunchIntent.resolve("crazy taxi", listOf(crazyTaxi)))
     }
 
+    @Test fun resolvesUrlEncodedFilenameFromCachedIndex() {
+        val crazyTaxi = Game("Crazy Taxi", "saf:/Crazy Taxi.chd")
+
+        assertEquals(crazyTaxi, LaunchIntent.resolve("Crazy%20Taxi.chd", listOf(crazyTaxi)))
+    }
+
+    @Test fun refreshesLibraryIndexWhenIntentTargetIsMissingFromCache() {
+        val crazyTaxi = Game("Crazy Taxi", "saf:/Crazy Taxi.chd")
+        var refreshed = false
+
+        assertEquals(crazyTaxi, LaunchIntent.resolveOrRefresh("Crazy%20Taxi.chd", emptyList()) {
+            refreshed = true
+            listOf(crazyTaxi)
+        })
+        assertEquals(true, refreshed)
+    }
+
     @Test fun doesNotMatchUnknownGame() {
         assertNull(LaunchIntent.resolve("Missing Game", listOf(Game("Crazy Taxi", "/games/crazy.cdi"))))
     }

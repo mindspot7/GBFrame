@@ -53,6 +53,10 @@ object LaunchIntent {
             ?: games.firstOrNull { it.title.equals(request, ignoreCase = true) }
     }
 
+    /** Resolve from the saved library index first, refreshing it only when the request is missing. */
+    fun resolveOrRefresh(name: String, cachedGames: List<Game>, refresh: () -> List<Game>): Game? =
+        resolve(name, cachedGames) ?: resolve(name, refresh())
+
     fun done() { pending.value = null }
 
     /** Message for a request that matches no library game. */
