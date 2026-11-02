@@ -14,7 +14,7 @@ object Shaders {
     const val GTU = 6        // aliaspider's GTU v0.50 (RGB) in one pass
 
     private val names = mapOf(NONE to "None", SCANLINES to "Scanlines", CRT to "CRT", LCD3X to "LCD3x",
-        CRT_ROYALE to "CRT Royale", GTU to "GTU")
+        CRT_ROYALE to "Beam", GTU to "GTU")
 
     /** Shader ids in the order the menus offer them. */
     val menuOrder = listOf(NONE, CRT, CRT_ROYALE, GTU, LCD3X, SCANLINES)

@@ -37,7 +37,7 @@ Also shared beyond Kotlin:
 | --- | --- |
 | `gbframe/.../Hotkeys.kt` | Hotkeys (quick save/load, fast forward, menu) with button combinations, `keyName` |
 | `gbframe/.../SafGames.kt` | Games folder through the Storage Access Framework: scan, open discs with their track files (CUE, GDI, MDS) as `/proc/self/fd/N` symlinks for path-based cores |
-| `native/` | C++ for the app's JNI library (`gb_native.cmake`): OpenGL ES presenter (`gl_renderer`, zero-copy AHardwareBuffer, filters, shaders: Scanlines, CRT, CRT Royale, GTU, LCD3x; bsnes gamma ramp colour correction; GPU time of its draws for the overlay), CPU placement + performance hints (`cpu_tuning`, thread roles by name), PGO training support (`pgo`) |
+| `native/` | C++ for the app's JNI library (`gb_native.cmake`): OpenGL ES presenter (`gl_renderer`, zero-copy AHardwareBuffer, filters, shaders: Scanlines, CRT, Beam, GTU, LCD3x; bsnes gamma ramp colour correction; GPU time of its draws for the overlay), CPU placement + performance hints (`cpu_tuning`, thread roles by name), PGO training support (`pgo`) |
 | `native/auto_skip` | Skip Engine (`gb::AutoSkip`): maximum speed through loading screens, black transitions and save waits, and whether a faster disc read speed is safe (not while the game streams video/music from the disc). The app reports its core's disc and backup memory activity, delivered frames and sound samples |
 | `native/diag_props.hpp` | A/B diagnostic switches read from adb-set properties (`debug.<app>.<name>`, `gb::DiagOn`), shown in the performance log |
 | `Shaders.kt` | The presenter's shader and colour correction ids, names and menu order (`Shaders.menuOrder`, `name`, `next`, `sanitize`) |
