@@ -3,6 +3,8 @@ package gb.frame
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,7 +41,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
@@ -50,6 +51,7 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import java.util.concurrent.Executors
 
 /**
  * The shared, permanent purchase that unlocks the optional library themes.
@@ -113,6 +115,12 @@ object VisualCustomization {
         private var product: ProductDetails? = null
         private var connecting = false
         private var restoreRequested = false
+        private var closed = false
+        private val pendingVerificationTokens = mutableSetOf<String>()
+        private val mainHandler = Handler(Looper.getMainLooper())
+        private val licenseExecutor = Executors.newSingleThreadExecutor { task ->
+            Thread(task, "gbframe-gold-license").apply { isDaemon = true }
+        }
         private val client = BillingClient.newBuilder(context)
             .setListener(this)
             .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
@@ -212,12 +220,13 @@ object VisualCustomization {
                     productId in it.products && it.purchaseState == Purchase.PurchaseState.PURCHASED
                 }
                 if (ownedPurchase != null) {
-                    grant(ownedPurchase)
-                    if (showRestoreResult) message.value = "Themes are unlocked. Thanks for supporting development."
+                    val operation = if (ownedPurchase.isAcknowledged) GoldLicenseApi.Operation.CheckLicense
+                    else GoldLicenseApi.Operation.VerifyPurchase
+                    verifyLicense(ownedPurchase, operation, showRestoreResult)
                 } else {
                     setOwned(false)
                     if (product != null) status.value = Status.Ready else status.value = Status.Unavailable
-                    if (showRestoreResult) message.value = "No visual customization purchase was found for this account."
+                    if (showRestoreResult) message.value = "No Gold purchase was found for this Google Play account."
                 }
             }
         }
@@ -234,25 +243,64 @@ object VisualCustomization {
         private fun processPurchase(purchase: Purchase) {
             if (productId !in purchase.products) return
             when (purchase.purchaseState) {
-                Purchase.PurchaseState.PURCHASED -> grant(purchase)
+                Purchase.PurchaseState.PURCHASED -> verifyLicense(
+                    purchase,
+                    GoldLicenseApi.Operation.VerifyPurchase,
+                    showRestoreResult = false,
+                )
                 Purchase.PurchaseState.PENDING -> message.value = "The purchase is pending. It unlocks after Google Play confirms payment."
                 else -> Unit
             }
         }
 
-        private fun grant(purchase: Purchase) {
-            val showPurchaseConfirmation = dialogVisible.value
-            setOwned(true)
-            message.value = null
-            if (showPurchaseConfirmation) {
-                message.value = "Thanks for supporting development. All themes are unlocked."
-            }
-            if (!purchase.isAcknowledged) {
-                val params = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
-                client.acknowledgePurchase(params) { result ->
-                    if (result.responseCode != BillingClient.BillingResponseCode.OK)
-                        message.value = "Unlocked, but Google Play could not confirm the purchase yet. Reopen the app to retry."
+        private fun verifyLicense(purchase: Purchase, operation: GoldLicenseApi.Operation, showRestoreResult: Boolean) {
+            val token = purchase.purchaseToken
+            if (closed || !pendingVerificationTokens.add(token)) return
+            if (!unlocked.value) status.value = Status.Checking
+            if (showRestoreResult || dialogVisible.value) message.value = "Checking your Gold license…"
+            try {
+                licenseExecutor.execute {
+                    var result = GoldLicenseApi.validate(context, productId, token, operation)
+                    // A Play purchase may predate this backend. If its server record is missing, verify the
+                    // still-owned Play token and let the backend register the license before denying access.
+                    if (operation == GoldLicenseApi.Operation.CheckLicense &&
+                        result is GoldLicenseApi.Result.Rejected && result.reason != "purchase_canceled") {
+                        result = GoldLicenseApi.validate(context, productId, token, GoldLicenseApi.Operation.VerifyPurchase)
+                    }
+                    mainHandler.post {
+                        pendingVerificationTokens.remove(token)
+                        if (closed) return@post
+                        when (result) {
+                            GoldLicenseApi.Result.Licensed -> {
+                                setOwned(true)
+                                message.value = when {
+                                    showRestoreResult -> "Gold themes restored. Thanks for supporting development."
+                                    dialogVisible.value -> "Thanks for supporting development. All themes are unlocked."
+                                    else -> null
+                                }
+                            }
+                            is GoldLicenseApi.Result.Rejected -> {
+                                setOwned(false)
+                                message.value = when (result.reason) {
+                                    "purchase_canceled" -> "This purchase was canceled or refunded. Gold themes remain locked."
+                                    "purchase_not_found" -> "Google Play could not confirm this purchase. Gold themes remain locked."
+                                    else -> if (showRestoreResult) "No verified Gold license was found for this Google Play account."
+                                    else "Google Play could not verify the Gold purchase. Try again or restore the purchase."
+                                }
+                            }
+                            GoldLicenseApi.Result.Unavailable -> {
+                                if (!unlocked.value) status.value = if (product != null) Status.Ready else Status.Error
+                                message.value = if (unlocked.value) {
+                                    "The license server is unavailable. Previously unlocked themes remain available."
+                                } else {
+                                    "Could not reach the license server. Connect to the internet and try again."
+                                }
+                            }
+                        }
+                    }
                 }
+            } catch (_: java.util.concurrent.RejectedExecutionException) {
+                pendingVerificationTokens.remove(token)
             }
         }
 
@@ -284,6 +332,8 @@ object VisualCustomization {
         }
 
         fun close() {
+            closed = true
+            licenseExecutor.shutdownNow()
             client.endConnection()
         }
     }
