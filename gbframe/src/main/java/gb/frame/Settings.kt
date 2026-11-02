@@ -12,12 +12,14 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
@@ -32,15 +34,17 @@ import kotlinx.coroutines.delay
 @Composable
 fun SettingsPageBackButton(pageKey: Any?, onBack: () -> Unit) {
     val requester = remember(pageKey) { FocusRequester() }
+    val hasFocus = remember(pageKey) { mutableStateOf(false) }
     val view = LocalView.current
     LaunchedEffect(pageKey) {
         repeat(8) {
             view.requestFocusFromTouch()
-            if (runCatching { requester.requestFocus() }.getOrDefault(false)) return@LaunchedEffect
+            runCatching { requester.requestFocus() }
             delay(50)
+            if (hasFocus.value) return@LaunchedEffect
         }
     }
-    IconButton(onClick = onBack, modifier = Modifier.focusRequester(requester)) {
+    IconButton(onClick = onBack, modifier = Modifier.focusRequester(requester).onFocusChanged { hasFocus.value = it.isFocused }) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
     }
 }
