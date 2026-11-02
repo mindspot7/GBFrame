@@ -102,13 +102,13 @@ object EmuPalettes {
         accent = Color(0xFF7656E8),
         onAccent = Color(0xFFF2F3F7),
         highlight = Color(0xFFB58AFF),
-        background = listOf(Color(0xFF09051D), Color(0xFF120A35), Color(0xFF070B20)),
-        panel = Color(0xFF100B2A).copy(alpha = 0.97f),
-        card = Color(0xFF17123A).copy(alpha = 0.96f),
-        border = Color(0xFF8D45FF).copy(alpha = 0.78f),
+        background = listOf(Color(0xFF17132B), Color(0xFF211A3B), Color(0xFF12182D)),
+        panel = Color(0xFF211A3B).copy(alpha = 0.97f),
+        card = Color(0xFF282141).copy(alpha = 0.96f),
+        border = Color(0xFF8D45FF).copy(alpha = 0.45f),
         dim = Color(0xFFC8C1E8),
         warn = Color(0xFFFF8A65),
-        surface = Color(0xFF171C2C),
+        surface = Color(0xFF242039),
     )
 }
 

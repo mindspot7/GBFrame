@@ -404,19 +404,19 @@ fun QuickMenuItemRow(
     onClick: () -> Unit,
 ) {
     QuickMenuItemContainer(id = id, enabled = enabled, onClick = onClick) {
-        Icon(icon, null, tint = kitFocusContentColor(palette.accent), modifier = Modifier.size(24.dp))
+        Icon(icon, null, tint = palette.accent, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(16.dp))
         Text(
             label,
             Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
-            color = kitFocusContentColor(if (enabled) Color.White else palette.dim),
+            color = if (enabled) Color.White else palette.dim,
         )
         if (value != null) {
             Spacer(Modifier.width(8.dp))
             Text(
                 value,
-                color = kitFocusContentColor(palette.highlight),
+                color = palette.highlight,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -425,7 +425,7 @@ fun QuickMenuItemRow(
         }
         if (hasSubmenu) {
             Spacer(Modifier.width(6.dp))
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = kitFocusContentColor(palette.dim))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = palette.dim)
         }
     }
 }
@@ -530,9 +530,8 @@ private fun QuickMenuFocusableItemContainer(
         if (enabled) focusScope?.register(id, requester)
         onDispose { focusScope?.unregister(id, requester) }
     }
-    androidx.compose.runtime.CompositionLocalProvider(LocalKitSelectionFocus provides focused) {
-        val shape = RoundedCornerShape(14.dp)
-        Row(
+    val shape = RoundedCornerShape(14.dp)
+    Row(
             Modifier.fillMaxWidth()
                 .padding(vertical = if (compactRootRow) 1.dp else 2.dp)
                 .clip(shape)
@@ -554,8 +553,7 @@ private fun QuickMenuFocusableItemContainer(
                 .padding(horizontal = 12.dp, vertical = if (compactRootRow) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
-        )
-    }
+    )
 }
 
 @Composable
