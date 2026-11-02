@@ -5,24 +5,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 
 /** Shared cover-source chooser. The app retains ownership of its local document picker. */
 @Composable
 fun CoverImageOptions(title: String, onLocalSearch: () -> Unit, onDismiss: () -> Unit, onApplied: () -> Unit) {
-    val unlocked by VisualCustomization.unlocked
     var webSearch by remember(title) { mutableStateOf(false) }
-    if (!unlocked) {
-        LaunchedEffect(title) {
-            VisualCustomization.requestUnlock()
-            onDismiss()
-        }
-        return
-    }
     if (webSearch) {
         CoverWebSearch(title, onClose = { webSearch = false }, onApplied = onApplied)
         return

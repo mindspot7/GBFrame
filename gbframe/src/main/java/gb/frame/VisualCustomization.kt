@@ -7,8 +7,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,7 +40,7 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 
 /**
- * The shared, permanent purchase that unlocks the optional library themes and custom game covers.
+ * The shared, permanent purchase that unlocks the optional library themes.
  * The two apps each create this product ID in their own Play Console listing.
  */
 object VisualCustomization {
@@ -61,8 +66,8 @@ object VisualCustomization {
         dialogVisible.value = false
     }
 
-    /** Returns whether the user can apply a custom theme or cover. Safe to call from UI entry points. */
-    fun allowCustomization(): Boolean {
+    /** Returns whether the user can apply a paid theme. Safe to call from UI entry points. */
+    fun allowThemeUnlock(): Boolean {
         if (unlocked.value) return true
         requestUnlock()
         return false
@@ -196,7 +201,7 @@ object VisualCustomization {
                 }
                 if (ownedPurchase != null) {
                     grant(ownedPurchase)
-                    if (showRestoreResult) message.value = "Visual customization is unlocked."
+                    if (showRestoreResult) message.value = "Themes are unlocked. Thanks for supporting development."
                 } else {
                     setOwned(false)
                     if (product != null) status.value = Status.Ready else status.value = Status.Unavailable
@@ -228,7 +233,7 @@ object VisualCustomization {
             setOwned(true)
             message.value = null
             if (showPurchaseConfirmation) {
-                message.value = "Theme layouts and custom cover images are now unlocked."
+                message.value = "Thanks for supporting development. All themes are unlocked."
             }
             if (!purchase.isAcknowledged) {
                 val params = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
@@ -294,15 +299,28 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
         val activity = remember(context) { context.findActivity() }
         AlertDialog(
             onDismissRequest = VisualCustomization::dismissDialog,
-            title = { Text(if (unlocked) "Visual customization unlocked" else "Unlock visual customization") },
+            title = { Text(if (unlocked) "Themes unlocked" else "Unlock themes") },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.Palette,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(42.dp),
+                    )
+                    Spacer(Modifier.height(12.dp))
                     if (unlocked) {
-                        Text(message ?: "Theme layouts and custom cover images are ready to use in $appName.")
+                        Text(message ?: "Thanks for supporting development. All themes are unlocked in $appName.")
                     } else {
-                        Text("A one-time purchase unlocks optional library layouts and custom cover images in $appName. Each emulator is purchased separately.")
+                        Text("Support the developer with a one-time purchase and get access to all themes in $appName.")
                         Spacer(Modifier.height(8.dp))
-                        if (price != null) Text("One-time purchase · $price")
+                        Text(
+                            text = if (price != null) "One-time purchase · $price" else "One-time purchase",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text("Your purchase supports future development.", style = MaterialTheme.typography.bodySmall)
                         if (status == VisualCustomization.Status.Checking) {
                             Spacer(Modifier.height(12.dp))
                             CircularProgressIndicator()
@@ -321,7 +339,7 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                     TextButton(
                         enabled = status == VisualCustomization.Status.Ready,
                         onClick = { VisualCustomization.buy(activity) },
-                    ) { Text(if (price == null) "Buy once" else "Buy · $price") }
+                    ) { Text(if (price == null) "Support & unlock" else "Support · $price") }
                 }
             },
             dismissButton = {

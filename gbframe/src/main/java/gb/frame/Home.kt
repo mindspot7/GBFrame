@@ -96,7 +96,7 @@ object HomeTheme {
                 it == HomeStyle.Showcase || VisualCustomization.unlocked.value
             } ?: HomeStyle.Showcase
             set(v) {
-                if (v != HomeStyle.Showcase && !VisualCustomization.allowCustomization()) return
+                if (v != HomeStyle.Showcase && !VisualCustomization.allowThemeUnlock()) return
                 if (storedStyle.value == v) return
                 storedStyle.value = v
                 prefs?.edit()?.putString(KEY, v.name)?.apply()
@@ -794,7 +794,7 @@ fun HomeMenuPanel(
                     MenuSection("LIBRARY")
                     val customizationUnlocked by VisualCustomization.unlocked
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ViewTile(Icons.Default.Palette, "Theme", if (customizationUnlocked) themeLabel else "Unlock layouts", false,
+                        ViewTile(Icons.Default.Palette, "Theme", if (customizationUnlocked) themeLabel else "Support & unlock themes", false,
                             Modifier.weight(1f), onCycleTheme, colorfulIcon = true)
                         ViewTile(Icons.Default.Fullscreen, "Fullscreen", if (fullscreen) "On" else "Off", fullscreen,
                             Modifier.weight(1f), onToggleFullscreen)
@@ -878,7 +878,9 @@ private fun ViewTile(
 private fun SettingTile(m: HomeMenuItem, modifier: Modifier) {
     var focused by remember { mutableStateOf(false) }
     Column(
-        modifier.height(88.dp).onFocusChanged { focused = it.isFocused }.tile(focused, selected = m.selected)
+        // [selected] chooses the initial focus when returning from a settings page; focus styling itself
+        // must follow the controller cursor and never linger on the origin tile.
+        modifier.height(88.dp).onFocusChanged { focused = it.isFocused }.tile(focused)
             .clickable(onClick = m.onClick).padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
     ) {

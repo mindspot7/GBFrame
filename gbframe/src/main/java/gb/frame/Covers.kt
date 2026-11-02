@@ -286,7 +286,6 @@ object Covers {
     }
 
     suspend fun setCustom(context: Context, title: String, uri: Uri) {
-        if (!VisualCustomization.allowCustomization()) return
         withContext(Dispatchers.IO) {
             val input = requireNotNull(context.contentResolver.openInputStream(uri)) { "Could not open image" }
             input.use { saveCustom(title, it) }
@@ -342,7 +341,6 @@ object Covers {
     }
 
     suspend fun setCustomWeb(title: String, bytes: ByteArray) {
-        if (!VisualCustomization.allowCustomization()) return
         withContext(Dispatchers.IO) {
             bytes.inputStream().use { saveCustom(title, it) }
         }
