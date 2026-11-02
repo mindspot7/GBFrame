@@ -38,8 +38,8 @@ fun Modifier.kitFocusHighlight(
     val p = palette
     val clipped = clip(shape)
     return if (focused) clipped
-        .background(p.accent.copy(alpha = .34f))
-        .border(2.dp, p.accent.copy(alpha = .72f), shape)
+        .background(p.accent.copy(alpha = .18f))
+        .border(1.dp, p.accent.copy(alpha = .42f), shape)
     else clipped
 }
 

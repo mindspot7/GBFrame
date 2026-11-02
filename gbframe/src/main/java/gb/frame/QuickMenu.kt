@@ -153,7 +153,7 @@ private class QuickMenuFocusScope(private val preferredItemId: String?) {
  *
  * - Shows the GBSat-style left panel and scrim.
  * - Owns the nested-page Back stack and Android BackHandler.
- * - Focuses the first enabled row on a page, or the row that opened it when returning.
+ * - Focuses the first enabled row on a page, including after returning from a submenu.
  * - Uses the current GBFrame [palette], not app-specific hard-coded colors.
  *
  * Opening/closing the host itself does not pause or resume emulation. The app remains responsible
@@ -178,7 +178,12 @@ fun QuickMenuHost(
             }
         },
         backAction = {
-            if (stack.size > 1) stack.removeAt(stack.lastIndex) else onDismiss()
+            if (stack.size > 1) {
+                // Return to the parent page without retaining the highlight on the submenu opener.
+                val parentIndex = stack.lastIndex - 1
+                stack[parentIndex] = stack[parentIndex].copy(returnFocusItemId = null)
+                stack.removeAt(stack.lastIndex)
+            } else onDismiss()
         },
         dismissAction = onDismiss,
     )
