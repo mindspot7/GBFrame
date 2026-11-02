@@ -755,8 +755,6 @@ fun HomeMenuPanel(
     /** Whether something inside the panel has the focus (the app gives it back when a key comes while it hasn't). */
     onFocusChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
-    /** Stronger focused fill for apps whose accent palette needs more selection contrast. */
-    highContrastSelection: Boolean = false,
 ) {
     val p = palette
     Box(modifier.fillMaxSize()) {
@@ -797,9 +795,9 @@ fun HomeMenuPanel(
                     val customizationUnlocked by VisualCustomization.unlocked
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ViewTile(Icons.Default.Palette, "Theme", if (customizationUnlocked) themeLabel else "Unlock layouts", false,
-                            Modifier.weight(1f), onCycleTheme, colorfulIcon = true, highContrastFocus = highContrastSelection)
+                            Modifier.weight(1f), onCycleTheme, colorfulIcon = true)
                         ViewTile(Icons.Default.Fullscreen, "Fullscreen", if (fullscreen) "On" else "Off", fullscreen,
-                            Modifier.weight(1f), onToggleFullscreen, highContrastFocus = highContrastSelection)
+                            Modifier.weight(1f), onToggleFullscreen)
                     }
                     // Settings
                     MenuSection("SETTINGS")
@@ -809,7 +807,7 @@ fun HomeMenuPanel(
                             items.withIndex().chunked(cols).forEach { row ->
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     row.forEach { (i, m) ->
-                                        SettingTile(m, Modifier.weight(1f).then(if (i == itemFocus) Modifier.focusRequester(focus) else Modifier), highContrastSelection)
+                                        SettingTile(m, Modifier.weight(1f).then(if (i == itemFocus) Modifier.focusRequester(focus) else Modifier))
                                     }
                                     repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
                                 }
@@ -819,9 +817,9 @@ fun HomeMenuPanel(
                     Spacer(Modifier.height(2.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         extras.forEachIndexed { k, m ->
-                            MenuRow(m.icon, m.label, Modifier.weight(1f).then(if (m.selected && selectedItem < 0) Modifier.focusRequester(focus) else Modifier), m.onClick, highContrastSelection)
+                            MenuRow(m.icon, m.label, Modifier.weight(1f).then(if (m.selected && selectedItem < 0) Modifier.focusRequester(focus) else Modifier), m.onClick)
                         }
-                        MenuRow(MenuIcon.Quit, "Quit", Modifier.weight(1f), onQuit, highContrastSelection)
+                        MenuRow(MenuIcon.Quit, "Quit", Modifier.weight(1f), onQuit)
                     }
                 }
             }
@@ -838,28 +836,23 @@ private fun MenuSection(text: String) =
 
 /** Focus look shared by the menu tiles: highlight border and a lighter fill. */
 @Composable
-private fun Modifier.tile(focused: Boolean, selected: Boolean = false, highContrastFocus: Boolean = false): Modifier {
+private fun Modifier.tile(focused: Boolean, selected: Boolean = false): Modifier {
     val p = palette
     val shape = RoundedCornerShape(18.dp)
     return clip(shape)
-        .background(when {
-            focused && highContrastFocus -> p.accent.copy(alpha = .82f)
-            selected -> p.accent.copy(alpha = if (focused) .42f else .28f)
-            focused -> Color.White.copy(alpha = .16f)
-            else -> Color.White.copy(alpha = .06f)
-        })
-        .border(if (focused) if (highContrastFocus) 3.dp else 2.dp else 1.dp,
-            if (focused) p.highlight else if (selected) p.accent.copy(alpha = .6f) else Color.White.copy(alpha = .08f), shape)
+        .background(when { focused -> p.accent.copy(alpha = .82f); selected -> p.accent.copy(alpha = .42f); else -> Color.White.copy(alpha = .06f) })
+        .border(if (focused) 3.dp else if (selected) 2.dp else 1.dp,
+            if (focused) p.highlight else if (selected) p.accent.copy(alpha = .8f) else Color.White.copy(alpha = .08f), shape)
 }
 
 @Composable
 private fun ViewTile(
     icon: ImageVector, label: String, sub: String, selected: Boolean, modifier: Modifier,
-    onClick: () -> Unit, colorfulIcon: Boolean = false, highContrastFocus: Boolean = false,
+    onClick: () -> Unit, colorfulIcon: Boolean = false,
 ) {
     var focused by remember { mutableStateOf(false) }
     Row(
-        modifier.height(68.dp).onFocusChanged { focused = it.isFocused }.tile(focused, selected, highContrastFocus).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        modifier.height(68.dp).onFocusChanged { focused = it.isFocused }.tile(focused, selected).clickable(onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (colorfulIcon) {
@@ -882,11 +875,10 @@ private fun ViewTile(
 }
 
 @Composable
-private fun SettingTile(m: HomeMenuItem, modifier: Modifier, highContrastFocus: Boolean) {
+private fun SettingTile(m: HomeMenuItem, modifier: Modifier) {
     var focused by remember { mutableStateOf(false) }
     Column(
-        modifier.height(88.dp).onFocusChanged { focused = it.isFocused }
-            .tile(focused, selected = highContrastFocus && m.selected, highContrastFocus = highContrastFocus)
+        modifier.height(88.dp).onFocusChanged { focused = it.isFocused }.tile(focused, selected = m.selected)
             .clickable(onClick = m.onClick).padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
     ) {
@@ -898,10 +890,10 @@ private fun SettingTile(m: HomeMenuItem, modifier: Modifier, highContrastFocus: 
 }
 
 @Composable
-private fun MenuRow(icon: MenuIcon, label: String, modifier: Modifier, onClick: () -> Unit, highContrastFocus: Boolean) {
+private fun MenuRow(icon: MenuIcon, label: String, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Row(
-        modifier.height(56.dp).onFocusChanged { focused = it.isFocused }.tile(focused, highContrastFocus = highContrastFocus).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        modifier.height(56.dp).onFocusChanged { focused = it.isFocused }.tile(focused).clickable(onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         MenuIconView(icon, 28.dp)

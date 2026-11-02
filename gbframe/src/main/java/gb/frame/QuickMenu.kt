@@ -404,19 +404,19 @@ fun QuickMenuItemRow(
     onClick: () -> Unit,
 ) {
     QuickMenuItemContainer(id = id, enabled = enabled, onClick = onClick) {
-        Icon(icon, null, tint = palette.accent, modifier = Modifier.size(24.dp))
+        Icon(icon, null, tint = kitFocusContentColor(palette.accent), modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(16.dp))
         Text(
             label,
             Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
-            color = if (enabled) Color.White else palette.dim,
+            color = kitFocusContentColor(if (enabled) Color.White else palette.dim),
         )
         if (value != null) {
             Spacer(Modifier.width(8.dp))
             Text(
                 value,
-                color = palette.highlight,
+                color = kitFocusContentColor(palette.highlight),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -425,7 +425,7 @@ fun QuickMenuItemRow(
         }
         if (hasSubmenu) {
             Spacer(Modifier.width(6.dp))
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = palette.dim)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = kitFocusContentColor(palette.dim))
         }
     }
 }
@@ -530,30 +530,32 @@ private fun QuickMenuFocusableItemContainer(
         if (enabled) focusScope?.register(id, requester)
         onDispose { focusScope?.unregister(id, requester) }
     }
-    Row(
-        Modifier.fillMaxWidth()
-            .padding(vertical = if (compactRootRow) 1.dp else 2.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .focusRequester(requester)
-            .onFocusChanged {
-                focused = it.isFocused
-                focusScope?.onFocused(id, it.isFocused)
-            }
-            .background(if (focused) palette.accent.copy(alpha = .30f) else Color.Transparent)
-            .then(if (focused) Modifier.border(2.dp, palette.accent, RoundedCornerShape(14.dp)) else Modifier)
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                when (event.key) {
-                    androidx.compose.ui.input.key.Key.DirectionLeft -> onLeft?.let { it(); true } ?: false
-                    androidx.compose.ui.input.key.Key.DirectionRight -> onRight?.let { it(); true } ?: false
-                    else -> false
+    androidx.compose.runtime.CompositionLocalProvider(LocalKitSelectionFocus provides focused) {
+        val shape = RoundedCornerShape(14.dp)
+        Row(
+            Modifier.fillMaxWidth()
+                .padding(vertical = if (compactRootRow) 1.dp else 2.dp)
+                .clip(shape)
+                .focusRequester(requester)
+                .onFocusChanged {
+                    focused = it.isFocused
+                    focusScope?.onFocused(id, it.isFocused)
                 }
-            }
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = if (compactRootRow) 8.dp else 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
-    )
+                .then(Modifier.kitFocusHighlight(focused, shape))
+                .onPreviewKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    when (event.key) {
+                        androidx.compose.ui.input.key.Key.DirectionLeft -> onLeft?.let { it(); true } ?: false
+                        androidx.compose.ui.input.key.Key.DirectionRight -> onRight?.let { it(); true } ?: false
+                        else -> false
+                    }
+                }
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = if (compactRootRow) 8.dp else 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            content = content,
+        )
+    }
 }
 
 @Composable
