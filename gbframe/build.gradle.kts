@@ -35,5 +35,11 @@ dependencies {
     implementation("org.apache.commons:commons-compress:1.28.0") // ZIP and 7z texture packages
     implementation("com.github.junrar:junrar:8.1.2") // RAR4/RAR5 texture packages
     implementation("com.android.billingclient:billing:9.1.0") // Shared one-time visual customization purchase
+    constraints {
+        // Play Services still requests Fragment 1.1.0 transitively; keep apps on a maintained AndroidX line.
+        implementation("androidx.fragment:fragment:1.9.1") {
+            because("Avoid shipping the obsolete Fragment 1.1.0 requested by Play Services")
+        }
+    }
     testImplementation("junit:junit:4.13.2")
 }
