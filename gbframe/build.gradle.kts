@@ -33,6 +33,7 @@ dependencies {
     api("androidx.compose.material:material-icons-extended")
     implementation("androidx.documentfile:documentfile:1.0.1")
     implementation("org.apache.commons:commons-compress:1.28.0") // ZIP and 7z texture packages
+    implementation("org.tukaani:xz:1.10") // LZMA/LZMA2 filters used by 7z packages
     implementation("com.github.junrar:junrar:8.1.2") // RAR4/RAR5 texture packages
     implementation("com.android.billingclient:billing:9.1.0") // Shared one-time visual customization purchase
     constraints {
