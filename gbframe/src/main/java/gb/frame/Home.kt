@@ -756,6 +756,19 @@ fun HomeMenuPanel(
     modifier: Modifier = Modifier,
 ) {
     val p = palette
+    val composeView = LocalView.current
+    val hasPad = rememberHasGamepad()
+    // Own initial focus in the shared menu so both apps behave the same and an early D-pad press
+    // doesn't race an app-specific delay before the first settings tile becomes focusable.
+    LaunchedEffect(open, hasPad, MenuState.menuRefocus.intValue) {
+        if (!open || !hasPad) return@LaunchedEffect
+        composeView.requestFocusFromTouch()
+        repeat(12) {
+            runCatching { focus.requestFocus() }
+            delay(50)
+            if (MenuState.menuHasFocus) return@LaunchedEffect
+        }
+    }
     Box(modifier.fillMaxSize()) {
         androidx.compose.animation.AnimatedVisibility(open, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .5f))
@@ -839,8 +852,9 @@ private fun Modifier.tile(focused: Boolean, selected: Boolean = false): Modifier
     val p = palette
     val shape = RoundedCornerShape(18.dp)
     return clip(shape)
-        .background(when { selected -> p.accent.copy(alpha = if (focused) .42f else .28f); focused -> Color.White.copy(alpha = .16f); else -> Color.White.copy(alpha = .06f) })
-        .border(if (focused) 2.dp else 1.dp, if (focused) p.highlight else if (selected) p.accent.copy(alpha = .6f) else Color.White.copy(alpha = .08f), shape)
+        .background(when { focused -> p.accent.copy(alpha = .82f); selected -> p.accent.copy(alpha = .42f); else -> Color.White.copy(alpha = .06f) })
+        .border(if (focused) 3.dp else if (selected) 2.dp else 1.dp,
+            if (focused) p.highlight else if (selected) p.accent.copy(alpha = .8f) else Color.White.copy(alpha = .08f), shape)
 }
 
 @Composable
@@ -876,7 +890,7 @@ private fun ViewTile(
 private fun SettingTile(m: HomeMenuItem, modifier: Modifier) {
     var focused by remember { mutableStateOf(false) }
     Column(
-        modifier.height(88.dp).onFocusChanged { focused = it.isFocused }.tile(focused).clickable(onClick = m.onClick).padding(6.dp),
+        modifier.height(88.dp).onFocusChanged { focused = it.isFocused }.tile(focused, selected = m.selected).clickable(onClick = m.onClick).padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
     ) {
         MenuIconView(m.icon, 34.dp)
