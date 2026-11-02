@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Non-interactive device tooling for the GB family of emulator apps (adb + gh), meant for scripted runs (Claude Code) as well
+  Non-interactive device tooling for the GB family of emulator apps (adb + gh), meant for automated runs as well
   as by hand. Model: GBFrame/tools/emu-test.ps1 - copy it to the app (GBSat: tools/gbsat.ps1) and adjust the block under
   "# ---- app". Same actions as tools/emu-test.bat, which is the interactive menu.
   Every command runs without prompts and writes its results to test-output\<timestamp>-<command>[-label]\ (git-ignored);
