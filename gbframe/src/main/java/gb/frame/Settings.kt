@@ -6,20 +6,44 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+
+/** Shared settings-page back button that establishes controller focus as soon as a category opens. */
+@Composable
+fun SettingsPageBackButton(pageKey: Any?, onBack: () -> Unit) {
+    val requester = remember(pageKey) { FocusRequester() }
+    val view = LocalView.current
+    LaunchedEffect(pageKey) {
+        repeat(8) {
+            view.requestFocusFromTouch()
+            if (runCatching { requester.requestFocus() }.getOrDefault(false)) return@LaunchedEffect
+            delay(50)
+        }
+    }
+    IconButton(onClick = onBack, modifier = Modifier.focusRequester(requester)) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+    }
+}
 
 /** Shared defaults and enforcement policy for optional game-specific patches. */
 object GameHackPolicy {
