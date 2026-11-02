@@ -795,7 +795,7 @@ fun HomeMenuPanel(
                     val customizationUnlocked by VisualCustomization.unlocked
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ViewTile(Icons.Default.Palette, "Theme", if (customizationUnlocked) themeLabel else "Support & unlock themes", false,
-                            Modifier.weight(1f), onCycleTheme, colorfulIcon = true)
+                            Modifier.weight(1f), onCycleTheme, colorfulIcon = true, locked = !customizationUnlocked)
                         ViewTile(Icons.Default.Fullscreen, "Fullscreen", if (fullscreen) "On" else "Off", fullscreen,
                             Modifier.weight(1f), onToggleFullscreen)
                     }
@@ -848,7 +848,7 @@ private fun Modifier.tile(focused: Boolean, selected: Boolean = false): Modifier
 @Composable
 private fun ViewTile(
     icon: ImageVector, label: String, sub: String, selected: Boolean, modifier: Modifier,
-    onClick: () -> Unit, colorfulIcon: Boolean = false,
+    onClick: () -> Unit, colorfulIcon: Boolean = false, locked: Boolean = false,
 ) {
     var focused by remember { mutableStateOf(false) }
     Row(
@@ -867,8 +867,13 @@ private fun ViewTile(
             Icon(icon, null, tint = if (selected) palette.highlight else Color.White.copy(alpha = .85f), modifier = Modifier.size(26.dp))
         }
         Spacer(Modifier.width(10.dp))
-        Column {
-            Text(label, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(label, modifier = Modifier.weight(1f), color = Color.White, style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (locked) Icon(Icons.Default.Lock, contentDescription = "Gold required", tint = Color.White.copy(alpha = .78f),
+                    modifier = Modifier.size(12.dp))
+            }
             Text(sub, color = Color.White.copy(alpha = .7f), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
