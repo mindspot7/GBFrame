@@ -12,7 +12,7 @@ Keep the section order; drop a row or section only when the app really doesn't h
 
 [Download the latest APK](../../releases/latest) · [Changelog](CHANGELOG.md) · [Privacy policy](PRIVACY.md)
 
-<img src="docs/screenshots/library.png" width="760" alt="Game library">
+<img src="docs/screenshots/library.png" width="760" alt="Game library with real game titles and cover art">
 
 </div>
 
@@ -30,11 +30,24 @@ Keep the section order; drop a row or section only when the app really doesn't h
 
 ## Screenshots
 
-Screenshots should use real games and their actual cover art. Do not create fictional titles or placeholder covers for screenshots. Fixtures may create empty disc files to populate the library, but must never include or load copyrighted game data.
+Use real game titles and actual cover art. Include a library screenshot and two or more useful app screens (for example gameplay, quick menu, or settings). Store README captures in `docs/screenshots/` and link each image with an accurate caption. Do not create fictional titles or placeholder covers for screenshots. Fixtures may create empty disc files to populate the library, but must never include or load copyrighted game data.
+
+<p align="center">
+  <img src="docs/screenshots/gameplay.png" width="32%" alt="Gameplay in <AppName>">
+  <img src="docs/screenshots/settings.png" width="32%" alt="<AppName> settings">
+  <img src="docs/screenshots/quick-menu.png" width="32%" alt="<AppName> in-game quick menu">
+</p>
+
+If a sample screen is not available, remove its image instead of adding a mockup or placeholder.
 
 ## All features
 
-- <Feature list by area: emulation, video, audio, input, saves, library, settings>
+- **Emulation:** <core and supported consoles/platforms>
+- **Video:** <renderers, enhanced resolution, display modes, filters, shaders>
+- **Audio and performance:** <audio options, frame pacing/skipping and profiles>
+- **Input:** <physical controllers, remapping, touch controls and hotkeys>
+- **Saves and library:** <save states, storage, covers, layouts and play time>
+- **Online:** <achievements, network features, and optional purchases; omit unsupported items>
 
 **In-game quick menu:** follow the shared [GBFrame quick-menu standard](https://github.com/mindspotgb/GBFrame/blob/main/docs/QUICK_MENU_STANDARD.md), based on GBSat. Keep the standard layout and navigation; list only options that the app/core really supports.
 
