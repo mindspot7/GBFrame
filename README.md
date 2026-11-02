@@ -118,7 +118,7 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 
 ## License
 
-GPLv3 (see [LICENSE](LICENSE)). Apps using this kit are distributed under GPLv3 too, so their cores must be GPLv3-compatible (e.g. GPLv2 "or later", GPLv3, MIT, BSD, Apache 2.0).
+GBFrame is licensed under **GPL-2.0-or-later** (see [LICENSE](LICENSE)); the previous GPLv3 text is preserved in [LICENSE-GPL-3.0.txt](LICENSE-GPL-3.0.txt). Each app must distribute its combined work under terms compatible with its core and all bundled dependencies. GBCast uses the GPLv2 terms to combine with Flycast (GPL-2.0); GBSat can use GPLv3 with Ymir. GPL-2.0-only and GPL-3.0-only code cannot be combined into one program. Audit each app's dependencies separately before release.
 
 ## Build and validation
 

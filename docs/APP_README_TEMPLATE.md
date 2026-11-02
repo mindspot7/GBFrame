@@ -80,4 +80,4 @@ Android package convention: set both Gradle `namespace` and `applicationId` to t
 <AppName> is based on [<Core>](<core URL>) by <authors> (<core license>).
 <Console> is a trademark of <maker>. <AppName> is not affiliated with or endorsed by <maker>.
 
-GPLv3. See [LICENSE](LICENSE).
+GNU GPL version 2 or (at your option) any later version (GPL-2.0-or-later). See [LICENSE](LICENSE).
