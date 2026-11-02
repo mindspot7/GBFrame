@@ -15,6 +15,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `Controller.kt` | `rememberHasGamepad()` |
 | `Wizard.kt` | First-run `SetupWizard` (steps with gradient badges), `WizardStatus`, `PresetPicker` |
 | `Covers.kt` | Box art: custom image → cache → libretro-thumbnails download with fuzzy title matching; normalize to the system's majority aspect ratio (`Covers.init(..., frameAspectRatio = ...)`) |
+| `VisualCustomization.kt` | Shared one-time Google Play Gold entitlement, purchase verification and restore flow for optional library themes; apps provide their own product ID and the GBFrame purchase dialog |
 | `RetroAchievements.kt` | RetroAchievements client logic (login, hardcore, notifications, per-game achievement lists); the app implements `RaBackend` with its native rcheevos client |
 | `RaOffline.kt` | Offline achievements (casual only): caches login/game/session answers while online, queues offline unlocks and syncs them later with the real unlock time |
 | `PlayTime.kt` | Play time (`PlayTime.update(game, counting)`), `formatPlayTime` |
@@ -96,6 +97,11 @@ EmuTheme(palette = EmuPalette.fromAccent(Color(0xFF6FD3FF))) { /* app */ }
 Inside the theme, components read their colors from `palette` (e.g. `palette.accent`, `palette.backgroundBrush`).
 
 ## Documentation for apps
+
+App screenshots should show real games with their actual cover art. The screenshot fixtures must not invent fictional game titles or placeholder box art; never include disc/ROM data in those fixtures. GBFrame itself is a shared UI library, so its README links to consumer screenshots instead of presenting a fictional game library.
+
+- [GBSat screenshots](https://github.com/mindspotgb/GBSat#screenshots)
+- [GBCast screenshots](https://github.com/mindspotgb/GBCast#screenshots)
 
 - [docs/SHARED_BEHAVIOR_STANDARD.md](docs/SHARED_BEHAVIOR_STANDARD.md): mandatory cross-app behavior consolidated from the GBCast/GBSat updates; ownership, identity, launch/covers, settings placement, automatic states, display/overlays, firmware, cheats and local validation.
 

@@ -30,7 +30,7 @@ Keep the section order; drop a row or section only when the app really doesn't h
 
 ## Screenshots
 
-<Screenshots rendered from code by the screenshots workflow (docs/screenshots), sample covers only.>
+Screenshots should use real games and their actual cover art. Do not create fictional titles or placeholder covers for screenshots. Fixtures may create empty disc files to populate the library, but must never include or load copyrighted game data.
 
 ## All features
 

@@ -190,6 +190,7 @@ of these repositories.
 
 ## Screenshots
 
-- README/store screenshots are rendered from code with Robolectric/Roborazzi (sample covers, no commercial art), by a
-  workflow that commits them to `docs/screenshots`. It runs when `VERSION` changes (a release) or by hand
+- README/store screenshots are rendered from code with Robolectric/Roborazzi using real game titles and actual cover art
+  the publisher is authorized to distribute; never invent fictional titles or placeholder covers. Fixtures create only
+  empty game-image placeholders and must not include or load game data. A workflow commits captures to `docs/screenshots`; it runs when `VERSION` changes (a release) or by hand
   (`workflow_dispatch`), not on every push.
