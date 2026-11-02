@@ -81,10 +81,10 @@ of these repositories.
 
 ## License
 
-- This kit is GPL-2.0-or-later. Each app must distribute the combined work under terms compatible with its core and
-  all bundled dependencies, with corresponding source available to recipients. GBCast uses the GPLv2 terms with the
-  GPL-2.0 Flycast core; GBSat can use GPLv3 with Ymir. GPL-2.0-only and GPL-3.0-only code cannot be combined into
-  one program. Audit all app dependencies separately; do not infer compatibility from the core license alone.
+- GBFrame is GPL-2.0-or-later. GBSat and GBCast use it under GPLv3 in their combined source distributions; Flycast source
+  files that permit GPL-2.0-or-later can be used under GPLv3. Preserve all third-party notices and provide corresponding
+  source. Audit each packaged dependency separately. Google Play Billing and related Play Services artifacts use Google's
+  Android SDK terms; do not describe them as open source or assume they are GPL-compatible without publication review.
 
 ## Signing
 

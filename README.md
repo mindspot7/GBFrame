@@ -118,7 +118,7 @@ Inside the theme, components read their colors from `palette` (e.g. `palette.acc
 
 ## License
 
-GBFrame is licensed under **GPL-2.0-or-later** (see [LICENSE](LICENSE)); the previous GPLv3 text is preserved in [LICENSE-GPL-3.0.txt](LICENSE-GPL-3.0.txt). Each app must distribute its combined work under terms compatible with its core and all bundled dependencies. GBCast uses the GPLv2 terms to combine with Flycast (GPL-2.0); GBSat can use GPLv3 with Ymir. GPL-2.0-only and GPL-3.0-only code cannot be combined into one program. Audit each app's dependencies separately before release.
+GBFrame is licensed under **GPL-2.0-or-later** (see [LICENSE](LICENSE)); the former GPLv3 license text is retained in [LICENSE-GPL-3.0.txt](LICENSE-GPL-3.0.txt) for historical reference. GBSat and GBCast use GBFrame under GPLv3 in their combined source distributions: Ymir is GPLv3, while Flycast permits GPL-2.0-or-later and GBCast also includes GPLv3-only xBRZ. Keep each dependency's own copyright and license notices. Google Play Billing and related Play Services artifacts are bundled under Google's separate Android SDK terms; their combination with the GPL-covered APK needs an explicit publication review.
 
 ## Build and validation
 
