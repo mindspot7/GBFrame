@@ -64,7 +64,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -234,21 +233,18 @@ fun QuickMenuHost(
         BoxWithConstraints(modifier.fillMaxSize()) {
             // Keep a single width for the root and every submenu. Deriving width from each page's
             // labels made sparse pages (notably Video) look narrower than the main quick menu.
-            val density = LocalDensity.current
-            val rootView = LocalView.current.rootView
-            val screenWidthPx = with(density) {
-                rootView.width.takeIf { it > 0 }?.toFloat() ?: maxWidth.toPx()
+            val aspectRatio = maxWidth.value / maxHeight.value.coerceAtLeast(1f)
+            val isPortrait = maxHeight > maxWidth
+            val isLandscapeFourByThree = !isPortrait && aspectRatio <= 1.45f
+            // Phone layouts need enough width for full option names. The old pixel-derived
+            // width became only ~120 dp on high-density portrait screens and wrapped labels.
+            val compactMenu = maxWidth < 600.dp || maxHeight < 600.dp
+            val widthFraction = when {
+                isPortrait -> .82f
+                isLandscapeFourByThree -> .46f
+                else -> .45f
             }
-            val screenHeightPx = with(density) {
-                rootView.height.toFloat().takeIf { it > 0f } ?: maxHeight.toPx()
-            }
-            val aspectRatio = screenWidthPx / screenHeightPx
-            val isLandscapeFourByThree = screenWidthPx > screenHeightPx && aspectRatio <= 1.45f
-            val compactRootMenu = scope.isRoot && isLandscapeFourByThree
-            val panelWidth = with(density) {
-                val widthFraction = if (isLandscapeFourByThree) .46f else .50f
-                minOf(maxOf(screenWidthPx * widthFraction, minOf(screenWidthPx, 280f)), 400f).toDp()
-            }
+            val panelWidth = minOf(maxWidth * widthFraction, 400.dp)
             Box(Modifier.fillMaxSize()) {
             AnimatedVisibility(
                 visible = true,
@@ -281,12 +277,12 @@ fun QuickMenuHost(
                     Column(
                         Modifier.fillMaxSize()
                             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-                            .padding(vertical = if (compactRootMenu) 8.dp else 12.dp),
+                            .padding(vertical = if (compactMenu) 4.dp else 12.dp),
                     ) {
                         Row(
                             Modifier.fillMaxWidth().padding(
                                 horizontal = 12.dp,
-                                vertical = if (compactRootMenu) 2.dp else 4.dp,
+                                vertical = if (compactMenu) 0.dp else 4.dp,
                             ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -319,7 +315,7 @@ fun QuickMenuHost(
                             }
                         }
                         HorizontalDivider(
-                            Modifier.padding(horizontal = 16.dp, vertical = if (compactRootMenu) 4.dp else 6.dp),
+                            Modifier.padding(horizontal = 16.dp, vertical = if (compactMenu) 2.dp else 6.dp),
                             color = Color.White.copy(alpha = .1f),
                         )
                         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
@@ -344,10 +340,10 @@ fun QuickMenuHost(
                                 ) {
                                     Column(
                                         Modifier.fillMaxWidth().heightIn(min = contentViewportHeight),
-                                        verticalArrangement = if (scope.isRoot) Arrangement.SpaceBetween else Arrangement.Top,
+                                        verticalArrangement = if (scope.isRoot && !compactMenu) Arrangement.SpaceBetween else Arrangement.Top,
                                     ) {
                                         androidx.compose.runtime.CompositionLocalProvider(
-                                            LocalQuickMenuCompactRootRows provides compactRootMenu,
+                                            LocalQuickMenuCompactRootRows provides compactMenu,
                                         ) {
                                             CompositionLocalProviderQuickMenuFocus(focusScope) {
                                                 current.page.content(scope)

@@ -20,6 +20,7 @@ An app-specific implementation is evidence for a requirement, not a reason to co
 - Use `rememberAppIconPainter` for in-app identity so launcher safe-zone padding does not shrink the visible artwork. Retain the standard frame dimensions; do not compensate by stretching a controller or changing each menu independently.
 - Selected segmented options must keep readable theme text colors. Reuse `ChoiceRow` and the active theme rather than introducing black selected text on dark surfaces.
 - Use `ControlsPage` and `PadLayout`. The consumer supplies the actual system's pad shape/artwork, aspect ratio and measured button positions. Button targets, labels and remapping actions must agree with that drawing at handheld and phone sizes.
+- In-game touch layouts keep console-specific labels and placement but use GBFrame's stylized `TouchControlButton` and `TouchDPad`; the D-pad must show active directions, support diagonals and release input when its owning pointer ends. Respect the shared haptics preference for touch feedback, independently of emulated controller rumble.
 
 ## Library startup, covers and disc access
 

@@ -150,6 +150,7 @@ On app startup, select and focus the last successfully opened game in every libr
 Reuse GBFrame components and helpers for shared screens, menu state, navigation, controller capture, library shortcuts, and Back behavior. The app supplies real core actions, persistence, metadata, its launcher icon resources, and adapters such as `RaBackend` or `CheatsBackend`. When a shared helper documents dispatch order or lifecycle, follow that contract rather than adding a parallel app-local state machine.
 
 - **Touch controls:** hide/disable on-screen touch controls whenever a non-virtual physical gamepad or joystick is connected, including built-in handheld controls. Detect devices by `SOURCE_GAMEPAD` or `SOURCE_JOYSTICK` and ignore virtual devices. Re-evaluate on device add/change/remove so touch controls reappear when the last physical controller disconnects. The user's touch-controls preference is still respected when no physical controller is connected.
+- Use GBFrame's `TouchControlButton` and `TouchDPad` for shared touch-button styling, pressed-state feedback, multi-touch-safe D-pad gestures and optional haptics. Keep each console's labels, button colors, placement and input mapping in its app. The Controls page exposes a persisted **Haptic feedback** On/Off option through `ControlsHost.touchHapticsEnabled`; game rumble remains independent.
 
 
 ## Color and theme contract

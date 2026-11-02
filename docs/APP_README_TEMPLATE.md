@@ -10,7 +10,7 @@ Keep the section order; drop a row or section only when the app really doesn't h
 
 <Top 3-4 features separated by ·>
 
-[Download the latest APK](../../releases/latest) · [Changelog](CHANGELOG.md)
+[Download the latest APK](../../releases/latest) · [Changelog](CHANGELOG.md) · [Privacy policy](PRIVACY.md)
 
 <img src="docs/screenshots/library.png" width="760" alt="Game library">
 

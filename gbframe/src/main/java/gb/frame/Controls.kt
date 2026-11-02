@@ -5,6 +5,8 @@ import android.view.KeyEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FastForward
@@ -40,6 +46,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -64,6 +77,120 @@ data class ControlButton(
 
 /** Visibility policy for the on-screen controls shared by all GBFrame apps. */
 enum class TouchControlsMode { AUTO, SHOW }
+
+/** Directions reported by [TouchDPad]. Diagonals are represented by two entries at once. */
+enum class TouchDirection { UP, DOWN, LEFT, RIGHT }
+
+/** Shared translucent, high-contrast touch button used by console-specific in-game layouts. */
+@Composable
+fun TouchControlButton(
+    label: String,
+    onPressed: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = Color(0xFF6354B8),
+    shape: androidx.compose.ui.graphics.Shape = CircleShape,
+    hapticsEnabled: Boolean = true,
+) {
+    var pressed by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
+    Box(
+        modifier.clip(shape)
+            .background(tint.copy(alpha = if (pressed) .78f else .42f))
+            .border(1.dp, Color.White.copy(alpha = if (pressed) .62f else .28f), shape)
+            .pointerInput(label, hapticsEnabled) {
+                awaitEachGesture {
+                    awaitFirstDown()
+                    pressed = true
+                    onPressed(true)
+                    if (hapticsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    try {
+                        var released = false
+                        while (!released) {
+                            released = awaitPointerEvent().changes.none { it.pressed }
+                        }
+                    } finally {
+                        pressed = false
+                        onPressed(false)
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/** Shared responsive cross D-pad with diagonal input, per-direction active feedback, and pointer ownership. */
+@Composable
+fun TouchDPad(
+    onDirectionsChanged: (Set<TouchDirection>) -> Unit,
+    modifier: Modifier = Modifier,
+    hapticsEnabled: Boolean = true,
+) {
+    var active by remember { mutableStateOf(emptySet<TouchDirection>()) }
+    val haptic = LocalHapticFeedback.current
+    val track = Color(0xFF25283A).copy(alpha = .78f)
+    val normal = Color(0xFF555B75).copy(alpha = .72f)
+    val selected = Color(0xFF8C78F0).copy(alpha = .96f)
+    Box(
+        modifier.size(164.dp).clip(CircleShape)
+            .background(track)
+            .border(1.dp, Color.White.copy(alpha = .24f), CircleShape)
+            .pointerInput(hapticsEnabled) {
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    val pointerId = down.id
+                    fun directionsAt(position: Offset): Set<TouchDirection> {
+                        val dx = position.x - size.width / 2f
+                        val dy = position.y - size.height / 2f
+                        val dead = size.width * .12f
+                        return buildSet {
+                            if (dx > dead) add(TouchDirection.RIGHT)
+                            if (dx < -dead) add(TouchDirection.LEFT)
+                            if (dy > dead) add(TouchDirection.DOWN)
+                            if (dy < -dead) add(TouchDirection.UP)
+                        }
+                    }
+                    fun update(position: Offset) {
+                        val next = directionsAt(position)
+                        if (next != active) {
+                            active = next
+                            onDirectionsChanged(next)
+                            if (hapticsEnabled && next.isNotEmpty()) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                    }
+                    update(down.position)
+                    try {
+                        var released = false
+                        while (!released) {
+                            val event = awaitPointerEvent()
+                            val pointer = event.changes.firstOrNull { it.id == pointerId }
+                            if (pointer == null || !pointer.pressed) released = true else update(pointer.position)
+                        }
+                    } finally {
+                        active = emptySet()
+                        onDirectionsChanged(emptySet())
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        val armShape = RoundedCornerShape(10.dp)
+        Box(Modifier.align(Alignment.TopCenter).size(54.dp, 67.dp).clip(armShape).background(if (TouchDirection.UP in active) selected else normal), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.KeyboardArrowUp, null, tint = Color.White, modifier = Modifier.size(30.dp))
+        }
+        Box(Modifier.align(Alignment.BottomCenter).size(54.dp, 67.dp).clip(armShape).background(if (TouchDirection.DOWN in active) selected else normal), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White, modifier = Modifier.size(30.dp))
+        }
+        Box(Modifier.align(Alignment.CenterStart).size(67.dp, 54.dp).clip(armShape).background(if (TouchDirection.LEFT in active) selected else normal), contentAlignment = Alignment.Center) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = Color.White, modifier = Modifier.size(30.dp))
+        }
+        Box(Modifier.align(Alignment.CenterEnd).size(67.dp, 54.dp).clip(armShape).background(if (TouchDirection.RIGHT in active) selected else normal), contentAlignment = Alignment.Center) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.White, modifier = Modifier.size(30.dp))
+        }
+        Box(Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF30354A)).border(1.dp, Color.White.copy(alpha = .22f), CircleShape))
+    }
+}
 
 /**
  * What the standard Controls page ([ControlsPage], [ControlsCapturePrompts], [ControlsCapture]) needs from an app: its
@@ -94,6 +221,10 @@ interface ControlsHost {
     var fastForwardToggle: Boolean
     /** On-screen controls visibility policy. The app saves the change. */
     var touchControlsMode: TouchControlsMode
+    /** Brief touch feedback when a virtual control is pressed. The app saves the change. */
+    var touchHapticsEnabled: Boolean
+        get() = true
+        set(_) = Unit
 }
 
 /**
@@ -162,6 +293,11 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
                 ChoiceRow("Touch controls", "Auto hides the on-screen buttons when a physical controller is connected. Show keeps them visible.",
                     listOf("Auto", "Show"), if (host.touchControlsMode == TouchControlsMode.AUTO) 0 else 1) {
                     host.touchControlsMode = if (it == 0) TouchControlsMode.AUTO else TouchControlsMode.SHOW
+                }
+                SettingsDivider()
+                ChoiceRow("Haptic feedback", "Vibrate briefly when you press an on-screen control.",
+                    listOf("On", "Off"), if (host.touchHapticsEnabled) 0 else 1) {
+                    host.touchHapticsEnabled = it == 0
                 }
             }
         }

@@ -1,5 +1,6 @@
 package gb.frame
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -123,7 +124,12 @@ fun AboutPage(
     }
     SettingsGroup("Privacy policy", null) {
         TextButton(
-            onClick = { runCatching { uriHandler.openUri(privacyPolicyUrl) } },
+            onClick = {
+                val opened = runCatching { uriHandler.openUri(privacyPolicyUrl) }.isSuccess
+                if (!opened) {
+                    Toast.makeText(ctx, "Couldn't open the privacy policy", Toast.LENGTH_LONG).show()
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Read the privacy policy")
