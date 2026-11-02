@@ -47,7 +47,7 @@ param(
 # ---- app (tools/check-app-id.sh checks that these match build.gradle.kts, the manifest and the CMake APP_ID) -------------
 $Title = 'GBSat'
 $Name = 'gbsat'
-$Repo = 'mindspot7/GBSat'
+$Repo = 'mindspotgb/GBSat'
 $Branch = 'android-port'
 $App = 'app.gbsat.emulator'
 # APP is both applicationId and namespace; Activity is the fully qualified source class (it may use a different package)

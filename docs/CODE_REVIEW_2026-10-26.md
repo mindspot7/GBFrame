@@ -45,8 +45,8 @@ No source files or functions were deleted during this static pass. Simple text-b
 The GBCast workflow was updated to pass `-PgbcastVersionCode` and `-PgbcastCiDebugSigning=true` rather than editing `build.gradle.kts` with `sed`. The Gradle script keeps version code 8 as its default for ordinary builds and switches to the debug signing config only when the CI property is explicitly true.
 
 Validation completed successfully:
-- GBCast build run #43: https://github.com/mindspot7/GBCast/actions/runs/40314936050
-- GBCast App ID consistency check: https://github.com/mindspot7/GBCast/actions/runs/40314871597
+- GBCast build run #43: https://github.com/mindspotgb/GBCast/actions/runs/40314936050
+- GBCast App ID consistency check: https://github.com/mindspotgb/GBCast/actions/runs/40314871597
 
 A lightweight import-reference scan across the two game-screen and two library-screen files produced candidates, but some are false positives for Kotlin delegated-property operators (`getValue`/`setValue`) and symbols used indirectly or through extension syntax. No imports were removed based on that scan alone. Use Android Lint/compiler diagnostics or IDE semantic analysis before committing dead-code cleanup.
 
@@ -98,15 +98,15 @@ A small refactor was committed to GBCast on `android-port`:
 - `GbcastBackPolicyTest.kt` covers native submenus, command/settings/disk/cheat/achievement pages, Pause, Main, and unknown-state fallback.
 - CI was changed to run `testReleaseUnitTest` before `assembleRelease`, so the new JVM tests are part of the validation build.
 
-This is a decision-policy extraction, **not yet a duplicate-event debounce**. The existing toggle fallback is intentionally unchanged because the native GUI state contract is known but lifecycle/event ordering still needs device validation. GitHub Actions run #45 was queued at the time of this report update: https://github.com/mindspot7/GBCast/actions/runs/40318564412. Do not treat the tests or APK build as passed until that run completes successfully.
+This is a decision-policy extraction, **not yet a duplicate-event debounce**. The existing toggle fallback is intentionally unchanged because the native GUI state contract is known but lifecycle/event ordering still needs device validation. GitHub Actions run #45 was queued at the time of this report update: https://github.com/mindspotgb/GBCast/actions/runs/40318564412. Do not treat the tests or APK build as passed until that run completes successfully.
 
 
 ### Follow-up — device verification after the 16 KB validator fix (2026-10-26)
 
 The user installed and tested the resulting GBSat build #361 and GBCast build #58 on an Android device and confirmed that both worked.
 
-- GBSat build #361: https://github.com/mindspot7/GBSat/actions/runs/40337602238 — workflow succeeded; the shared GBFrame validator passed; artifact `GBSat-v1.3.6-build361` uploaded.
-- GBCast build #58: https://github.com/mindspot7/GBCast/actions/runs/40338006960 — workflow succeeded; `:flycast:testDebugUnitTest` and `:flycast:assembleRelease` completed; the shared validator passed for the packaged native libraries across `arm64-v8a`, `armeabi-v7a`, `x86`, and `x86_64`; artifact uploaded.
+- GBSat build #361: https://github.com/mindspotgb/GBSat/actions/runs/40337602238 — workflow succeeded; the shared GBFrame validator passed; artifact `GBSat-v1.3.6-build361` uploaded.
+- GBCast build #58: https://github.com/mindspotgb/GBCast/actions/runs/40338006960 — workflow succeeded; `:flycast:testDebugUnitTest` and `:flycast:assembleRelease` completed; the shared validator passed for the packaged native libraries across `arm64-v8a`, `armeabi-v7a`, `x86`, and `x86_64`; artifact uploaded.
 - The corrected validator is pinned to GBFrame commit `6fb96ecac381cf7613b7e3321ade39b73b052fd0` in both app workflows.
 - This confirms the tested install/launch path as reported by the user and the CI build/package checks. It does not establish coverage of every pause/resume lifecycle path.
 
@@ -124,8 +124,8 @@ The user reports that the quick menus appear to work correctly in device testing
 
 The Android foreground/background resume fix was committed to GBSat and GBCast and the user manually tested both apps, reporting that the behavior worked. CI builds also succeeded:
 
-- GBSat commit `fe47aceb79f81dcda9e3e1e6989dcb8bc19b31d8`; build #369: https://github.com/mindspot7/GBSat/actions/runs/40349125808
-- GBCast commit `09d46c52c0fbb71267ca379e765e5cb8a532cabe`; build #59: https://github.com/mindspot7/GBCast/actions/runs/40348820064
+- GBSat commit `fe47aceb79f81dcda9e3e1e6989dcb8bc19b31d8`; build #369: https://github.com/mindspotgb/GBSat/actions/runs/40349125808
+- GBCast commit `09d46c52c0fbb71267ca379e765e5cb8a532cabe`; build #59: https://github.com/mindspotgb/GBCast/actions/runs/40348820064
 
 GBFrame's integration, lessons, and quick-menu standards were updated to describe the lifecycle contract and regression cases. The menu code itself was not changed in this documentation follow-up.
 
@@ -155,8 +155,8 @@ Both workflows are triggered only via GitHub Actions Run workflow (`workflow_dis
 
 Both manual workflows executed and uploaded HTML/XML reports. The workflow jobs failed because Android Lint reports existing errors; this is a useful baseline, not a release-build regression. GBFrame itself produced warnings/hints only in both consumers, with no Lint errors in its reports.
 
-- GBSat Lint run: https://github.com/mindspot7/GBSat/actions/runs/40356376343 — app module: **7 errors, 18 warnings, 9 hints**; GBFrame module: **0 errors, 23 warnings, 2 hints**. All 7 app errors are `RestrictedApi` reports for `ComponentActivity.dispatchKeyEvent` calls in `MainActivity.kt` (lines 94, 169, 173, 197). These calls are used to remap gamepad key events; review whether narrowly scoped lint suppression is justified or a supported dispatch strategy can replace the direct super calls. Do not change input behavior without controller regression tests.
-- GBCast Lint run: https://github.com/mindspot7/GBCast/actions/runs/40356405485 — app module: **13 errors, 88 warnings**; GBFrame module: **0 errors, 22 warnings**. Errors include `MissingPermission` for microphone capture in `SipEmulator.java:35`, `GestureBackNavigation` in `BaseGLActivity.java:392`, `AppLinkUrlError` for a manifest intent filter without a host, and `RestrictedApi` reports for `dispatchKeyEvent` remapping in `LibraryActivity.kt` and `NativeGLActivity.java`. The microphone issue needs tracing through the permission/request flow before changing behavior; the manifest issue needs checking against the intended deep-link contract; the Back warning needs a predictive-Back compatibility review.
+- GBSat Lint run: https://github.com/mindspotgb/GBSat/actions/runs/40356376343 — app module: **7 errors, 18 warnings, 9 hints**; GBFrame module: **0 errors, 23 warnings, 2 hints**. All 7 app errors are `RestrictedApi` reports for `ComponentActivity.dispatchKeyEvent` calls in `MainActivity.kt` (lines 94, 169, 173, 197). These calls are used to remap gamepad key events; review whether narrowly scoped lint suppression is justified or a supported dispatch strategy can replace the direct super calls. Do not change input behavior without controller regression tests.
+- GBCast Lint run: https://github.com/mindspotgb/GBCast/actions/runs/40356405485 — app module: **13 errors, 88 warnings**; GBFrame module: **0 errors, 22 warnings**. Errors include `MissingPermission` for microphone capture in `SipEmulator.java:35`, `GestureBackNavigation` in `BaseGLActivity.java:392`, `AppLinkUrlError` for a manifest intent filter without a host, and `RestrictedApi` reports for `dispatchKeyEvent` remapping in `LibraryActivity.kt` and `NativeGLActivity.java`. The microphone issue needs tracing through the permission/request flow before changing behavior; the manifest issue needs checking against the intended deep-link contract; the Back warning needs a predictive-Back compatibility review.
 
 Lint report artifacts were uploaded by the runs (`gbsat-android-lint-reports` and `gbcast-android-lint-reports`) and were inspected in XML form to enumerate the error IDs. Many remaining warnings concern dependency updates, KTX suggestions, SDK checks, static context references, resource usage, and view accessibility. Do not batch-upgrade dependencies or delete resources from Lint suggestions alone; classify each finding and check runtime/manifest/JNI/reflection usage first.
 
@@ -167,10 +167,10 @@ Lint report artifacts were uploaded by the runs (`gbsat-android-lint-reports` an
 
 The follow-up pushes triggered the isolated Lint workflows and the normal GBSat APK build. All four runs completed successfully:
 
-- GBSat Android Lint: https://github.com/mindspot7/GBSat/actions/runs/40358844654 — **0 errors**, app module: 18 warnings and 9 hints; GBFrame module: 23 warnings and 2 hints.
-- GBCast Android Lint: https://github.com/mindspot7/GBCast/actions/runs/40358857898 — **0 errors**, app module: 88 warnings; GBFrame module: 22 warnings.
-- GBSat release APK build: https://github.com/mindspot7/GBSat/actions/runs/40358780338 — succeeded, including the shared 16 KB APK compatibility validation.
-- GBCast application-ID consistency check: https://github.com/mindspot7/GBCast/actions/runs/40358805172 — succeeded.
+- GBSat Android Lint: https://github.com/mindspotgb/GBSat/actions/runs/40358844654 — **0 errors**, app module: 18 warnings and 9 hints; GBFrame module: 23 warnings and 2 hints.
+- GBCast Android Lint: https://github.com/mindspotgb/GBCast/actions/runs/40358857898 — **0 errors**, app module: 88 warnings; GBFrame module: 22 warnings.
+- GBSat release APK build: https://github.com/mindspotgb/GBSat/actions/runs/40358780338 — succeeded, including the shared 16 KB APK compatibility validation.
+- GBCast application-ID consistency check: https://github.com/mindspotgb/GBCast/actions/runs/40358805172 — succeeded.
 
 The initial Lint errors were addressed narrowly: gamepad key-event redispatch uses local suppressions; microphone setup remains behind the existing RECORD_AUDIO permission-result grant path; the legacy file/content URI filter is documented as not being a verified web App Link; and existing controller/hardware Back routing is retained. The GestureBackNavigation suppression is a temporary compatibility decision; predictive-Back behavior still needs dedicated testing. No controller behavior, manifest exported state, or permissions were silently changed to make Lint green.
 
@@ -180,10 +180,10 @@ Remaining warnings were reviewed by category rather than bulk-fixed. GBCast repo
 
 ### Follow-up — GBCast lifecycle/security triage and final Lint run (2026-10-26)
 
-- GBCast Lint after the earlier Back-comment clarification completed successfully: https://github.com/mindspot7/GBCast/actions/runs/40359817189 (0 Lint errors).
+- GBCast Lint after the earlier Back-comment clarification completed successfully: https://github.com/mindspotgb/GBCast/actions/runs/40359817189 (0 Lint errors).
 - Added `GbcastGameUi.detach(Activity)` and called it from `NativeGLActivity.onDestroy()` to clear the static references to the game Activity and views, reset menu ownership, and avoid retaining an obsolete UI session. The ComposeView already uses `DisposeOnViewTreeLifecycleDestroyed`, so this is an explicit cleanup of the process-level references; it still needs device lifecycle testing.
 - Hardened `RetroAchievementsHostOverrideReceiver` input: SET now accepts only absolute hierarchical HTTP(S) URLs with a non-empty host, no embedded user-info, and no control characters. This prevents line/control-character injection into the persisted `emu.cfg` value while preserving non-local proxy URLs. The receiver remains exported and does not authenticate the sender; another installed app can still change or clear the override. That trust-boundary choice remains an open security/product decision because restricting it may break RAOfflineProxy and similar tools.
-- Final targeted Lint run for commit `dfbee0f7f8a0d7a3b436d76a21e1aeed0af019bb` succeeded: https://github.com/mindspot7/GBCast/actions/runs/40360701149. Reports: app module **0 errors, 89 warnings**; GBFrame module **0 errors, 22 warnings**. The app warning count differs from the earlier baseline by one; the static-analysis run confirms no errors, not that all warnings are resolved.
+- Final targeted Lint run for commit `dfbee0f7f8a0d7a3b436d76a21e1aeed0af019bb` succeeded: https://github.com/mindspotgb/GBCast/actions/runs/40360701149. Reports: app module **0 errors, 89 warnings**; GBFrame module **0 errors, 22 warnings**. The app warning count differs from the earlier baseline by one; the static-analysis run confirms no errors, not that all warnings are resolved.
 - Reviewed remaining `StaticFieldLeak` reports: `Emulator.context` is set to the application context and is intentional; `Storage` also stores the application context; `GbcastGameUi` contains process-level UI references that now have explicit teardown. Android Lint cannot prove runtime lifecycle correctness, so test repeated game launch/exit, rotation/configuration handling as supported, background/foreground, and opening/closing the quick menu on-device.
 - `ExportedReceiver` is intentionally retained pending an explicit trust-boundary decision. `ObsoleteSdkInt` findings were not removed mechanically: SDK checks may be defensive or in code shared from upstream, and changing them needs compatibility review.
 - No device test or release APK build has yet been run for these newest commits. The review remains open. Next: run the standard GBCast build/unit-test/16 KB validation on the current `android-port` head, then inspect receiver integration documentation/callers and perform lifecycle/device regression tests before deciding whether to require a sender permission or change exported status.
@@ -193,7 +193,7 @@ Remaining warnings were reviewed by category rather than bulk-fixed. GBCast repo
 
 The standard Android workflow completed successfully on GBCast commit `560f52ecbd8db15dffd04840d809f6f50f5ab89c`:
 
-- Run #40361771597: https://github.com/mindspot7/GBCast/actions/runs/40361771597
+- Run #40361771597: https://github.com/mindspotgb/GBCast/actions/runs/40361771597
 - The Gradle step ran `:flycast:testDebugUnitTest` and `:flycast:assembleRelease`; both completed successfully.
 - The shared GBFrame 16 KB compatibility validator completed successfully against the packaged release APK.
 - The APK artifact was uploaded successfully.
@@ -210,7 +210,7 @@ The GBCast standard Android workflow is triggered by manual dispatch or a push t
 
 A focused security/privacy improvement was committed to GBCast `android-port`:
 
-- Commit `9929728a7c54cf054287ca0614ed03cbc0a65b1e`: https://github.com/mindspot7/GBCast/commit/9929728a7c54cf054287ca0614ed03cbc0a65b1e
+- Commit `9929728a7c54cf054287ca0614ed03cbc0a65b1e`: https://github.com/mindspotgb/GBCast/commit/9929728a7c54cf054287ca0614ed03cbc0a65b1e
 - `RetroAchievementsHostOverrideReceiver` no longer logs the full host override URL when a SET broadcast arrives or when `emu.cfg` is updated. The endpoint may include query parameters that should not be copied into Android logs.
 - The log now records only that the override was set/cleared; URL validation and the external broadcast contract are unchanged.
 - Validation was triggered: Android build run #40363852313 (queued at report time) and Android Lint run #40363821333 (in progress at report time). Do not mark this change CI-validated until both results are checked.
@@ -222,8 +222,8 @@ This reduces accidental disclosure of proxy URL query values in logs. It does **
 
 The two workflows triggered after commit `9929728a7c54cf054287ca0614ed03cbc0a65b1e` completed successfully:
 
-- Android build run #40363852313: https://github.com/mindspot7/GBCast/actions/runs/40363852313 — Gradle build/tests, release APK packaging, shared 16 KB compatibility validator, and artifact upload all succeeded.
-- Android Lint run #40363821333: https://github.com/mindspot7/GBCast/actions/runs/40363821333 — Lint and report-artifact upload succeeded.
+- Android build run #40363852313: https://github.com/mindspotgb/GBCast/actions/runs/40363852313 — Gradle build/tests, release APK packaging, shared 16 KB compatibility validator, and artifact upload all succeeded.
+- Android Lint run #40363821333: https://github.com/mindspotgb/GBCast/actions/runs/40363821333 — Lint and report-artifact upload succeeded.
 
 The latest CI gate therefore validates the URL-log redaction change at build/test/package and Lint workflow level. It does not authenticate broadcast senders, prove runtime lifecycle correctness, or replace on-device testing.
 
@@ -251,7 +251,7 @@ A deeper review of `RetroAchievementsHostOverrideReceiver` found a residual secu
 
 Recommended follow-up is to decide whether arbitrary remote/custom proxy URLs are a supported use case. If only local proxy integrations are required, restrict allowed destinations to loopback and validate ports/URI authority rigorously. If arbitrary proxy URLs are required, document the trust boundary and adopt an interoperable sender-authentication mechanism with the external client. A signature-level permission on GBCast alone would block the existing RAOfflineProxy unless both apps can share compatible signing and permission declarations.
 
-At the time of the initial attempt, GitHub rejected issue creation because Issues were disabled (HTTP 410). Issues have since been enabled, and two tracking issues were created in GBCast: [#1 — define the trust policy for the exported receiver](https://github.com/mindspot7/GBCast/issues/1) and [#2 — RAOfflineProxy compatibility after the application-ID change](https://github.com/mindspot7/GBCast/issues/2).
+At the time of the initial attempt, GitHub rejected issue creation because Issues were disabled (HTTP 410). Issues have since been enabled, and two tracking issues were created in GBCast: [#1 — define the trust policy for the exported receiver](https://github.com/mindspotgb/GBCast/issues/1) and [#2 — RAOfflineProxy compatibility after the application-ID change](https://github.com/mindspotgb/GBCast/issues/2).
 
 **Action still required:** coordinate support for the new package ID `app.gbcast.emulator` with RAOfflineProxy upstream, then test SET/CLEAR against the installed GBCast build. The GBCast repository integration currently has read-only access to RAOfflineProxy, so no upstream changes were made.
 
@@ -260,8 +260,8 @@ At the time of the initial attempt, GitHub rejected issue creation because Issue
 
 After the repository owner enabled Issues, created two open tracking issues:
 
-- [GBCast #1 — Security: define trust policy for exported RetroAchievements host override receiver](https://github.com/mindspot7/GBCast/issues/1). Tracks the decision between a loopback-only policy and interoperable sender authentication, plus validation and runtime tests. No concrete credential exposure is claimed.
-- [GBCast #2 — Integration: make GBCast discoverable by RAOfflineProxy after application ID change](https://github.com/mindspot7/GBCast/issues/2). Tracks the `app.gbcast.emulator` package/component mismatch with upstream RAOfflineProxy and end-to-end SET/CLEAR verification.
+- [GBCast #1 — Security: define trust policy for exported RetroAchievements host override receiver](https://github.com/mindspotgb/GBCast/issues/1). Tracks the decision between a loopback-only policy and interoperable sender authentication, plus validation and runtime tests. No concrete credential exposure is claimed.
+- [GBCast #2 — Integration: make GBCast discoverable by RAOfflineProxy after application ID change](https://github.com/mindspotgb/GBCast/issues/2). Tracks the `app.gbcast.emulator` package/component mismatch with upstream RAOfflineProxy and end-to-end SET/CLEAR verification.
 
 Both issues are open. Creating them does not resolve either finding; receiver policy, upstream integration, and device verification remain pending.
 
@@ -276,15 +276,15 @@ GBCast `android-port` now separates URL syntax validation from the Android broad
 - Commits: receiver refactor `d6b720ab0f7a3267b6b481087fda3e8f4ff5bff1`; validator `c99e0dbe9536092b0932cc92fcadf0323f245627`; tests `d65683e8dcbcd1209a4da600adbc1deeeda64ed9`; build trigger `9902a0ae5933cf000f222a9cb26211d32c4f38d2`.
 
 Validation is running:
-- Android build/test/package workflow: https://github.com/mindspot7/GBCast/actions/runs/40366860986
-- Android Lint workflow for the changed receiver: https://github.com/mindspot7/GBCast/actions/runs/40366810687
-- Android Lint workflow for the new validator: https://github.com/mindspot7/GBCast/actions/runs/40366835381
+- Android build/test/package workflow: https://github.com/mindspotgb/GBCast/actions/runs/40366860986
+- Android Lint workflow for the changed receiver: https://github.com/mindspotgb/GBCast/actions/runs/40366810687
+- Android Lint workflow for the new validator: https://github.com/mindspotgb/GBCast/actions/runs/40366835381
 
-**Important scope limit:** these tests validate URL syntax only. They do not decide whether remote proxy destinations are trusted, authenticate the sender, or prove that the emulator's RetroAchievements requests are safe when redirected. The trust-policy issue remains open at [GBCast #1](https://github.com/mindspot7/GBCast/issues/1); package discovery by upstream RAOfflineProxy remains open at [GBCast #2](https://github.com/mindspot7/GBCast/issues/2). Do not close either issue solely because the new tests/build pass.
+**Important scope limit:** these tests validate URL syntax only. They do not decide whether remote proxy destinations are trusted, authenticate the sender, or prove that the emulator's RetroAchievements requests are safe when redirected. The trust-policy issue remains open at [GBCast #1](https://github.com/mindspotgb/GBCast/issues/1); package discovery by upstream RAOfflineProxy remains open at [GBCast #2](https://github.com/mindspotgb/GBCast/issues/2). Do not close either issue solely because the new tests/build pass.
 
 ### Follow-up — CI passed and config-write consistency fix (2026-10-26)
 
-The proxy URL validator and its JVM tests passed the GitHub Actions Android build/test/package workflow (run [#40366860986](https://github.com/mindspot7/GBCast/actions/runs/40366860986)) and Android Lint for the test commit (run [#40366835381](https://github.com/mindspot7/GBCast/actions/runs/40366835381)). An older overlapping Lint run was cancelled when a newer run superseded it; it was not a test failure.
+The proxy URL validator and its JVM tests passed the GitHub Actions Android build/test/package workflow (run [#40366860986](https://github.com/mindspotgb/GBCast/actions/runs/40366860986)) and Android Lint for the test commit (run [#40366835381](https://github.com/mindspotgb/GBCast/actions/runs/40366835381)). An older overlapping Lint run was cancelled when a newer run superseded it; it was not a test failure.
 
 A further receiver review found that `nativeSetHostOverride()` was called even after writing `emu.cfg` failed, allowing in-memory and persistent configuration to diverge. Updated `RetroAchievementsHostOverrideReceiver` to return after an `IOException`, so the in-memory override is not applied unless the persistent update succeeds.
 
@@ -295,8 +295,8 @@ A further receiver review found that `nativeSetHostOverride()` was called even a
 
 The follow-up validation for commit `9e7e5c209639cbedd8ed385b9a42e80fe6fb533c` completed successfully:
 
-- Android Lint: [run #40368339898](https://github.com/mindspot7/GBCast/actions/runs/40368339898) — success.
-- Android build, `:flycast:testDebugUnitTest`, release APK packaging, and shared 16 KB APK validation: [run #40368530356](https://github.com/mindspot7/GBCast/actions/runs/40368530356) — success.
+- Android Lint: [run #40368339898](https://github.com/mindspotgb/GBCast/actions/runs/40368339898) — success.
+- Android build, `:flycast:testDebugUnitTest`, release APK packaging, and shared 16 KB APK validation: [run #40368530356](https://github.com/mindspotgb/GBCast/actions/runs/40368530356) — success.
 
 This verifies CI on the config-write consistency fix. It does not replace an installed-device SET/CLEAR test and does not resolve the exported receiver's trust policy or RAOfflineProxy's package mapping.
 
@@ -316,8 +316,8 @@ Remaining checks: run the standard GBCast build/unit tests/release packaging/16 
 ### Validation result — loopback-only offline proxy policy (2026-10-26)
 
 The latest GBCast CI runs for the local-only offline proxy override completed successfully:
-- Android build/test/package workflow on commit `2ac7f2bfdb9570396ff3f88bd5d5cfb479eaaf4e`: [run #40370599373](https://github.com/mindspot7/GBCast/actions/runs/40370599373) — success.
-- Android Lint on commit `2f12d83de960e5c7a8da04cd13515ada7f1afe9b`: [run #40370532437](https://github.com/mindspot7/GBCast/actions/runs/40370532437) — success.
+- Android build/test/package workflow on commit `2ac7f2bfdb9570396ff3f88bd5d5cfb479eaaf4e`: [run #40370599373](https://github.com/mindspotgb/GBCast/actions/runs/40370599373) — success.
+- Android Lint on commit `2f12d83de960e5c7a8da04cd13515ada7f1afe9b`: [run #40370532437](https://github.com/mindspotgb/GBCast/actions/runs/40370532437) — success.
 
 RAOfflineProxy's current Flycast configuration was re-read. It only lists `com.flycast.emulator` as the Flycast package candidate and targets `com.flycast.emulator.RetroAchievementsHostOverrideReceiver`. GBCast retains that receiver class name but its installed application ID is `app.gbcast.emulator`, so RAOfflineProxy will not automatically discover GBCast until its Flycast package-candidate mapping is updated upstream. A request to document this compatibility gap on RAOfflineProxy's integration-tracking issue could not be posted because the GitHub integration returned HTTP 403 (resource not accessible); no upstream file or issue was changed.
 
@@ -344,14 +344,14 @@ Confirmed: loopback URL validation restricts the *destination*, not the *sender*
 
 A GBCast-only Android `signature` permission would block unauthorized callers but is not a safe drop-in integration fix: RAOfflineProxy is a separately distributed app, and shared signing-certificate compatibility has not been established. A normal/dangerous permission or explicit component targeting alone is not strong authentication. The security issue remains open pending a coordinated protocol with RAOfflineProxy (e.g. shared-signature permission if co-signing is feasible, or another caller-verification/explicit-authorization design that supports the app's Android API range).
 
-Tracked in [GBCast security issue #1](https://github.com/mindspot7/GBCast/issues/1). Do not treat sender authentication as fixed. Full device verification of SET/CLEAR, offline queue/sync after reconnect, and ordinary online RetroAchievements behavior is still outstanding.
+Tracked in [GBCast security issue #1](https://github.com/mindspotgb/GBCast/issues/1). Do not treat sender authentication as fixed. Full device verification of SET/CLEAR, offline queue/sync after reconnect, and ordinary online RetroAchievements behavior is still outstanding.
 
 
 ### CI follow-up — execute receiver instrumentation tests (2026-10-26)
 
 The earlier Android workflow #65 and Android Lint #15 both completed successfully:
-- [Android build/test/package #65](https://github.com/mindspot7/GBCast/actions/runs/40373074726) — success; this compiled `:flycast:compileDebugAndroidTestJavaWithJavac` but did not execute instrumentation tests.
-- [Android Lint #15](https://github.com/mindspot7/GBCast/actions/runs/40373000508) — success.
+- [Android build/test/package #65](https://github.com/mindspotgb/GBCast/actions/runs/40373074726) — success; this compiled `:flycast:compileDebugAndroidTestJavaWithJavac` but did not execute instrumentation tests.
+- [Android Lint #15](https://github.com/mindspotgb/GBCast/actions/runs/40373000508) — success.
 
 To close that gap, the Android workflow now starts an API 35 Google APIs x86_64 emulator and runs `:flycast:connectedDebugAndroidTest`, which installs the app/test APK and executes SET/CLEAR persistence tests. The workflow was retriggered by updating `.github/workflows/run-build.trigger`; execution result is pending at this report update.
 
@@ -362,57 +362,57 @@ Commits:
 The sender-authentication issue remains intentionally unresolved: a loopback destination check is not sender authentication, and adding a signature permission without confirming a compatible shared signing identity for RAOfflineProxy risks breaking integration. Keep GBCast issue #1 open until an interoperable sender-trust design is established and tested.
 
 
-CI orchestration correction: the emulator runner executes its script from the repository root, while Gradle's wrapper is under `shell/android-studio`. Corrected the script to `cd shell/android-studio && ./gradlew :flycast:connectedDebugAndroidTest --stacktrace` and retriggered the workflow. The current run is [Android #67](https://github.com/mindspot7/GBCast/actions/runs/40374818723) (pending at the time of this update); do not interpret the earlier #66 run as proof of instrumentation execution.
+CI orchestration correction: the emulator runner executes its script from the repository root, while Gradle's wrapper is under `shell/android-studio`. Corrected the script to `cd shell/android-studio && ./gradlew :flycast:connectedDebugAndroidTest --stacktrace` and retriggered the workflow. The current run is [Android #67](https://github.com/mindspotgb/GBCast/actions/runs/40374818723) (pending at the time of this update); do not interpret the earlier #66 run as proof of instrumentation execution.
 
 
 ### Managed ADB emulator follow-up — SDK setup failure and correction (2026-10-26)
 
-The first managed-AVD attempt, [GBCast Android run #69](https://github.com/mindspot7/GBCast/actions/runs/40379956091), failed before creating or booting the emulator. The logs identify the cause as `android-actions/setup-android@v3` trying to install the removed SDK package `tools` (warning: “Failed to find package 'tools'”), so the ADB recovery and instrumentation steps were skipped. This was an SDK bootstrap failure, not evidence of an ADB device-offline failure or a test failure.
+The first managed-AVD attempt, [GBCast Android run #69](https://github.com/mindspotgb/GBCast/actions/runs/40379956091), failed before creating or booting the emulator. The logs identify the cause as `android-actions/setup-android@v3` trying to install the removed SDK package `tools` (warning: “Failed to find package 'tools'”), so the ADB recovery and instrumentation steps were skipped. This was an SDK bootstrap failure, not evidence of an ADB device-offline failure or a test failure.
 
-Corrected the workflow to explicitly request only `platform-tools` from setup-android; the following step installs the required platform, system image, and emulator packages through `sdkmanager`. A new run was queued as [GBCast Android run #70](https://github.com/mindspot7/GBCast/actions/runs/40381298679). Its outcome must be checked before treating the instrumentation suite as executed or passing. The workflow still uses bounded ADB/device and Android boot waits and emits emulator diagnostics on failure.
+Corrected the workflow to explicitly request only `platform-tools` from setup-android; the following step installs the required platform, system image, and emulator packages through `sdkmanager`. A new run was queued as [GBCast Android run #70](https://github.com/mindspotgb/GBCast/actions/runs/40381298679). Its outcome must be checked before treating the instrumentation suite as executed or passing. The workflow still uses bounded ADB/device and Android boot waits and emits emulator diagnostics on failure.
 
 
 #### Second managed-emulator bootstrap finding (2026-10-26)
 
-[GBCast Android run #70](https://github.com/mindspot7/GBCast/actions/runs/40381298679) passed SDK setup and the Gradle build, but failed in the license-acceptance shell pipeline before installing the emulator image. With `set -o pipefail`, `yes | sdkmanager --licenses` returned failure because `yes` received SIGPIPE after sdkmanager had consumed the required input. This is a shell pipeline-handling defect, not an SDK package or ADB failure.
+[GBCast Android run #70](https://github.com/mindspotgb/GBCast/actions/runs/40381298679) passed SDK setup and the Gradle build, but failed in the license-acceptance shell pipeline before installing the emulator image. With `set -o pipefail`, `yes | sdkmanager --licenses` returned failure because `yes` received SIGPIPE after sdkmanager had consumed the required input. This is a shell pipeline-handling defect, not an SDK package or ADB failure.
 
 Adjusted the license step to temporarily disable `pipefail` only for the `yes | sdkmanager --licenses` pipeline, then re-enable it for subsequent commands. New validation run triggered after commit `458f5ed63ad5e85d37307b3ce7f5a415f2e42d86`; the latest workflow run must be checked before claiming emulator startup or instrumentation success.
 
 #### Managed emulator executable path correction (2026-10-26)
 
-[GBCast Android run #71](https://github.com/mindspot7/GBCast/actions/runs/40382679128) passed SDK package installation and reached the managed-emulator boot step, but failed before launching an emulator process: `emulator: command not found`. The installed SDK's emulator directory was not guaranteed to be on `PATH`; this was a runner environment/path issue, not an ADB-offline diagnosis and not an instrumentation test result.
+[GBCast Android run #71](https://github.com/mindspotgb/GBCast/actions/runs/40382679128) passed SDK package installation and reached the managed-emulator boot step, but failed before launching an emulator process: `emulator: command not found`. The installed SDK's emulator directory was not guaranteed to be on `PATH`; this was a runner environment/path issue, not an ADB-offline diagnosis and not an instrumentation test result.
 
-Updated GBCast workflow commit `e03757a01becee6e41a26a5b44338e4c088941a4` to derive the SDK root from `ANDROID_HOME`/`ANDROID_SDK_ROOT` (with the hosted-runner SDK path as fallback), export emulator/platform-tools paths, check that the executable exists, and launch it by absolute path. Trigger commit `a250f617dd7eac68c77447463817506bdc5b639b` queued [GBCast Android run #72](https://github.com/mindspot7/GBCast/actions/runs/40384246047). The run is queued at the time of this update; emulator boot and device-level SET/CLEAR instrumentation remain unverified.
+Updated GBCast workflow commit `e03757a01becee6e41a26a5b44338e4c088941a4` to derive the SDK root from `ANDROID_HOME`/`ANDROID_SDK_ROOT` (with the hosted-runner SDK path as fallback), export emulator/platform-tools paths, check that the executable exists, and launch it by absolute path. Trigger commit `a250f617dd7eac68c77447463817506bdc5b639b` queued [GBCast Android run #72](https://github.com/mindspotgb/GBCast/actions/runs/40384246047). The run is queued at the time of this update; emulator boot and device-level SET/CLEAR instrumentation remain unverified.
 
 #### Managed AVD home alignment correction (2026-10-26)
 
-[GBCast Android run #72](https://github.com/mindspot7/GBCast/actions/runs/40384246047) passed Gradle and SDK image installation, but the emulator exited immediately with `Unknown AVD name [gbcast-ci-api34]` and reported the `.ini` missing under `$HOME/.android/avd`. Thus the earlier executable-path fix got past the previous bootstrap issue, but the AVD creation and emulator lookup were using inconsistent configuration.
+[GBCast Android run #72](https://github.com/mindspotgb/GBCast/actions/runs/40384246047) passed Gradle and SDK image installation, but the emulator exited immediately with `Unknown AVD name [gbcast-ci-api34]` and reported the `.ini` missing under `$HOME/.android/avd`. Thus the earlier executable-path fix got past the previous bootstrap issue, but the AVD creation and emulator lookup were using inconsistent configuration.
 
-Updated the GBCast workflow in commits `0578d4d8034c13213585f14ea6dd352fb4a1ca76` and `e46b4d863bea255a7ff0605671a1e7e36b496e55` to derive the SDK root from the resolved `sdkmanager` path, set `ANDROID_USER_HOME` and `ANDROID_AVD_HOME` explicitly, invoke the `avdmanager` adjacent to `sdkmanager`, and verify the AVD `.ini` exists before launching the emulator. Trigger commit `63c15af256aec137773edd8310dd6911ad196b94` queued [GBCast Android run #73](https://github.com/mindspot7/GBCast/actions/runs/40385567009) (verify the actual run ID/status before relying on this link). Device-level SET/CLEAR tests remain unexecuted until the next run reaches the instrumentation step.
+Updated the GBCast workflow in commits `0578d4d8034c13213585f14ea6dd352fb4a1ca76` and `e46b4d863bea255a7ff0605671a1e7e36b496e55` to derive the SDK root from the resolved `sdkmanager` path, set `ANDROID_USER_HOME` and `ANDROID_AVD_HOME` explicitly, invoke the `avdmanager` adjacent to `sdkmanager`, and verify the AVD `.ini` exists before launching the emulator. Trigger commit `63c15af256aec137773edd8310dd6911ad196b94` queued [GBCast Android run #73](https://github.com/mindspotgb/GBCast/actions/runs/40385567009) (verify the actual run ID/status before relying on this link). Device-level SET/CLEAR tests remain unexecuted until the next run reaches the instrumentation step.
 
 #### KVM permissions for x86_64 emulator (2026-10-26)
 
-[GBCast Android run #73](https://github.com/mindspot7/GBCast/actions/runs/40385567009) successfully created and listed the `gbcast-ci-api34` AVD, confirming the SDK-root and AVD-home alignment fix. Emulator startup then failed with `x86_64 emulation currently requires hardware acceleration` and `This user doesn't have permissions to use KVM (/dev/kvm)`. The SET/CLEAR instrumentation step was skipped; this was a runner permission failure, not a test assertion failure.
+[GBCast Android run #73](https://github.com/mindspotgb/GBCast/actions/runs/40385567009) successfully created and listed the `gbcast-ci-api34` AVD, confirming the SDK-root and AVD-home alignment fix. Emulator startup then failed with `x86_64 emulation currently requires hardware acceleration` and `This user doesn't have permissions to use KVM (/dev/kvm)`. The SET/CLEAR instrumentation step was skipped; this was a runner permission failure, not a test assertion failure.
 
-Updated GBCast workflow commit `f966f932a39c0087d8913ad79e8c821d8c7faa1c` to inspect `/dev/kvm`, make it read/write for the ephemeral CI runner (`sudo chmod 666 /dev/kvm`), verify access, and explicitly start the emulator with `-accel on`. Trigger commit `799e2b9fe3c22de880074fdd4f0dc75a4c739374` queued [GBCast Android run #74](https://github.com/mindspot7/GBCast/actions/runs/40387136160). The outcome is pending; do not mark the instrumentation suite complete unless the new run reaches and passes `:flycast:connectedDebugAndroidTest`.
+Updated GBCast workflow commit `f966f932a39c0087d8913ad79e8c821d8c7faa1c` to inspect `/dev/kvm`, make it read/write for the ephemeral CI runner (`sudo chmod 666 /dev/kvm`), verify access, and explicitly start the emulator with `-accel on`. Trigger commit `799e2b9fe3c22de880074fdd4f0dc75a4c739374` queued [GBCast Android run #74](https://github.com/mindspotgb/GBCast/actions/runs/40387136160). The outcome is pending; do not mark the instrumentation suite complete unless the new run reaches and passes `:flycast:connectedDebugAndroidTest`.
 
 #### First connected emulator instrumentation execution (2026-10-26)
 
-[GBCast Android run #74](https://github.com/mindspot7/GBCast/actions/runs/40387136160) confirmed that the managed AVD boots successfully after the KVM permission correction, and `:flycast:connectedDebugAndroidTest` launched four instrumented tests. The run failed on the pre-existing `com.flycast.emulator.AndroidStorageTest.test`, at `AndroidStorageTest.java:31`, where `assertTrue(storage.exists(rootUri))` expects an already granted SAF tree URI for `content://com.android.externalstorage.documents/tree/primary%3AFlycast%2FROMS`. That data/permission is not provisioned in the clean CI emulator. Gradle reported one test failure; the failing test was this storage test, not a SET/CLEAR receiver assertion.
+[GBCast Android run #74](https://github.com/mindspotgb/GBCast/actions/runs/40387136160) confirmed that the managed AVD boots successfully after the KVM permission correction, and `:flycast:connectedDebugAndroidTest` launched four instrumented tests. The run failed on the pre-existing `com.flycast.emulator.AndroidStorageTest.test`, at `AndroidStorageTest.java:31`, where `assertTrue(storage.exists(rootUri))` expects an already granted SAF tree URI for `content://com.android.externalstorage.documents/tree/primary%3AFlycast%2FROMS`. That data/permission is not provisioned in the clean CI emulator. Gradle reported one test failure; the failing test was this storage test, not a SET/CLEAR receiver assertion.
 
-To keep this CI gate focused on its stated purpose, GBCast workflow commit `ca700174e531035518156e4986f3f08ed24daef4` now passes `-Pandroid.testInstrumentationRunnerArguments.class=com.flycast.emulator.RetroAchievementsHostOverrideReceiverTest` to `connectedDebugAndroidTest`, so this run executes only the three new receiver persistence/validation tests instead of the unrelated storage test. Trigger commit `db6eb772ad617c43c5b1f770954a2a368ac8250e` queued [GBCast Android run #75](https://github.com/mindspot7/GBCast/actions/runs/40390247448). The focused run is pending; its result must be checked before marking SET/CLEAR instrumentation as passed. The pre-existing `AndroidStorageTest` remains a separate CI gap until a valid SAF fixture/grant is provisioned or that test is made self-contained.
+To keep this CI gate focused on its stated purpose, GBCast workflow commit `ca700174e531035518156e4986f3f08ed24daef4` now passes `-Pandroid.testInstrumentationRunnerArguments.class=com.flycast.emulator.RetroAchievementsHostOverrideReceiverTest` to `connectedDebugAndroidTest`, so this run executes only the three new receiver persistence/validation tests instead of the unrelated storage test. Trigger commit `db6eb772ad617c43c5b1f770954a2a368ac8250e` queued [GBCast Android run #75](https://github.com/mindspotgb/GBCast/actions/runs/40390247448). The focused run is pending; its result must be checked before marking SET/CLEAR instrumentation as passed. The pre-existing `AndroidStorageTest` remains a separate CI gap until a valid SAF fixture/grant is provisioned or that test is made self-contained.
 
 #### First successful managed-emulator boot; isolate receiver test suite (2026-10-26)
 
-[GBCast Android run #73](https://github.com/mindspot7/GBCast/actions/runs/40385567009) moved past the earlier SDK/AVD setup failures after the SDK and AVD homes were aligned and KVM access was enabled, but it exposed the runner's missing KVM permissions; the workflow was updated for the hosted ephemeral runner. In [run #74](https://github.com/mindspot7/GBCast/actions/runs/40387136160), the emulator booted and Gradle reached `:flycast:connectedDebugAndroidTest`. That run failed because the existing unrelated `AndroidStorageTest.test` asserts that a hard-coded SAF tree URI contains files (`AndroidStorageTest.java:31`), which is not provisioned in a clean CI emulator. The log showed the single failure as `AndroidStorageTest.test`; it did not identify one of the new receiver tests as failing.
+[GBCast Android run #73](https://github.com/mindspotgb/GBCast/actions/runs/40385567009) moved past the earlier SDK/AVD setup failures after the SDK and AVD homes were aligned and KVM access was enabled, but it exposed the runner's missing KVM permissions; the workflow was updated for the hosted ephemeral runner. In [run #74](https://github.com/mindspotgb/GBCast/actions/runs/40387136160), the emulator booted and Gradle reached `:flycast:connectedDebugAndroidTest`. That run failed because the existing unrelated `AndroidStorageTest.test` asserts that a hard-coded SAF tree URI contains files (`AndroidStorageTest.java:31`), which is not provisioned in a clean CI emulator. The log showed the single failure as `AndroidStorageTest.test`; it did not identify one of the new receiver tests as failing.
 
-Updated the workflow to pass `-Pandroid.testInstrumentationRunnerArguments.class=com.flycast.emulator.RetroAchievementsHostOverrideReceiverTest`, so this CI run directly exercises the SET/CLEAR receiver suite instead of an unrelated storage test with an environment-specific assumption. [Run #75](https://github.com/mindspot7/GBCast/actions/runs/40390247448) is currently running the focused receiver instrumentation step. This is a test-scope correction, not suppression of the target tests. The receiver test suite is still unverified until run #75 produces a final result.
+Updated the workflow to pass `-Pandroid.testInstrumentationRunnerArguments.class=com.flycast.emulator.RetroAchievementsHostOverrideReceiverTest`, so this CI run directly exercises the SET/CLEAR receiver suite instead of an unrelated storage test with an environment-specific assumption. [Run #75](https://github.com/mindspotgb/GBCast/actions/runs/40390247448) is currently running the focused receiver instrumentation step. This is a test-scope correction, not suppression of the target tests. The receiver test suite is still unverified until run #75 produces a final result.
 
 #### Focused SET/CLEAR receiver instrumentation passed (2026-10-26)
 
-[GBCast Android run #75](https://github.com/mindspot7/GBCast/actions/runs/40390247448) completed with overall conclusion `success`. This run executed `:flycast:connectedDebugAndroidTest` against the managed API 34 emulator, using the focused `com.flycast.emulator.RetroAchievementsHostOverrideReceiverTest` class. Gradle logged `Starting 3 tests on emulator-5554 - 14` and `BUILD SUCCESSFUL in 21m 36s`; the instrumentation step's conclusion is `success`. Thus the three receiver tests passed: SET persistence plus preservation of unrelated settings, CLEAR removal plus preservation of unrelated settings, and rejection of a non-loopback host without overwriting the existing URL.
+[GBCast Android run #75](https://github.com/mindspotgb/GBCast/actions/runs/40390247448) completed with overall conclusion `success`. This run executed `:flycast:connectedDebugAndroidTest` against the managed API 34 emulator, using the focused `com.flycast.emulator.RetroAchievementsHostOverrideReceiverTest` class. Gradle logged `Starting 3 tests on emulator-5554 - 14` and `BUILD SUCCESSFUL in 21m 36s`; the instrumentation step's conclusion is `success`. Thus the three receiver tests passed: SET persistence plus preservation of unrelated settings, CLEAR removal plus preservation of unrelated settings, and rejection of a non-loopback host without overwriting the existing URL.
 
-The workflow also passed release APK naming, the shared GBFrame 16 KB compatibility validator, and artifact upload. Artifact: `GBCast-vdb6eb772a-build75` (44,999,614 bytes), available from the [run's artifacts section](https://github.com/mindspot7/GBCast/actions/runs/40390247448). The managed AVD setup failures are resolved for this run. The unrelated `AndroidStorageTest.test` remains a separate full-suite CI gap because it requires a pre-granted SAF tree URI and test data not provisioned on a clean emulator; the workflow deliberately filters this validation job to the receiver class, rather than treating the unrelated test as part of this feature's gate.
+The workflow also passed release APK naming, the shared GBFrame 16 KB compatibility validator, and artifact upload. Artifact: `GBCast-vdb6eb772a-build75` (44,999,614 bytes), available from the [run's artifacts section](https://github.com/mindspotgb/GBCast/actions/runs/40390247448). The managed AVD setup failures are resolved for this run. The unrelated `AndroidStorageTest.test` remains a separate full-suite CI gap because it requires a pre-granted SAF tree URI and test data not provisioned on a clean emulator; the workflow deliberately filters this validation job to the receiver class, rather than treating the unrelated test as part of this feature's gate.
 
 #### Local full-suite validation, SAF fixture correction, and ABI scope (2026-10-26)
 
@@ -430,7 +430,7 @@ Local build results for commit `3c5537a3fcdb2c48880bf458f0845eb0f856e724`:
 - release APK installed over the existing app with the same signing key while preserving data; `MainActivity` routed to `LibraryActivity` and remained alive with no fatal exception in the post-launch log;
 - `git diff --check` passed.
 
-The first full-suite CI attempt, [run #76](https://github.com/mindspot7/GBCast/actions/runs/40398380731), failed because the provider was still located in the test APK and lacked `MANAGE_DOCUMENTS`. This failure was reproduced locally and corrected before commit `3c5537a3f`; replacement GitHub runs are pending and must complete successfully before remote validation is claimed.
+The first full-suite CI attempt, [run #76](https://github.com/mindspotgb/GBCast/actions/runs/40398380731), failed because the provider was still located in the test APK and lacked `MANAGE_DOCUMENTS`. This failure was reproduced locally and corrected before commit `3c5537a3f`; replacement GitHub runs are pending and must complete successfully before remote validation is claimed.
 
 #### Offline achievements responsibility and in-app implementation finding (2026-10-26)
 
@@ -447,9 +447,9 @@ Recommended GBCast direction: add an asynchronous JNI bridge from Flycast's nati
 
 Replacement validation for GBCast commit `3c5537a3fcdb2c48880bf458f0845eb0f856e724` completed successfully:
 
-- Android build, unit tests, all four managed-emulator instrumentation tests, release packaging, 16 KB ELF validation, and artifact upload: [run #77](https://github.com/mindspot7/GBCast/actions/runs/40404207159) — success.
-- Android Lint: [run #18](https://github.com/mindspot7/GBCast/actions/runs/40404207261) — success.
-- App ID consistency: [run #40404207097](https://github.com/mindspot7/GBCast/actions/runs/40404207097) — success.
+- Android build, unit tests, all four managed-emulator instrumentation tests, release packaging, 16 KB ELF validation, and artifact upload: [run #77](https://github.com/mindspotgb/GBCast/actions/runs/40404207159) — success.
+- Android Lint: [run #18](https://github.com/mindspotgb/GBCast/actions/runs/40404207261) — success.
+- App ID consistency: [run #40404207097](https://github.com/mindspotgb/GBCast/actions/runs/40404207097) — success.
 
 This closes the environment-specific `AndroidStorageTest` gap recorded after runs #74–#76. The sender-authentication and external RAOfflineProxy package-mapping findings remain open and are unrelated to this storage/ABI validation.
 
@@ -471,8 +471,8 @@ Local validation for GBCast commit `58e8817d241f7987332a0ad28ffe535262ac088f` pa
 
 Remote validation is complete:
 
-- [Android run #40406745542](https://github.com/mindspot7/GBCast/actions/runs/40406745542) — success; build, all four managed-emulator instrumentation tests, release naming, 16 KB ELF validation, and artifact upload passed.
-- [Android Lint run #40407697271](https://github.com/mindspot7/GBCast/actions/runs/40407697271) — success for the follow-up fix.
-- [App ID consistency run #40406745544](https://github.com/mindspot7/GBCast/actions/runs/40406745544) — success.
+- [Android run #40406745542](https://github.com/mindspotgb/GBCast/actions/runs/40406745542) — success; build, all four managed-emulator instrumentation tests, release naming, 16 KB ELF validation, and artifact upload passed.
+- [Android Lint run #40407697271](https://github.com/mindspotgb/GBCast/actions/runs/40407697271) — success for the follow-up fix.
+- [App ID consistency run #40406745544](https://github.com/mindspotgb/GBCast/actions/runs/40406745544) — success.
 
 The GBCast icon/identity update is therefore locally and remotely validated. The remaining Flycast identifiers listed above are retained intentionally for JNI/native/config/protocol compatibility or upstream attribution, not as unfinished product-facing renames.

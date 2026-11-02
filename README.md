@@ -49,7 +49,7 @@ Also shared beyond Kotlin:
 Add this repository as a git submodule and include the module:
 
 ```bash
-git submodule add https://github.com/mindspot7/GBFrame libs/gbframe
+git submodule add https://github.com/mindspotgb/GBFrame libs/gbframe
 ```
 
 ```kotlin

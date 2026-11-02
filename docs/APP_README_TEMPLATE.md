@@ -36,7 +36,7 @@ Keep the section order; drop a row or section only when the app really doesn't h
 
 - <Feature list by area: emulation, video, audio, input, saves, library, settings>
 
-**In-game quick menu:** follow the shared [GBFrame quick-menu standard](https://github.com/mindspot7/GBFrame/blob/main/docs/QUICK_MENU_STANDARD.md), based on GBSat. Keep the standard layout and navigation; list only options that the app/core really supports.
+**In-game quick menu:** follow the shared [GBFrame quick-menu standard](https://github.com/mindspotgb/GBFrame/blob/main/docs/QUICK_MENU_STANDARD.md), based on GBSat. Keep the standard layout and navigation; list only options that the app/core really supports.
 
 **Cheats and achievements:** reuse the GBFrame `CheatsScreen`/`CheatsBackend` and `AchievementsScreen`/`RaBackend` components. Document any core-specific limitation; do not fork the shared UI.
 
@@ -66,7 +66,7 @@ Android package convention: set both Gradle `namespace` and `applicationId` to t
 | --- | --- |
 | `apps/android` | Android app: Kotlin/Compose UI and the JNI bridge |
 | `<core path>` | Emulator core |
-| `libs/gbframe` | Shared framework ([GBFrame](https://github.com/mindspot7/GBFrame), git submodule) |
+| `libs/gbframe` | Shared framework ([GBFrame](https://github.com/mindspotgb/GBFrame), git submodule) |
 | `.github/workflows` | APK build, profiling and PGO training builds, screenshots |
 
 <Local build requirements: SDK 36, NDK version, CMake version, extra tools.>
