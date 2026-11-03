@@ -130,8 +130,15 @@ fun RendererQuickMenuItem(
 const val EnhancedResolutionOneX = "1x"
 const val EnhancedResolutionBest = "Best"
 
-/** Label of the Best choice with its detail, e.g. "Best (540p)" or "Best (2x)". */
+/** Label of the Best choice with its detail, e.g. "Best (540p)" or "Best (3x)". */
 fun enhancedResolutionBestLabel(detail: String) = "$EnhancedResolutionBest ($detail)"
+
+/**
+ * The enhanced-resolution menu, identical in every app: 1x to 4x, then Best, the size that fills this screen whatever
+ * the GPU can do. [bestDetail] names that size in the app's own unit.
+ */
+fun enhancedResolutionLabels(bestDetail: String): List<String> =
+    listOf(EnhancedResolutionOneX, "2x", "3x", "4x", enhancedResolutionBestLabel(bestDetail))
 
 @Composable
 fun EnhancedResolutionSettingsRow(value: Int, values: List<Int>, labels: List<String>, sub: String, onChange: (Int) -> Unit) {
