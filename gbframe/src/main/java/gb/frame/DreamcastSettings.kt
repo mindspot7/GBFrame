@@ -126,6 +126,13 @@ fun RendererQuickMenuItem(
     }
 }
 
+/** Names of the enhanced-resolution choices, the same in every app: 1x is the console's own resolution, Best matches the screen. */
+const val EnhancedResolutionOneX = "1x"
+const val EnhancedResolutionBest = "Best"
+
+/** Label of the Best choice with its detail, e.g. "Best (540p)" or "Best (2x)". */
+fun enhancedResolutionBestLabel(detail: String) = "$EnhancedResolutionBest ($detail)"
+
 @Composable
 fun EnhancedResolutionSettingsRow(value: Int, values: List<Int>, labels: List<String>, sub: String, onChange: (Int) -> Unit) {
     require(values.isNotEmpty() && values.size == labels.size)
