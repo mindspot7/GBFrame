@@ -11,6 +11,7 @@
 #include <cstring>
 #include <condition_variable>
 #include <mutex>
+#include <functional>
 #include <thread>
 #include <vector>
 
@@ -236,7 +237,8 @@ struct State {
         uint64_t usage = 0;
         bool vulkanTarget = false;
     } slots[kSlots];
-    int readySlot = -1, shownSlot = -1, writingSlot = -1;
+    // drawingSlot: taken from readySlot and sampled by the presenter until it becomes shownSlot after the swap.
+    int readySlot = -1, shownSlot = -1, writingSlot = -1, drawingSlot = -1;
     std::atomic<bool> hbDisabled{false}; // set when the device lacks the EGL/GL extensions or allocation fails
     std::atomic<bool> hbSupportReady{false};
 
@@ -253,6 +255,14 @@ std::atomic<bool> failed{false};
 // GPU time of the presenter's draws (GL_EXT_disjoint_timer_query), for the overlay's GPU usage
 std::atomic<uint64_t> gpuNs{0};
 std::atomic<bool> gpuTimed{false};
+
+// A slot the producer may write: not queued, shown, being drawn or already being written. Call with S.m held.
+int FreeSlotLocked() {
+    for (int i = 0; i < State::kSlots; ++i) {
+        if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot && i != S.drawingSlot) return i;
+    }
+    return -1;
+}
 
 GLuint Compile(GLenum type, const char *src) {
     GLuint s = glCreateShader(type);
@@ -298,11 +308,18 @@ void Loop() {
     uint32_t lw = 0, lh = 0;
     bool haveFrame = false;
     int frameSlot = -1; // slot of the new frame (zero-copy path), -1 = frame in `local`
-    struct SlotGl { GLuint tex = 0; EGLImageKHR img = EGL_NO_IMAGE_KHR; uint32_t gen = 0; } slotGl[State::kSlots];
+    // fence: signalled when the GPU has finished the last draw that sampled the slot
+    struct SlotGl {
+        GLuint tex = 0; EGLImageKHR img = EGL_NO_IMAGE_KHR; uint32_t gen = 0; EGLSyncKHR fence = EGL_NO_SYNC_KHR;
+    } slotGl[State::kSlots];
     auto eglGetNativeClientBuffer = (PFNEGLGETNATIVECLIENTBUFFERANDROIDPROC)eglGetProcAddress("eglGetNativeClientBufferANDROID");
     auto imageTargetTexture = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)eglGetProcAddress("glEGLImageTargetTexture2DOES");
     auto createImage = (PFNEGLCREATEIMAGEKHRPROC)eglGetProcAddress("eglCreateImageKHR");
     auto destroyImage = (PFNEGLDESTROYIMAGEKHRPROC)eglGetProcAddress("eglDestroyImageKHR");
+    auto createSync = (PFNEGLCREATESYNCKHRPROC)eglGetProcAddress("eglCreateSyncKHR");
+    auto clientWaitSync = (PFNEGLCLIENTWAITSYNCKHRPROC)eglGetProcAddress("eglClientWaitSyncKHR");
+    auto destroySync = (PFNEGLDESTROYSYNCKHRPROC)eglGetProcAddress("eglDestroySyncKHR");
+    const bool haveSync = createSync && clientWaitSync && destroySync;
     if (!eglGetNativeClientBuffer || !imageTargetTexture || !createImage || !destroyImage) {
         S.hbDisabled = true;
     }
@@ -366,6 +383,15 @@ void Loop() {
                             glAttachShader(prog, vs);
                             glAttachShader(prog, fs);
                             glLinkProgram(prog);
+                            glDeleteShader(vs);
+                            glDeleteShader(fs);
+                            GLint linked = 0;
+                            glGetProgramiv(prog, GL_LINK_STATUS, &linked);
+                            if (!linked) {
+                                char log[1024];
+                                glGetProgramInfoLog(prog, sizeof(log), nullptr, log);
+                                LOGE("program link failed: %s", log);
+                            }
                             uTex = glGetUniformLocation(prog, "uTex");
                             uTexSize = glGetUniformLocation(prog, "uTexSize");
                             uSrcSize = glGetUniformLocation(prog, "uSrcSize");
@@ -406,6 +432,7 @@ void Loop() {
                 if (S.readySlot >= 0) {
                     frameSlot = S.readySlot;
                     S.readySlot = -1;
+                    S.drawingSlot = frameSlot; // the producer must not write it while it is drawn
                 } else {
                     frameSlot = -1;
                     std::swap(local, S.frame);
@@ -444,6 +471,9 @@ void Loop() {
                 if (gl.img == EGL_NO_IMAGE_KHR || glGetError() != GL_NO_ERROR) {
                     LOGE("EGLImage from AHardwareBuffer failed, using texture uploads");
                     S.hbDisabled = true; // next frames come through the upload path
+                    std::lock_guard lk(S.m);
+                    S.drawingSlot = -1;
+                    S.cv.notify_all();
                     continue;
                 }
                 gl.gen = sl.gen;
@@ -502,27 +532,37 @@ void Loop() {
         glUniform1i(uShader, S.shader.load());
         glUniform1i(uRamp, S.colorRamp.load());
         glDrawArrays(GL_TRIANGLES, 0, 3);
-        // A Vulkan producer can reuse a target only after GL has finished sampling it. Wait on this dedicated
-        // presentation thread, then release the old shown slot; this leaves the CPU emulation thread unblocked here.
-        const bool externalTargetDrawn = frameSlot >= 0 && S.slots[frameSlot].vulkanTarget;
-        const bool externalTargetReleased = previousShownSlot >= 0 && S.slots[previousShownSlot].vulkanTarget;
-        if (externalTargetDrawn || externalTargetReleased) {
-            glFinish();
+        // A hardware-buffer slot goes back to the producer (CPU copy or Vulkan render) only after the GPU has finished
+        // sampling it: one fence per slot, waited on this presentation thread, never on the emulation thread.
+        if (frameSlot >= 0 && haveSync) {
+            auto &gl = slotGl[frameSlot];
+            if (gl.fence != EGL_NO_SYNC_KHR) destroySync(dpy, gl.fence);
+            gl.fence = createSync(dpy, EGL_SYNC_FENCE_KHR, nullptr);
         }
         if (query) glEndQuery(GL_TIME_ELAPSED_EXT);
         eglSwapBuffers(dpy, surf);
-        if (newFrame) {
-            std::lock_guard lk(S.m);
-            S.shownSlot = frameSlot;
-            S.cv.notify_all();
+        if (newFrame && previousShownSlot >= 0 && previousShownSlot != frameSlot) {
+            auto &gl = slotGl[previousShownSlot];
+            if (gl.fence != EGL_NO_SYNC_KHR) {
+                clientWaitSync(dpy, gl.fence, EGL_SYNC_FLUSH_COMMANDS_BIT_KHR, 100000000); // 100 ms at most
+                destroySync(dpy, gl.fence);
+                gl.fence = EGL_NO_SYNC_KHR;
+            } else {
+                glFinish(); // no fence (EGL_KHR_fence_sync missing or creation failed)
+            }
         }
         {
             std::lock_guard lk(S.m);
-            S.shownSlot = frameSlot;
+            if (newFrame) S.shownSlot = frameSlot;
+            S.drawingSlot = -1;
             S.cv.notify_all();
         }
     }
 
+    for (auto &gl : slotGl) {
+        if (gl.fence != EGL_NO_SYNC_KHR) destroySync(dpy, gl.fence);
+        if (gl.img != EGL_NO_IMAGE_KHR) destroyImage(dpy, gl.img);
+    }
     if (surf != EGL_NO_SURFACE) {
         eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         eglDestroySurface(dpy, surf);
@@ -560,9 +600,7 @@ bool SubmitHardwareBuffer(const uint32_t *fb, uint32_t width, uint32_t height, u
     {
         std::lock_guard lk(S.m);
         if (!S.started) return true;
-        for (int i = 0; i < State::kSlots; i++) {
-            if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot) { idx = i; break; }
-        }
+        idx = FreeSlotLocked();
         if (idx < 0) return false;
         S.writingSlot = idx;
     }
@@ -619,9 +657,7 @@ VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height) {
         if (!S.started || !S.windowReady.load(std::memory_order_acquire) ||
             !S.hbSupportReady.load(std::memory_order_acquire) || S.hbDisabled.load() ||
             S.vulkanTargetDisabled.load()) return {};
-        for (int i = 0; i < State::kSlots; ++i) {
-            if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot) { idx = i; break; }
-        }
+        idx = FreeSlotLocked();
         if (idx < 0) return {};
         S.writingSlot = idx;
     }
@@ -745,7 +781,26 @@ void Shutdown() {
     if (S.th.joinable()) {
         S.th.join();
     }
+    std::lock_guard lk(S.m);
     S.started = false;
+    // The presenter thread is gone: no slot is queued, drawn or shown any more
+    S.readySlot = S.shownSlot = S.drawingSlot = -1;
+    S.frameReady = false;
+}
+
+bool ReadShownFrame(const std::function<void(const uint32_t *, uint32_t, uint32_t, uint32_t)> &fn) {
+    // S.m is held for the whole read so the slot cannot be reused meanwhile; only for rare reads (save thumbnails)
+    std::lock_guard lk(S.m);
+    const int idx = S.shownSlot;
+    if (idx < 0 || !S.slots[idx].hb || !S.slots[idx].vulkanTarget) return false; // CPU-written slots are not readable
+    const auto &sl = S.slots[idx];
+    void *pixels = nullptr;
+    if (AHardwareBuffer_lock(sl.hb, AHARDWAREBUFFER_USAGE_CPU_READ_RARELY, -1, nullptr, &pixels) != 0 || !pixels) {
+        return false;
+    }
+    fn(static_cast<const uint32_t *>(pixels), sl.w, sl.h, sl.stride);
+    AHardwareBuffer_unlock(sl.hb, nullptr);
+    return true;
 }
 
 } // namespace glr

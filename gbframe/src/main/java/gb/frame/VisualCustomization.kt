@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
@@ -114,6 +115,7 @@ object VisualCustomization {
         private val preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         private var product: ProductDetails? = null
         private var connecting = false
+        private var setupDone = false
         private var restoreRequested = false
         private var closed = false
         private val pendingVerificationTokens = mutableSetOf<String>()
@@ -137,13 +139,16 @@ object VisualCustomization {
         fun matches(appContext: Context, requestedProductId: String) =
             context === appContext && productId == requestedProductId
 
+        // startConnection runs once: enableAutoServiceReconnection restores a lost connection by itself on the next call,
+        // and calling startConnection again while it does so fails ("Reconnection failed with result: 5").
         fun connect() {
-            if (client.isReady || connecting) return
+            if (setupDone || connecting) return
             connecting = true
             client.startConnection(object : BillingClientStateListener {
                 override fun onBillingSetupFinished(result: BillingResult) {
                     connecting = false
                     if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                        setupDone = true
                         refresh()
                     } else {
                         restoreRequested = false
@@ -153,14 +158,13 @@ object VisualCustomization {
                 }
 
                 override fun onBillingServiceDisconnected() {
-                    connecting = false
-                    if (!unlocked.value) status.value = Status.Error
+                    connecting = false // the library reconnects on the next request
                 }
             })
         }
 
         fun refresh() {
-            if (!client.isReady) {
+            if (!setupDone) {
                 connect()
                 return
             }
@@ -174,7 +178,7 @@ object VisualCustomization {
 
         fun restore() {
             message.value = "Checking purchases for this Google Play account…"
-            if (!client.isReady) {
+            if (!setupDone) {
                 restoreRequested = true
                 connect()
                 return
@@ -273,6 +277,7 @@ object VisualCustomization {
                         when (result) {
                             GoldLicenseApi.Result.Licensed -> {
                                 setOwned(true)
+                                acknowledgeIfNeeded(purchase)
                                 message.value = when {
                                     showRestoreResult -> "Gold themes restored. Thanks for supporting development."
                                     dialogVisible.value -> "Thanks for supporting development. All themes are unlocked."
@@ -304,6 +309,18 @@ object VisualCustomization {
             }
         }
 
+        // The license backend acknowledges purchases too; this client-side acknowledgement keeps a verified purchase
+        // from being refunded automatically by Google Play after 3 days if the backend could not do it.
+        private fun acknowledgeIfNeeded(purchase: Purchase) {
+            if (purchase.isAcknowledged || closed) return
+            val params = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
+            client.acknowledgePurchase(params) { result ->
+                if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+                    android.util.Log.w("GBFrame-Gold", "acknowledgePurchase: ${result.responseCode} ${result.debugMessage}")
+                }
+            }
+        }
+
         private fun setOwned(value: Boolean) {
             unlocked.value = value
             status.value = if (value) Status.Owned else if (product != null) Status.Ready else Status.Unavailable
@@ -314,7 +331,7 @@ object VisualCustomization {
             val details = product
             val offer = details?.oneTimePurchaseOfferDetailsList?.firstOrNull()
             val offerToken = offer?.offerToken
-            if (!client.isReady || details == null || offerToken.isNullOrBlank()) {
+            if (!setupDone || details == null || offerToken.isNullOrBlank()) {
                 message.value = "The purchase is not available right now. Try again later."
                 refresh()
                 return

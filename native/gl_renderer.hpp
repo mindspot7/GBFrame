@@ -4,6 +4,7 @@
 #include <android/hardware_buffer.h>
 #include <cstdint>
 #include <cstddef>
+#include <functional>
 
 // GPU presentation path: takes the software-rendered Saturn frame, uploads it as a texture and draws it with a
 // selectable scaling filter and post-process shader on a dedicated EGL/OpenGL ES 3 thread.
@@ -28,6 +29,9 @@ void SubmitCpu(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t sca
 VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height);
 void SubmitVulkanTarget(uint64_t token, uint32_t width, uint32_t height, uint32_t scale = 1);
 void CancelVulkanTarget(uint64_t token);
+// Reads the frame on screen when it came from a Vulkan target (pixels, width, height, stride in pixels); false otherwise.
+// Holds the presenter lock while `fn` runs: for rare reads such as save state thumbnails, never per frame.
+bool ReadShownFrame(const std::function<void(const uint32_t *, uint32_t, uint32_t, uint32_t)> &fn);
 // filter: 0 nearest, 1 bilinear.
 // shader: 0 none, 1 scanlines, 2 CRT, 3 LCD3x, 5 CRT Royale, 6 GTU (4, dot matrix, was removed: shows none).
 void SetOptions(int filter, int shader);

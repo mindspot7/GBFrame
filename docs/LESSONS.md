@@ -392,3 +392,9 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 ## Edge-to-edge
 
 - Play Console flagged GBSat 1.0 (build 2) for deprecated edge-to-edge APIs although the app code only called androidx `enableEdgeToEdge()`: androidx.activity (even 1.13.0) still calls `setStatusBarColor`/`setNavigationBarColor` and the `shortEdges` cutout mode for older Android versions. `dexdump -d` of the release APK plus `mapping.txt` shows who calls them. GBFrame `FullScreen` replaces it with only non-deprecated calls.
+
+## Presenter and billing (code review 2026-11-03)
+
+- A hardware-buffer slot must stay reserved from the moment the presenter takes it until the GPU has finished sampling it. Taking `readySlot` and only setting `shownSlot` after `eglSwapBuffers` (which blocks until vsync) let the producer pick the slot being drawn as its next "free" one. The presenter now keeps a `drawingSlot` and returns a slot only after its EGL fence signals.
+- Never map a GPU-written buffer for the CPU on every frame just in case (save thumbnails): the lock waits for the GPU. Read the frame on screen on demand (`glr::ReadShownFrame`).
+- Play Billing with `enableAutoServiceReconnection()`: call `startConnection` once. A second call while the library reconnects logs "Reconnection failed with result: 5".

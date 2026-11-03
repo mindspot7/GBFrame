@@ -25,15 +25,29 @@ import java.security.MessageDigest
  * descriptor itself (the app's CHD, ISO and CUE/BIN loaders) never reopens the link by path, which some devices refuse; a
  * CHD or ISO is copied to the cache only as a fallback.
  */
+private const val TAG = "GBFrame-SAF"
+
 /** A game found in the games folder: [path] is a virtual `saf:/` path (or a plain file path). */
 data class Game(val title: String, val path: String)
 
-/** A disc opened for the emulator: [path] is a real file path for the core; close it when the game ends. */
-class OpenDisc(val path: String, private val fds: List<android.os.ParcelFileDescriptor>) : AutoCloseable {
+/**
+ * A disc opened for the emulator: [path] is a real file path for the core; close it when the game ends. [stage] is its
+ * own folder of /proc/self/fd links, deleted on close, so opening another disc (a disc swap, a RetroAchievements hash)
+ * never removes or redirects the links of the disc a game is using.
+ */
+class OpenDisc(
+    val path: String,
+    private val fds: List<android.os.ParcelFileDescriptor>,
+    private val stage: File? = null,
+) : AutoCloseable {
     /** Number of SAF descriptors retained for native readers using /proc/self/fd links. */
     val descriptorCount: Int get() = fds.size
 
-    override fun close() { fds.forEach { runCatching { it.close() } } }
+    override fun close() {
+        // Links first: once a descriptor is closed its number can be reused by any other file
+        stage?.let { runCatching { it.deleteRecursively() } }
+        fds.forEach { runCatching { it.close() } }
+    }
 }
 
 open class SafGames(private val discExt: Set<String>, private val gamesDir: () -> String) {
@@ -183,14 +197,14 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
      * app cache instead, for devices where that fails (the caller retries with it when loading fails).
      */
     fun open(path: String, stageCopy: Boolean = false): OpenDisc? {
-        Log.i("GBSat-SAF", "open start path=" + path + "; folderConfigured=" + gamesDir().startsWith("content://"))
+        Log.i(TAG, "open start path=" + path + "; folderConfigured=" + gamesDir().startsWith("content://"))
         if (!path.startsWith(PREFIX) && File(path).canRead()) return OpenDisc(path, emptyList())
-        val tree = tree() ?: run { Log.e("GBSat-SAF", "no SAF tree URI"); return null }
-        val located = locate(path) ?: run { Log.e("GBSat-SAF", "locate failed path=" + path); return null }
+        val tree = tree() ?: run { Log.e(TAG, "no SAF tree URI"); return null }
+        val located = locate(path) ?: run { Log.e(TAG, "locate failed path=" + path); return null }
         val (_, siblings) = located
         val name = fileName(path)
-        val main = siblings.firstOrNull { !it.isDir && it.name == name } ?: run { Log.e("GBSat-SAF", "main document missing name=" + name); return null }
-        Log.i("GBSat-SAF", "located name=" + name + "; providerSize=" + main.size + "; siblingCount=" + siblings.size)
+        val main = siblings.firstOrNull { !it.isDir && it.name == name } ?: run { Log.e(TAG, "main document missing name=" + name); return null }
+        Log.i(TAG, "located name=" + name + "; providerSize=" + main.size + "; siblingCount=" + siblings.size)
         val base = name.substringBeforeLast('.')
         val ext = name.substringAfterLast('.').lowercase()
         val wanted = mutableSetOf(name.lowercase())
@@ -247,17 +261,17 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
                     actual
                 }.getOrElse {
                     temp.delete()
-                    Log.e("GBSat-SAF", "cache copy failed name=$name; error=${it.message}")
+                    Log.e(TAG, "cache copy failed name=$name; error=${it.message}")
                     return null
                 }
-                Log.i("GBSat-SAF", "cached disc name=$name; size=$copied; path=${staged.path}")
+                Log.i(TAG, "cached disc name=$name; size=$copied; path=${staged.path}")
             } else {
-                Log.i("GBSat-SAF", "reusing cached disc name=$name; size=${staged.length()}")
+                Log.i(TAG, "reusing cached disc name=$name; size=${staged.length()}")
             }
             return OpenDisc(staged.path, emptyList())
         }
 
-        val stage = File(appContext.cacheDir, "disc").apply { deleteRecursively(); mkdirs() }
+        val stage = newStage()
         val fds = mutableListOf<ParcelFileDescriptor>()
         for (c in siblings) {
             if (c.isDir || c.name.lowercase() !in wanted) continue
@@ -267,10 +281,14 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
             fds += pfd
             runCatching { Os.symlink("/proc/self/fd/${pfd.fd}", File(stage, linkName[c.name.lowercase()] ?: c.name).path) }
         }
-        if (fds.isEmpty()) { Log.e("GBSat-SAF", "no referenced files opened name=" + name + "; wanted=" + wanted.joinToString()); return null }
+        if (fds.isEmpty()) {
+            Log.e(TAG, "no referenced files opened name=" + name + "; wanted=" + wanted.joinToString())
+            stage.deleteRecursively()
+            return null
+        }
         val stagedMain = File(stage, main.name).path
-        Log.i("GBSat-SAF", "staged path=" + stagedMain + "; openedDescriptors=" + fds.size + "; mainExists=" + File(stage, main.name).exists())
-        return OpenDisc(stagedMain, fds)
+        Log.i(TAG, "staged path=" + stagedMain + "; openedDescriptors=" + fds.size + "; mainExists=" + File(stage, main.name).exists())
+        return OpenDisc(stagedMain, fds, stage)
     }
 
     /** Result of [openAndLoad]: the open disc when loading worked (the caller closes it when the game ends), else the error. */
@@ -310,6 +328,17 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         open(path)?.use(attempt)?.let { return it }
         if (!isCopyable(path)) return null
         return open(path, stageCopy = true)?.use(attempt)
+    }
+
+    private var stageSeq = 0
+    private var staleStagesCleared = false
+
+    /** A new folder for one disc's links. Folders left by an earlier process (no disc of it is open) go on first use. */
+    @Synchronized
+    private fun newStage(): File {
+        val root = File(appContext.cacheDir, "disc")
+        if (!staleStagesCleared) { root.deleteRecursively(); staleStagesCleared = true }
+        return File(root, (++stageSeq).toString()).apply { deleteRecursively(); mkdirs() }
     }
 
     private fun isCopyable(path: String) = path.endsWith(".chd", ignoreCase = true) || path.endsWith(".iso", ignoreCase = true)
