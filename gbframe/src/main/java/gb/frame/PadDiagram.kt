@@ -99,7 +99,7 @@ fun PadDiagram(layout: PadLayout, highlight: String?, onSelect: (String) -> Unit
             ) {
                 if (showOverlay) {
                     if (b.icon != null) Icon(b.icon, b.id, tint = if (sel) Color.Black else Color.White, modifier = Modifier.size(bh * .8f))
-                    else if (b.label != null) Text(b.label, color = if (sel) Color.Black else Color.White, fontWeight = FontWeight.Bold,
+                    else if (b.label != null) KitText(b.label, color = if (sel) Color.Black else Color.White, fontWeight = FontWeight.Bold,
                         fontSize = (bh.value * .42f).sp, textAlign = TextAlign.Center)
                 }
             }

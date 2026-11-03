@@ -12,6 +12,12 @@ class GameHackPolicyTest {
     }
 
     @Test
+    fun widescreenHackDefaultsToDisabled() {
+        assertFalse(GameHackPolicy.WIDESCREEN_DEFAULT_ENABLED)
+        assertFalse(GameHackPolicy.shouldApply(GameHackPolicy.WIDESCREEN_DEFAULT_ENABLED, hardcoreActive = false))
+    }
+
+    @Test
     fun hardcoreAlwaysBlocksGameHacks() {
         assertFalse(GameHackPolicy.shouldApply(enabled = true, hardcoreActive = true))
         assertFalse(GameHackPolicy.shouldApply(enabled = false, hardcoreActive = false))

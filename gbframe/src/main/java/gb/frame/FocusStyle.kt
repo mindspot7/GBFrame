@@ -65,7 +65,7 @@ fun GameOptionsActionRow(
     ) {
         Icon(icon, null, tint = p.accent, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(10.dp))
-        Text(label, color = if (enabled) contentColor else p.dim, style = MaterialTheme.typography.titleSmall,
+        KitText(label, color = if (enabled) contentColor else p.dim, style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold)
     }
 }

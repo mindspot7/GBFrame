@@ -46,15 +46,15 @@ internal fun CoverWebSearch(title: String, onClose: () -> Unit, onApplied: () ->
         Surface(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = { back() }, enabled = !saving) { Text("Back") }
-                    TextButton(onClick = onClose, enabled = !saving) { Text("Close search") }
+                    TextButton(onClick = { back() }, enabled = !saving) { KitText("Back") }
+                    TextButton(onClick = onClose, enabled = !saving) { KitText("Close search") }
                 }
-                Text("Tap a cover to select it, or hold an image. Then choose Use image.",
+                KitText("Tap a cover to select it, or hold an image. Then choose Use image.",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall)
                 if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { message ->
-                    Text(message, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp))
-                    TextButton(onClick = { error = null; browser?.reload() }) { Text("Retry") }
+                    KitText(message, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp))
+                    TextButton(onClick = { error = null; browser?.reload() }) { KitText("Retry") }
                 }
                 AndroidView(
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -123,12 +123,12 @@ internal fun CoverWebSearch(title: String, onClose: () -> Unit, onApplied: () ->
         }
         AlertDialog(
             onDismissRequest = { if (!saving) selected = null },
-            title = { Text("Use this cover?") },
+            title = { KitText("Use this cover?") },
             text = {
                 Column {
                     preview?.let { Image(it.asImageBitmap(), "Selected cover", Modifier.fillMaxWidth().height(220.dp)) }
                     if (bytes == null && failure == null) CircularProgressIndicator()
-                    failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    failure?.let { KitText(it, color = MaterialTheme.colorScheme.error) }
                     if (saving) CircularProgressIndicator()
                 }
             },
@@ -142,9 +142,9 @@ internal fun CoverWebSearch(title: String, onClose: () -> Unit, onApplied: () ->
                         catch (_: Exception) { failure = "Could not save cover. Please try again." }
                         finally { saving = false }
                     }
-                }) { Text("Use image") }
+                }) { KitText("Use image") }
             },
-            dismissButton = { TextButton(enabled = !saving, onClick = { selected = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(enabled = !saving, onClick = { selected = null }) { KitText("Cancel") } },
         )
     }
 }

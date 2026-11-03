@@ -63,12 +63,12 @@ fun RaNotifications(modifier: Modifier = Modifier) {
                     "progress" -> "Progress"
                     else -> current.title
                 }
-                Text(header, color = Color(0xFFFFC94D), style = MaterialTheme.typography.labelMedium)
+                KitText(header, color = Color(0xFFFFC94D), style = MaterialTheme.typography.labelMedium)
                 if (current.kind != "info" && current.kind != "leaderboard") {
-                    Text(current.title, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    KitText(current.title, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 if (current.text.isNotBlank()) {
-                    Text(current.text, color = Color(0xFFCCCCCC), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    KitText(current.text, color = Color(0xFFCCCCCC), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -90,12 +90,12 @@ fun AchievementsScreen(
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-                    Text("Achievements", style = MaterialTheme.typography.titleLarge)
+                    KitText("Achievements", style = MaterialTheme.typography.titleLarge)
                 }
                 val d = data
                 when {
                     d == null -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                    d.first == null -> Text(
+                    d.first == null -> KitText(
                         if (RetroAchievements.user == null) "Log in to RetroAchievements in Settings to earn achievements."
                         else "No achievements available for this game (or it was not recognized).",
                         modifier = Modifier.padding(16.dp),
@@ -106,10 +106,10 @@ fun AchievementsScreen(
                             RaBadge(s.badgeUrl, 56)
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text(s.title, style = MaterialTheme.typography.titleMedium)
-                                Text("${s.unlocked}/${s.total} unlocked · ${s.pointsUnlocked}/${s.pointsTotal} points" +
+                                KitText(s.title, style = MaterialTheme.typography.titleMedium)
+                                KitText("${s.unlocked}/${s.total} unlocked · ${s.pointsUnlocked}/${s.pointsTotal} points" +
                                     if (s.hardcore) " · Hardcore" else "", style = MaterialTheme.typography.bodySmall)
-                                if (s.richPresence.isNotBlank()) Text(s.richPresence, style = MaterialTheme.typography.bodySmall,
+                                if (s.richPresence.isNotBlank()) KitText(s.richPresence, style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
@@ -121,16 +121,16 @@ fun AchievementsScreen(
                             items(d.second) { a ->
                                 ListItem(
                                     leadingContent = { RaBadge(if (a.unlocked) a.badgeUrl else a.lockedBadgeUrl.ifBlank { a.badgeUrl }, 48, dim = !a.unlocked) },
-                                    headlineContent = { Text(a.title) },
+                                    headlineContent = { KitText(a.title) },
                                     supportingContent = {
                                         Column {
-                                            Text(a.description, style = MaterialTheme.typography.bodySmall)
-                                            if (!a.unlocked && a.progress.isNotBlank()) Text("Progress: ${a.progress}",
+                                            KitText(a.description, style = MaterialTheme.typography.bodySmall)
+                                            if (!a.unlocked && a.progress.isNotBlank()) KitText("Progress: ${a.progress}",
                                                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                         }
                                     },
-                                    trailingContent = { Text("${a.points}", style = MaterialTheme.typography.labelLarge) },
-                                    overlineContent = { Text(a.bucket, style = MaterialTheme.typography.labelSmall) },
+                                    trailingContent = { KitText("${a.points}", style = MaterialTheme.typography.labelLarge) },
+                                    overlineContent = { KitText(a.bucket, style = MaterialTheme.typography.labelSmall) },
                                 )
                             }
                         }
@@ -157,17 +157,17 @@ fun RetroAchievementsSettings(appName: String) {
                 var raUser by remember { mutableStateOf("") }
                 var raPass by remember { mutableStateOf("") }
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(raUser, { raUser = it }, label = { Text("Username") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(raPass, { raPass = it }, label = { Text("Password") }, singleLine = true,
+                    OutlinedTextField(raUser, { raUser = it }, label = { KitText("Username") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(raPass, { raPass = it }, label = { KitText("Password") }, singleLine = true,
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Button(onClick = { ra.login(raUser, raPass); raPass = "" }, enabled = !ra.loginPending && raUser.isNotBlank() && raPass.isNotBlank()) {
-                            Text(if (ra.loginPending) "Logging in…" else "Log in")
+                            KitText(if (ra.loginPending) "Logging in…" else "Log in")
                         }
-                        ra.loginError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall,
+                        ra.loginError?.let { KitText(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(start = 12.dp)) }
                     }
-                    Text("Your password is only sent to retroachievements.org; $appName keeps the login token, not the password.",
+                    KitText("Your password is only sent to retroachievements.org; $appName keeps the login token, not the password.",
                         style = MaterialTheme.typography.bodySmall, color = palette.dim)
                 }
             }
@@ -202,8 +202,8 @@ fun RaUserHeader() {
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(name, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${ra.score} pts", style = MaterialTheme.typography.labelMedium, color = p.highlight, maxLines = 1)
+            KitText(name, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            KitText("${ra.score} pts", style = MaterialTheme.typography.labelMedium, color = p.highlight, maxLines = 1)
         }
     }
     HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), color = Color.White.copy(alpha = .12f))

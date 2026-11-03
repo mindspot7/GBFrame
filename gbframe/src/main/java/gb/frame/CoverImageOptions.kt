@@ -20,14 +20,14 @@ fun CoverImageOptions(title: String, onLocalSearch: () -> Unit, onDismiss: () ->
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Cover Image") },
+        title = { KitText("Cover Image") },
         text = {
             Column {
-                TextButton(onClick = { webSearch = true }) { Text("Web Search") }
-                TextButton(onClick = onLocalSearch) { Text("Local Search") }
+                TextButton(onClick = { webSearch = true }) { KitText("Web Search") }
+                TextButton(onClick = onLocalSearch) { KitText("Local Search") }
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Back") } },
+        dismissButton = { TextButton(onClick = onDismiss) { KitText("Back") } },
     )
 }

@@ -51,15 +51,15 @@ fun ConfirmDialog(
             shape = RoundedCornerShape(28.dp), color = lerpPanel(p), border = p.panelBorder, shadowElevation = 16.dp,
         ) {
             Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 18.dp)) {
-                Text(title, style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                KitText(title, style = MaterialTheme.typography.headlineSmall, color = Color.White)
                 Spacer(Modifier.height(14.dp))
-                Text(message, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
+                KitText(message, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
                 Spacer(Modifier.height(22.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onCancel) { Text(cancel, color = p.accent) }
+                    TextButton(onClick = onCancel) { KitText(cancel, color = p.accent) }
                     Spacer(Modifier.width(8.dp))
                     Button(onClick = onConfirm, modifier = Modifier.focusRequester(fr), shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(containerColor = p.accent, contentColor = p.onAccent)) { Text(confirm) }
+                        colors = ButtonDefaults.buttonColors(containerColor = p.accent, contentColor = p.onAccent)) { KitText(confirm) }
                 }
             }
         }
@@ -73,10 +73,10 @@ private fun lerpPanel(p: EmuPalette) = androidx.compose.ui.graphics.lerp(p.surfa
 fun ButtonHint(button: String, color: Color, label: String, modifier: Modifier = Modifier.padding(start = 16.dp)) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(22.dp).clip(CircleShape).background(color), contentAlignment = Alignment.Center) {
-            Text(button, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+            KitText(button, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
         }
         Spacer(Modifier.width(6.dp))
-        Text(label, color = Color.White.copy(alpha = .85f), style = MaterialTheme.typography.labelLarge)
+        KitText(label, color = Color.White.copy(alpha = .85f), style = MaterialTheme.typography.labelLarge)
     }
 }
 

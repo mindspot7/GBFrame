@@ -13,6 +13,7 @@ import java.util.Locale
 object AppLanguage {
     const val ENGLISH = "en"
     const val PORTUGUESE_BRAZIL = "pt-BR"
+    const val SPANISH_LATIN_AMERICA = "es-419"
 
     private const val PREFS = "gbframe_preferences"
     private const val KEY_LANGUAGE = "app_language"
@@ -20,7 +21,7 @@ object AppLanguage {
     fun currentTag(context: Context): String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_LANGUAGE, ENGLISH)
-            ?.takeIf { it == ENGLISH || it == PORTUGUESE_BRAZIL }
+            ?.takeIf { it == ENGLISH || it == PORTUGUESE_BRAZIL || it == SPANISH_LATIN_AMERICA }
             ?: ENGLISH
 
     /** Wrap each Activity base context so resource lookups use the selected app language. */
@@ -40,7 +41,7 @@ object AppLanguage {
     }
 
     fun select(context: Context, languageTag: String) {
-        require(languageTag == ENGLISH || languageTag == PORTUGUESE_BRAZIL)
+        require(languageTag == ENGLISH || languageTag == PORTUGUESE_BRAZIL || languageTag == SPANISH_LATIN_AMERICA)
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_LANGUAGE, languageTag)
@@ -57,8 +58,13 @@ fun AppLanguageSettings() {
     val options = listOf(
         stringResource(R.string.gbframe_language_english),
         stringResource(R.string.gbframe_language_portuguese_brazil),
+        stringResource(R.string.gbframe_language_spanish_latin_america),
     )
-    val selected = if (AppLanguage.currentTag(context) == AppLanguage.PORTUGUESE_BRAZIL) 1 else 0
+    val selected = when (AppLanguage.currentTag(context)) {
+        AppLanguage.PORTUGUESE_BRAZIL -> 1
+        AppLanguage.SPANISH_LATIN_AMERICA -> 2
+        else -> 0
+    }
     SettingsGroup(stringResource(R.string.gbframe_app_language), null) {
         ChoiceRow(
             title = stringResource(R.string.gbframe_app_language),
@@ -68,7 +74,11 @@ fun AppLanguageSettings() {
             onSelect = { index ->
                 AppLanguage.select(
                     context,
-                    if (index == 1) AppLanguage.PORTUGUESE_BRAZIL else AppLanguage.ENGLISH,
+                    when (index) {
+                        1 -> AppLanguage.PORTUGUESE_BRAZIL
+                        2 -> AppLanguage.SPANISH_LATIN_AMERICA
+                        else -> AppLanguage.ENGLISH
+                    },
                 )
             },
         )

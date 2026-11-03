@@ -4,7 +4,9 @@
 
 The kit now uses **Low / Mid / High**. Historical performance notes below use the tier names that were current when each test ran: old Entry maps to Low, old Low maps to Mid, and old Mid/High map to High. App-level performance presets and per-game measured choices remain unchanged; GPU capability still selects graphics options independently.
 
-- Treat widescreen and frame-rate patches as distinct shared kit capabilities in Video and the in-game Performance menu. Prefer the core's native hack, then a curated game-specific code patch, then a matching database code; do not stack sources. Both default on and are suppressed in RetroAchievements Hardcore; reapply the effective patch set when the toggle, display mode or Hardcore state changes.
+- Treat widescreen and frame-rate patches as distinct shared kit capabilities in Video and the in-game Performance menu. Prefer the core's native hack, then a curated game-specific code patch, then a matching database code; do not stack sources. Widescreen hacks default off; frame-rate hacks default on. Both are suppressed in RetroAchievements Hardcore; reapply the effective patch set when the toggle, display mode or Hardcore state changes.
+- On GBCast / Retroid Pocket Nova (Adreno 740), Vulkan with the GBFrame shader presenter crashed in Flycast's Vulkan-to-`AHardwareBuffer` import path. Disabling that interop and using the existing staged CPU frame delivery kept Vulkan + Beam running through the Crazy Taxi boot and a short gameplay check. Keep the interop disabled until it is revalidated on Flycast devices; the shader presenter remains active through the fallback.
+- GBCast exposes its in-game settings through the GBFrame quick menu. Do not add an entry to Flycast's native settings GUI; expose supported core-specific options in the GBCast settings/quick-menu pages instead.
 
 Record discoveries from GBFrame and each consumer here so the next emulator can start from measured behavior instead
 of repeating the same investigation. Add a line whenever an app teaches something that would have saved time.

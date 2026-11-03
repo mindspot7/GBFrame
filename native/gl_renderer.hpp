@@ -21,6 +21,8 @@ struct VulkanTarget {
 void SetWindow(ANativeWindow *window);
 // Latest-frame-wins; copies the pixels (RGBA8888).
 void Submit(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t scale = 1);
+// Vulkan readback path; skips the secondary CPU-to-AHardwareBuffer upload.
+void SubmitCpu(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t scale = 1);
 // Reserve a presenter-owned AHardwareBuffer for a Vulkan GPU copy. The returned target is not CPU writable and must be
 // submitted or cancelled. Returns an empty target if EGLImage sharing is unavailable or no free slot exists.
 VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height);

@@ -683,6 +683,11 @@ void Submit(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t scale)
     if (!S.hbDisabled.load() && SubmitHardwareBuffer(fb, width, height, scale)) {
         return;
     }
+    SubmitCpu(fb, width, height, scale);
+}
+
+void SubmitCpu(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t scale) {
+    if (fb == nullptr || width == 0 || height == 0) return;
     std::lock_guard lk(S.m);
     if (!S.started) {
         return;

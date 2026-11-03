@@ -30,29 +30,29 @@ fun DataFolderControls(store: AppDataFolder, compact: Boolean = false) {
     ActionRow(Icons.Default.Folder, "Data folder", if (store.folder == null) "Saves, save states, BIOS, cheats and covers. Uses app storage until you choose a folder." else store.label, "Choose", {
         if (!store.busy && !syncing) picker.launch(store.folder?.let(android.net.Uri::parse))
     }, subMaxLines = Int.MAX_VALUE)
-    if (!compact) Text("BIOS, saves, save states, cheats and covers. Files are read and written directly in a ${store.appName} folder created inside the selected folder. Reopen the app after changing it.",
+    if (!compact) KitText("BIOS, saves, save states, cheats and covers. Files are read and written directly in a ${store.appName} folder created inside the selected folder. Reopen the app after changing it.",
         style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
     if (!compact) store.texturesRelativePath?.let { path ->
-        Text("Textures: $path/<game ID>. Texture packs are read from this folder.",
+        KitText("Textures: $path/<game ID>. Texture packs are read from this folder.",
             style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
     }
     if (!compact && store.folder != null) TextButton(enabled = !syncing && !store.busy && !store.restartRequired, onClick = {
         syncing = true
         scope.launch { try { withContext(Dispatchers.IO) { store.checkAccess() } } finally { syncing = false } }
-    }) { Text(if (syncing) "Checking…" else "Check access") }
-    store.error?.let { Text("Data folder: $it", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
+    }) { KitText(if (syncing) "Checking…" else "Check access") }
+    store.error?.let { KitText("Data folder: $it", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
     if (store.busy || syncing) AlertDialog(
-        onDismissRequest = {}, title = { Text("Data folder") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { CircularProgressIndicator(); Text("Moving to the selected data folder…") } },
+        onDismissRequest = {}, title = { KitText("Data folder") },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { CircularProgressIndicator(); KitText("Moving to the selected data folder…") } },
         confirmButton = {},
     )
     if (store.restartRequired) AlertDialog(
-        onDismissRequest = {}, title = { Text("Reopen the app") },
-        text = { Text("The data folder was saved. Close the app now, then open it again to use the selected folder directly. Existing destination files were preserved." + (store.selectionNotice?.let { "\n\n$it" } ?: "")) },
+        onDismissRequest = {}, title = { KitText("Reopen the app") },
+        text = { KitText("The data folder was saved. Close the app now, then open it again to use the selected folder directly. Existing destination files were preserved." + (store.selectionNotice?.let { "\n\n$it" } ?: "")) },
         confirmButton = { TextButton(onClick = {
             (context as? Activity)?.finishAffinity()
             android.os.Process.killProcess(android.os.Process.myPid())
-        }) { Text("Close app") } },
+        }) { KitText("Close app") } },
     )
 }
 
@@ -75,17 +75,17 @@ fun performanceWizardStep(
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ElevatedCard(Modifier.fillMaxWidth(), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("YOUR PROFILE", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                Text(preset.uppercase(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-                Text("${device.tier.name} device · ${device.gpu.ifBlank { "Graphics detected" }}", style = MaterialTheme.typography.bodyMedium)
-                Text(device.classificationReason, style = MaterialTheme.typography.bodySmall)
+                KitText("YOUR PROFILE", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                KitText(preset.uppercase(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
+                KitText("${device.tier.name} device · ${device.gpu.ifBlank { "Graphics detected" }}", style = MaterialTheme.typography.bodyMedium)
+                KitText(device.classificationReason, style = MaterialTheme.typography.bodySmall)
             }
         }
-        Text("Auto-tuned for the best performance this device can sustain.", style = MaterialTheme.typography.bodySmall)
-        Text("SETTINGS APPLIED", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        KitText("Auto-tuned for the best performance this device can sustain.", style = MaterialTheme.typography.bodySmall)
+        KitText("SETTINGS APPLIED", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         options.forEach { option ->
             Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .65f)) {
-                Text(option, Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp), style = MaterialTheme.typography.bodyMedium)
+                KitText(option, Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -98,8 +98,8 @@ fun DataFolderWarning(store: AppDataFolder) {
     var dismissed by remember { mutableStateOf<String?>(null) }
     if (error == null) { LaunchedEffect(Unit) { dismissed = null }; return }
     if (dismissed != error) AlertDialog(
-        onDismissRequest = { dismissed = error }, title = { Text("Data folder needs attention") },
-        text = { Text("$error\n\nReconnect the selected storage or choose another data folder in System. Data is not redirected to a second local copy.") },
-        confirmButton = { TextButton(onClick = { dismissed = error }) { Text("OK") } },
+        onDismissRequest = { dismissed = error }, title = { KitText("Data folder needs attention") },
+        text = { KitText("$error\n\nReconnect the selected storage or choose another data folder in System. Data is not redirected to a second local copy.") },
+        confirmButton = { TextButton(onClick = { dismissed = error }) { KitText("OK") } },
     )
 }

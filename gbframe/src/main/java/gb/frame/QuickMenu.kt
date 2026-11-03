@@ -294,14 +294,14 @@ fun QuickMenuHost(
                                 }
                             }
                             Column(Modifier.weight(1f)) {
-                                Text(
+                                KitText(
                                     current.page.title,
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
                                 )
                                 if (scope.isRoot && !gameTitle.isNullOrBlank()) {
-                                    Text(
+                                    KitText(
                                         gameTitle,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = p.dim,
@@ -407,7 +407,7 @@ fun QuickMenuItemRow(
     QuickMenuItemContainer(id = id, enabled = enabled, onClick = onClick) {
         Icon(icon, null, tint = palette.accent, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(16.dp))
-        Text(
+        KitText(
             label,
             Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
@@ -415,7 +415,7 @@ fun QuickMenuItemRow(
         )
         if (value != null) {
             Spacer(Modifier.width(8.dp))
-            Text(
+            KitText(
                 value,
                 color = palette.highlight,
                 style = MaterialTheme.typography.bodyMedium,

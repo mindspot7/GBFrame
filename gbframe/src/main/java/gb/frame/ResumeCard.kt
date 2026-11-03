@@ -47,11 +47,11 @@ fun ResumeCard(e: ResumeEntry, modifier: Modifier = Modifier, onClick: () -> Uni
         ) {
             shot?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds) }
                 ?: Icon(Icons.Default.Image, null, Modifier.align(Alignment.Center).size(40.dp), tint = Color.White.copy(alpha = .4f))
-            Text(e.label, Modifier.align(Alignment.TopStart).padding(6.dp).background(Color.Black.copy(alpha = .6f), RoundedCornerShape(8.dp))
+            KitText(e.label, Modifier.align(Alignment.TopStart).padding(6.dp).background(Color.Black.copy(alpha = .6f), RoundedCornerShape(8.dp))
                 .padding(horizontal = 8.dp, vertical = 2.dp), color = Color.White, style = MaterialTheme.typography.labelSmall)
         }
         Spacer(Modifier.height(4.dp))
-        Text(e.title, color = if (focused) p.highlight else Color.White, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(date, color = Color.White.copy(alpha = .6f), style = MaterialTheme.typography.labelSmall)
+        KitText(e.title, color = if (focused) p.highlight else Color.White, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        KitText(date, color = Color.White.copy(alpha = .6f), style = MaterialTheme.typography.labelSmall)
     }
 }

@@ -381,14 +381,14 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                         }
                         Spacer(Modifier.width(14.dp))
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(if (unlocked) "Themes unlocked" else "Gold themes",
+                            KitText(if (unlocked) "Themes unlocked" else "Gold themes",
                                 style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-                            Text(if (unlocked) appName else "Support the developer",
+                            KitText(if (unlocked) appName else "Support the developer",
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
-                    Text(
+                    KitText(
                         if (unlocked) message ?: "Thanks for supporting development. All themes are unlocked in $appName."
                         else "Make a one-time purchase to support development and unlock all themes in $appName.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -400,7 +400,7 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                             shape = RoundedCornerShape(50),
                             color = MaterialTheme.colorScheme.primaryContainer,
                         ) {
-                            Text(
+                            KitText(
                                 text = if (price != null) "ONE-TIME PURCHASE  ·  $price" else "ONE-TIME PURCHASE",
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                                 style = MaterialTheme.typography.labelMedium,
@@ -411,7 +411,7 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                             CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
                         }
                         message?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall,
+                            KitText(it, style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Button(
@@ -420,22 +420,22 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(16.dp),
                         ) {
-                            Text("👑", style = MaterialTheme.typography.titleMedium)
+                            KitText("👑", style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.width(8.dp))
-                            Text(if (price == null) "Support & unlock" else "Support · $price")
+                            KitText(if (price == null) "Support & unlock" else "Support · $price")
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            TextButton(onClick = VisualCustomization::restore) { Text("Restore purchase") }
-                            TextButton(onClick = VisualCustomization::dismissDialog) { Text("Not now") }
+                            TextButton(onClick = VisualCustomization::restore) { KitText("Restore purchase") }
+                            TextButton(onClick = VisualCustomization::dismissDialog) { KitText("Not now") }
                         }
                     } else {
                         Button(onClick = VisualCustomization::dismissDialog,
                             modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(16.dp)) {
-                            Text("Done")
+                            KitText("Done")
                         }
                     }
                 }

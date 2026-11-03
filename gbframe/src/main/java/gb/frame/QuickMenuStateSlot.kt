@@ -30,8 +30,8 @@ fun QuickMenuStateSlot(id: String, label: String, time: Long?, thumbnail: Bitmap
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(label, color = if (enabled) Color.White else palette.dim, fontWeight = FontWeight.SemiBold)
-            Text(time?.let { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it)) } ?: "Empty",
+            KitText(label, color = if (enabled) Color.White else palette.dim, fontWeight = FontWeight.SemiBold)
+            KitText(time?.let { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it)) } ?: "Empty",
                 style = MaterialTheme.typography.bodySmall, color = palette.dim)
         }
     }

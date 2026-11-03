@@ -78,8 +78,8 @@ fun AudioSettingsGroups(settings: AudioSettings) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RowIcon(if (settings.volume == 0) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp)
                 Spacer(Modifier.width(14.dp))
-                Text("Volume", style = MaterialTheme.typography.titleSmall, color = Color.White, modifier = Modifier.weight(1f))
-                Text("${settings.volume}%", color = palette.highlight, fontWeight = FontWeight.SemiBold)
+                KitText("Volume", style = MaterialTheme.typography.titleSmall, color = Color.White, modifier = Modifier.weight(1f))
+                KitText("${settings.volume}%", color = palette.highlight, fontWeight = FontWeight.SemiBold)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
@@ -128,8 +128,8 @@ fun AudioQuickMenuRows(settings: AudioSettings) {
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Volume", color = Color.White, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Text(
+                KitText("Volume", color = Color.White, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                KitText(
                     "${settings.volume}%",
                     color = palette.highlight,
                     fontWeight = FontWeight.SemiBold,

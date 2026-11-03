@@ -282,11 +282,11 @@ fun HomeTopBar(icon: Painter, label: String, onClick: () -> Unit, modifier: Modi
         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Image(icon, null, Modifier.size(40.dp))
             Spacer(Modifier.width(12.dp))
-            Text(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White,
+            KitText(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             Icon(if (menuOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore, "Menu", tint = p.highlight)
             Spacer(Modifier.weight(1f))
-            Text(time, style = MaterialTheme.typography.titleSmall, color = Color.White.copy(alpha = .9f))
+            KitText(time, style = MaterialTheme.typography.titleSmall, color = Color.White.copy(alpha = .9f))
             if (battery >= 0) {
                 Spacer(Modifier.width(10.dp))
                 Icon(
@@ -404,7 +404,7 @@ private fun CoverPlaceholder(title: String, modifier: Modifier) {
     ) {
         Icon(Icons.Default.Album, null, Modifier.size(40.dp), tint = palette.accent.copy(alpha = .7f))
         Spacer(Modifier.height(8.dp))
-        Text(title, color = Color.White.copy(alpha = .85f), style = MaterialTheme.typography.labelMedium, maxLines = 4, overflow = TextOverflow.Ellipsis)
+        KitText(title, color = Color.White.copy(alpha = .85f), style = MaterialTheme.typography.labelMedium, maxLines = 4, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -414,13 +414,13 @@ private fun GameInfo(g: HomeGame, hasState: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.Schedule, null, tint = Color.White.copy(alpha = .7f), modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(4.dp))
-        Text(if (g.playSeconds >= 60) formatPlayTime(g.playSeconds) else "Not played", style = MaterialTheme.typography.bodyMedium,
+        KitText(if (g.playSeconds >= 60) formatPlayTime(g.playSeconds) else "Not played", style = MaterialTheme.typography.bodyMedium,
             color = Color.White.copy(alpha = .8f))
         if (hasState) {
             Spacer(Modifier.width(14.dp))
             Icon(Icons.Default.Save, null, tint = TealSave, modifier = Modifier.size(17.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Save state", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
+            KitText("Save state", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .8f))
         }
         if (g.hasAchievements) {
             Spacer(Modifier.width(14.dp))
@@ -440,13 +440,13 @@ private fun PillButton(text: String, primary: Boolean, icon: ImageVector? = null
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) { Icon(icon, null, tint = if (primary) p.onAccent else Color.White, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)) }
-        Text(text, color = if (primary) p.onAccent else Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        KitText(text, color = if (primary) p.onAccent else Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun SectionLabel(text: String, color: Color = palette.highlight) =
-    Text(text, color = color, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+    KitText(text, color = color, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
 
 /** One row of box art; the selected cover is kept in the second slot. */
 @Composable
@@ -595,7 +595,7 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HeroTitle(title: String, compact: Boolean) {
-    Text(title, Modifier.fillMaxWidth().basicMarquee(iterations = Int.MAX_VALUE, initialDelayMillis = 1500, repeatDelayMillis = 2500),
+    KitText(title, Modifier.fillMaxWidth().basicMarquee(iterations = Int.MAX_VALUE, initialDelayMillis = 1500, repeatDelayMillis = 2500),
         style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.displaySmall,
         fontWeight = FontWeight.Black, color = Color.White, maxLines = 1, softWrap = false)
 }
@@ -692,7 +692,7 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
         ) {
             if (cover != null) BoxArt3D(cover, Modifier.fillMaxSize())
             else CoverPlaceholder(g.title, Modifier.fillMaxSize())
-            if (hasState) Text("SAVED", Modifier.align(Alignment.BottomEnd).padding(6.dp)
+            if (hasState) KitText("SAVED", Modifier.align(Alignment.BottomEnd).padding(6.dp)
                 .background(Color.Black.copy(alpha = .65f), RoundedCornerShape(8.dp)).padding(horizontal = 7.dp, vertical = 2.dp),
                 color = TealSave, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         }
@@ -780,7 +780,7 @@ fun HomeMenuPanel(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(appIcon, null, Modifier.size(40.dp))
                         Spacer(Modifier.width(12.dp))
-                        Text(appName, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                        KitText(appName, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
                         Box(
                             Modifier.size(44.dp).clip(CircleShape).focusProperties { canFocus = false }.clickable(onClick = onDismiss),
                             contentAlignment = Alignment.Center,
@@ -831,7 +831,7 @@ private fun lerpOpaque(c: Color) = c.copy(alpha = 1f)
 
 @Composable
 private fun MenuSection(text: String) =
-    Text(text, color = palette.highlight, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
+    KitText(text, color = palette.highlight, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(start = 4.dp, top = 4.dp))
 
 /** Focus look shared by the menu tiles: highlight border and a lighter fill. */
@@ -869,12 +869,12 @@ private fun ViewTile(
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(label, modifier = Modifier.weight(1f), color = Color.White, style = MaterialTheme.typography.titleSmall,
+                KitText(label, modifier = Modifier.weight(1f), color = Color.White, style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (locked) Icon(Icons.Default.Lock, contentDescription = "Gold required", tint = Color.White.copy(alpha = .78f),
                     modifier = Modifier.size(12.dp))
             }
-            Text(sub, color = Color.White.copy(alpha = .7f), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            KitText(sub, color = Color.White.copy(alpha = .7f), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -891,7 +891,7 @@ private fun SettingTile(m: HomeMenuItem, modifier: Modifier) {
     ) {
         MenuIconView(m.icon, 34.dp)
         Spacer(Modifier.height(6.dp))
-        Text(m.label, color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+        KitText(m.label, color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -905,7 +905,7 @@ private fun MenuRow(icon: MenuIcon, label: String, modifier: Modifier, onClick: 
     ) {
         MenuIconView(icon, 28.dp)
         Spacer(Modifier.width(12.dp))
-        Text(label, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        KitText(label, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
     }
 }
 

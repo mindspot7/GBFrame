@@ -106,9 +106,9 @@ fun BiosFolderRow(setting: SystemBiosFolderSetting) {
             }
         }, subMaxLines = Int.MAX_VALUE)
     if (chooseMethod) AlertDialog(
-        onDismissRequest = { chooseMethod = false }, title = { Text("Bios folder") },
-        text = { Text("Import BIOS files into the app's active data folder. The location shown in System is where the emulator reads them.") },
-        confirmButton = { TextButton(onClick = { chooseMethod = false; setting.onChooseFolder() }) { Text("Choose folder") } },
-        dismissButton = { TextButton(onClick = { chooseMethod = false; setting.onChooseFiles?.invoke() }) { Text("Choose files") } },
+        onDismissRequest = { chooseMethod = false }, title = { KitText("Bios folder") },
+        text = { KitText("Import BIOS files into the app's active data folder. The location shown in System is where the emulator reads them.") },
+        confirmButton = { TextButton(onClick = { chooseMethod = false; setting.onChooseFolder() }) { KitText("Choose folder") } },
+        dismissButton = { TextButton(onClick = { chooseMethod = false; setting.onChooseFiles?.invoke() }) { KitText("Choose files") } },
     )
 }

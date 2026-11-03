@@ -40,8 +40,8 @@ fun HomeHelpBar(play: String = "Play", options: String = "Game options", menu: S
 private fun HelpGlyph(letter: String, tint: Color, label: String) {
     Row(Modifier.padding(start = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.size(28.dp).clip(RoundedCornerShape(50)).background(tint), contentAlignment = Alignment.Center) {
-            Text(letter, color = Color.White, fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelLarge)
+            KitText(letter, color = Color.White, fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelLarge)
         }
-        Text(label, color = Color.White, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+        KitText(label, color = Color.White, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
     }
 }

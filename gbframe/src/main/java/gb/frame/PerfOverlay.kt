@@ -134,7 +134,7 @@ fun PerfOverlay(
         shadow = Shadow(Color.Black, Offset(1.5f, 1.5f), 3f),
     )
     @Composable
-    fun line(vararg parts: Pair<String, Color>) = Text(buildAnnotatedString {
+    fun line(vararg parts: Pair<String, Color>) = KitText(buildAnnotatedString {
         parts.forEach { (t, c) -> withStyle(SpanStyle(color = c)) { append(t) } }
     }, style = style)
 

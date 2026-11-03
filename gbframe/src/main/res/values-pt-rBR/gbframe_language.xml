@@ -3,4 +3,5 @@
     <string name="gbframe_app_language_description">Escolha o idioma usado pelo aplicativo.</string>
     <string name="gbframe_language_english">Inglês</string>
     <string name="gbframe_language_portuguese_brazil">Português (Brasil)</string>
+    <string name="gbframe_language_spanish_latin_america">Espanhol (América Latina)</string>
 </resources>

@@ -91,10 +91,10 @@ fun AboutPage(
         Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Image(icon, null, Modifier.size(72.dp))
             Spacer(Modifier.height(12.dp))
-            Text(appName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(emulatorLabel(manufacturer, console), color = p.dim)
+            KitText(appName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            KitText(emulatorLabel(manufacturer, console), color = p.dim)
             tagline?.let {
-                Text(
+                KitText(
                     brandedAboutTagline(it, p.highlight),
                     color = p.dim,
                     style = MaterialTheme.typography.bodySmall,
@@ -105,9 +105,9 @@ fun AboutPage(
                 )
             }
             Spacer(Modifier.height(4.dp))
-            Text("Version $version", color = p.highlight, style = MaterialTheme.typography.labelLarge)
+            KitText("Version $version", color = p.highlight, style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(2.dp))
-            Text("appid: ${ctx.packageName}", color = p.dim, style = MaterialTheme.typography.labelMedium)
+            KitText("appid: ${ctx.packageName}", color = p.dim, style = MaterialTheme.typography.labelMedium)
         }
     }
     if (visibleCredits.isNotEmpty()) SettingsGroup("Credits", Icons.Default.Favorite) {
@@ -117,9 +117,9 @@ fun AboutPage(
         }
     }
     SettingsGroup("License", Icons.Default.Gavel) {
-        Text(license, style = MaterialTheme.typography.bodySmall, color = p.dim, modifier = Modifier.padding(16.dp))
+        KitText(license, style = MaterialTheme.typography.bodySmall, color = p.dim, modifier = Modifier.padding(16.dp))
         licenseDocuments.forEach { document ->
-            TextButton(onClick = { openLicense = document }) { Text(document.name) }
+            TextButton(onClick = { openLicense = document }) { KitText(document.name) }
         }
     }
     SettingsGroup("Privacy policy", null) {
@@ -132,21 +132,21 @@ fun AboutPage(
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Read the privacy policy")
+            KitText("Read the privacy policy")
         }
     }
     openLicense?.let { document ->
         AlertDialog(
             onDismissRequest = { openLicense = null },
-            title = { Text(document.name) },
+            title = { KitText(document.name) },
             text = {
-                Text(
+                KitText(
                     openLicenseText.orEmpty(),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
                 )
             },
-            confirmButton = { TextButton(onClick = { openLicense = null }) { Text("Close") } },
+            confirmButton = { TextButton(onClick = { openLicense = null }) { KitText("Close") } },
         )
     }
 }

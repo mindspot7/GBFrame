@@ -41,8 +41,8 @@ fun LaunchLoadingOverlay(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
             CircularProgressIndicator(color = palette.highlight, strokeWidth = 4.dp, modifier = Modifier.size(54.dp))
-            Text("Opening game…", color = content, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
+            KitText("Opening game…", color = content, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            KitText(
                 message,
                 color = content.copy(alpha = .78f),
                 style = MaterialTheme.typography.bodyMedium,

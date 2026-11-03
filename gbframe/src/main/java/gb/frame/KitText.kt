@@ -1,0 +1,508 @@
+package gb.frame
+
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Text as MaterialText
+
+private val portugueseKitText = mapOf(
+    "Achievements" to "Conquistas",
+    "About" to "Sobre",
+    "Achievements" to "Conquistas",
+    "Add" to "Adicionar",
+    "Audio" to "Áudio",
+    "Auto" to "Automático",
+    "Auto frame skip" to "Pular quadros automaticamente",
+    "Back" to "Voltar",
+    "Bios folder" to "Pasta da BIOS",
+    "Display" to "Tela",
+    "Display mode" to "Modo de exibição",
+    "Fullscreen" to "Tela cheia",
+    "4:3" to "4:3",
+    "16:9" to "16:9",
+    "On" to "Ligado",
+    "Off" to "Desligado",
+    "Enabled" to "Ativado",
+    "Disabled" to "Desativado",
+    "Fast" to "Rápido",
+    "Accurate" to "Preciso",
+    "Default" to "Padrão",
+    "Recommended" to "Recomendado",
+    "Cancel" to "Cancelar",
+    "Cheats" to "Códigos",
+    "Choose files" to "Escolher arquivos",
+    "Choose folder" to "Escolher pasta",
+    "Clear" to "Limpar",
+    "Close" to "Fechar",
+    "Close app" to "Fechar aplicativo",
+    "Close search" to "Fechar busca",
+    "Controls" to "Controles",
+    "Cover Image" to "Capa do jogo",
+    "Data folder" to "Pasta de dados",
+    "Data folder needs attention" to "A pasta de dados precisa de atenção",
+    "Done" to "Concluído",
+    "Exit" to "Sair",
+    "Extras" to "Extras",
+    "Fast forward" to "Avanço rápido",
+    "Filter" to "Filtro",
+    "Game" to "Jogo",
+    "Load state" to "Carregar estado",
+    "Local Search" to "Busca local",
+    "Name" to "Nome",
+    "Network" to "Rede",
+    "Not now" to "Agora não",
+    "Not played" to "Não jogado",
+    "Not set" to "Não definido",
+    "OK" to "OK",
+    "Opening game…" to "Abrindo jogo…",
+    "Password" to "Senha",
+    "Performance" to "Desempenho",
+    "Privacy policy" to "Política de privacidade",
+    "Read the privacy policy" to "Ler a política de privacidade",
+    "Renderer" to "Renderizador",
+    "Resolution" to "Resolução",
+    "Reset" to "Reiniciar",
+    "Reset to defaults" to "Restaurar padrões",
+    "Restore purchase" to "Restaurar compra",
+    "Resume" to "Continuar",
+    "Retry" to "Tentar novamente",
+    "SAVED" to "SALVO",
+    "Save state" to "Salvar estado",
+    "Save states" to "Estados salvos",
+    "Set" to "Definir",
+    "Shader" to "Shader",
+    "Skip" to "Pular",
+    "Start" to "Iniciar",
+    "System" to "Sistema",
+    "Theme" to "Tema",
+    "Video" to "Vídeo",
+    "Volume" to "Volume",
+    "Web Search" to "Busca na internet",
+    "Widescreen hack" to "Hack widescreen",
+    "Empty" to "Vazio",
+    "Filter" to "Filtro",
+    "Loading" to "Carregando",
+    "Load state" to "Carregar estado",
+    "Save state" to "Salvar estado",
+    "Slot" to "Slot",
+    "Resume" to "Continuar",
+    "Exit" to "Sair",
+    "Fast forward" to "Avanço rápido",
+    "Swap disc" to "Trocar disco",
+    "Disc tray" to "Bandeja de disco",
+    "Reset" to "Reiniciar",
+    "Quick menu" to "Menu rápido",
+    "More options above" to "Mais opções acima",
+    "More options below" to "Mais opções abaixo",
+    "Renderer" to "Renderizador",
+    "Resolution" to "Resolução",
+    "Enhanced resolution" to "Resolução aprimorada",
+    "Video" to "Vídeo",
+    "Performance" to "Desempenho",
+    "Loading times hacks" to "Aceleração de carregamento",
+    "Recommended settings per game" to "Configurações recomendadas por jogo",
+    "Theme" to "Tema",
+    "About" to "Sobre",
+    "Audio" to "Áudio",
+    "System" to "Sistema",
+    "Extras" to "Extras",
+    "Controls" to "Controles",
+    "Resolution" to "Resolução",
+    "Filter" to "Filtro",
+    "Shader" to "Shader",
+    "Widescreen hack" to "Hack widescreen",
+    "Cheats" to "Códigos",
+    "Achievements" to "Conquistas",
+    "Swap disc" to "Trocar disco",
+    "Reset" to "Reiniciar",
+    "Volume" to "Volume",
+    "Show" to "Exibir",
+    "Hidden" to "Oculto",
+    "English" to "Inglês",
+    "Português (Brasil)" to "Português (Brasil)",
+    "Español (Latinoamérica)" to "Espanhol (América Latina)",
+    "Entry" to "Baixo",
+    "Low" to "Baixo",
+    "Mid" to "Médio",
+    "High" to "Alto",
+    "Graphics detected" to "Gráficos detectados",
+    "Save state" to "Salvar estado",
+    "Load state" to "Carregar estado",
+    "OK" to "OK",
+    "Yes" to "Sim",
+    "No" to "Não",
+    "Username" to "Usuário",
+    "Version \$version" to "Versão \$version",
+    "YOUR PROFILE" to "SEU PERFIL",
+    "SETTINGS APPLIED" to "CONFIGURAÇÕES APLICADAS",
+    "GBFRAME SETUP" to "CONFIGURAÇÃO GBFRAME",
+    "Themes unlocked" to "Temas liberados",
+    "Gold themes" to "Temas Gold",
+    "Support the developer" to "Apoie o desenvolvedor",
+    "Support & unlock" to "Apoiar e desbloquear",
+    "Done" to "Concluído",
+    "Use image" to "Usar imagem",
+    "Use this cover?" to "Usar esta capa?",
+    "Tap a cover to select it, or hold an image. Then choose Use image." to "Toque em uma capa para selecioná-la ou mantenha uma imagem pressionada. Depois escolha Usar imagem.",
+    "Tap a button on the pad or in the list, then press the button on your controller." to "Toque em um botão do controle na tela ou na lista e pressione o botão correspondente no controle físico.",
+    "Press the button on your controller you want to use for it…" to "Pressione no controle físico o botão que deseja usar…",
+    "Bind one button, or hold several together (a combination) and release. Buttons in a combination are not sent to the game." to "Configure um botão ou mantenha vários pressionados juntos para criar uma combinação. Os botões da combinação não serão enviados ao jogo.",
+    "No cheats for this game yet. Add a code or import a supported cheat file." to "Este jogo ainda não tem códigos. Adicione um código ou importe um arquivo compatível.",
+    "Import BIOS files into the app's active data folder. The location shown in System is where the emulator reads them." to "Importe os arquivos de BIOS para a pasta de dados ativa do aplicativo. O emulador lê os arquivos no local indicado em Sistema.",
+    "Auto-tuned for the best performance this device can sustain." to "Ajustado automaticamente para o melhor desempenho que este dispositivo consegue manter.",
+    "The data folder was saved. Close the app now, then open it again to use the selected folder directly. Existing destination files were preserved." to "A pasta de dados foi salva. Feche o aplicativo e abra-o novamente para usar diretamente a pasta selecionada. Os arquivos já existentes no destino foram preservados.",
+    "Moving to the selected data folder…" to "Movendo para a pasta de dados selecionada…",
+    "Reopen the app" to "Reabrir o aplicativo",
+    "Close search" to "Fechar busca",
+    "Local Search" to "Busca no dispositivo",
+    "Choose files" to "Escolher arquivos",
+    "Choose folder" to "Escolher pasta",
+    "Check access" to "Verificar acesso",
+    "Back" to "Voltar",
+    "Widescreen" to "Widescreen",
+    "Extended screen" to "Tela estendida",
+    "Quick menu" to "Menu rápido",
+    "Fast-forward audio" to "Áudio no avanço rápido",
+    "Settings" to "Configurações",
+    "Loading time hacks" to "Aceleração de carregamento",
+    "More" to "Mais",
+    "Search" to "Buscar",
+    "Search games" to "Buscar jogos",
+    "All games" to "Todos os jogos",
+    "Favorites" to "Favoritos",
+    "Recently played" to "Jogos recentes",
+    "Play time" to "Tempo de jogo",
+    "Game library" to "Biblioteca de jogos",
+    "No games found" to "Nenhum jogo encontrado",
+    "No games yet" to "Ainda não há jogos",
+    "Open" to "Abrir",
+    "Import" to "Importar",
+    "Select" to "Selecionar",
+    "Apply" to "Aplicar",
+    "Restore" to "Restaurar",
+    "Next" to "Avançar",
+    "Previous" to "Anterior",
+    "Loading…" to "Carregando…",
+    "Choose" to "Escolher",
+    "Choose image" to "Escolher imagem",
+    "Choose a folder" to "Escolher uma pasta",
+    "No image selected" to "Nenhuma imagem selecionada",
+    "Restore default" to "Restaurar padrão",
+    "Default theme" to "Tema padrão",
+    "System settings" to "Configurações do sistema",
+    "Hardcore mode" to "Modo Hardcore",
+    "Offline achievements" to "Conquistas offline",
+    "Logging in…" to "Entrando…",
+    "Challenge active" to "Desafio ativo",
+    "Game mastered" to "Jogo dominado",
+    "Achievement unlocked" to "Conquista desbloqueada",
+    "No achievements available for this game (or it was not recognized)." to "Não há conquistas disponíveis para este jogo ou ele não foi reconhecido.",
+    "Enable RetroAchievements" to "Ativar RetroAchievements",
+    "Earn achievements while playing. You need a RetroAchievements account and an internet connection; this does not affect emulation speed." to "Conquiste objetivos durante o jogo. É necessária uma conta RetroAchievements e conexão com a internet. Isso não afeta a velocidade da emulação.",
+    "Enables stricter achievement rules and extra points. Cheats and save states are disabled; turning it on during a game resets the game." to "Ativa regras mais rígidas e pontos extras. Códigos e estados salvos ficam desativados; ativar durante um jogo reinicia a partida.",
+    "Log in to RetroAchievements in Settings to earn achievements." to "Entre na sua conta RetroAchievements em Configurações para conquistar objetivos.",
+)
+
+private val spanishKitText = mapOf(
+    "Achievements" to "Logros",
+    "About" to "Acerca de",
+    "Achievements" to "Logros",
+    "Add" to "Añadir",
+    "Audio" to "Audio",
+    "Auto" to "Automático",
+    "Auto frame skip" to "Salto de fotogramas automático",
+    "Back" to "Volver",
+    "Bios folder" to "Carpeta de BIOS",
+    "Display" to "Pantalla",
+    "Display mode" to "Modo de pantalla",
+    "Fullscreen" to "Pantalla completa",
+    "4:3" to "4:3",
+    "16:9" to "16:9",
+    "On" to "Activado",
+    "Off" to "Desactivado",
+    "Enabled" to "Activado",
+    "Disabled" to "Desactivado",
+    "Fast" to "Rápido",
+    "Accurate" to "Preciso",
+    "Default" to "Predeterminado",
+    "Recommended" to "Recomendado",
+    "Cancel" to "Cancelar",
+    "Cheats" to "Trucos",
+    "Choose files" to "Elegir archivos",
+    "Choose folder" to "Elegir carpeta",
+    "Clear" to "Borrar",
+    "Close" to "Cerrar",
+    "Close app" to "Cerrar aplicación",
+    "Close search" to "Cerrar búsqueda",
+    "Controls" to "Controles",
+    "Cover Image" to "Carátula del juego",
+    "Data folder" to "Carpeta de datos",
+    "Data folder needs attention" to "La carpeta de datos requiere atención",
+    "Done" to "Listo",
+    "Exit" to "Salir",
+    "Extras" to "Extras",
+    "Fast forward" to "Avance rápido",
+    "Filter" to "Filtro",
+    "Game" to "Juego",
+    "Load state" to "Cargar estado",
+    "Local Search" to "Búsqueda local",
+    "Name" to "Nombre",
+    "Network" to "Red",
+    "Not now" to "Ahora no",
+    "Not played" to "Sin jugar",
+    "Not set" to "Sin asignar",
+    "OK" to "Aceptar",
+    "Opening game…" to "Abriendo juego…",
+    "Password" to "Contraseña",
+    "Performance" to "Rendimiento",
+    "Privacy policy" to "Política de privacidad",
+    "Read the privacy policy" to "Leer la política de privacidad",
+    "Renderer" to "Renderizador",
+    "Resolution" to "Resolución",
+    "Reset" to "Reiniciar",
+    "Reset to defaults" to "Restablecer valores predeterminados",
+    "Restore purchase" to "Restaurar compra",
+    "Resume" to "Continuar",
+    "Retry" to "Reintentar",
+    "SAVED" to "GUARDADO",
+    "Save state" to "Guardar estado",
+    "Save states" to "Estados guardados",
+    "Set" to "Asignar",
+    "Shader" to "Shader",
+    "Skip" to "Omitir",
+    "Start" to "Iniciar",
+    "System" to "Sistema",
+    "Theme" to "Tema",
+    "Video" to "Video",
+    "Volume" to "Volumen",
+    "Web Search" to "Búsqueda web",
+    "Widescreen hack" to "Hack de pantalla ancha",
+    "Empty" to "Vacío",
+    "Loading" to "Cargando",
+    "Slot" to "Ranura",
+    "Resume" to "Continuar",
+    "Exit" to "Salir",
+    "Fast forward" to "Avance rápido",
+    "Swap disc" to "Cambiar disco",
+    "Disc tray" to "Bandeja de disco",
+    "Reset" to "Reiniciar",
+    "Quick menu" to "Menú rápido",
+    "More options above" to "Más opciones arriba",
+    "More options below" to "Más opciones abajo",
+    "Enhanced resolution" to "Resolución mejorada",
+    "Loading times hacks" to "Aceleración de carga",
+    "Recommended settings per game" to "Ajustes recomendados por juego",
+    "Show" to "Mostrar",
+    "Hidden" to "Oculto",
+    "English" to "English",
+    "Português (Brasil)" to "Português (Brasil)",
+    "Español (Latinoamérica)" to "Español (Latinoamérica)",
+    "Entry" to "Bajo",
+    "Low" to "Bajo",
+    "Mid" to "Medio",
+    "High" to "Alto",
+    "Graphics detected" to "Gráficos detectados",
+    "Yes" to "Sí",
+    "No" to "No",
+    "Username" to "Usuario",
+    "Version \$version" to "Versión \$version",
+    "YOUR PROFILE" to "TU PERFIL",
+    "SETTINGS APPLIED" to "AJUSTES APLICADOS",
+    "GBFRAME SETUP" to "CONFIGURACIÓN DE GBFRAME",
+    "Themes unlocked" to "Temas desbloqueados",
+    "Gold themes" to "Temas Gold",
+    "Support the developer" to "Apoya al desarrollador",
+    "Support & unlock" to "Apoyar y desbloquear",
+    "Use image" to "Usar imagen",
+    "Use this cover?" to "¿Usar esta carátula?",
+    "Tap a cover to select it, or hold an image. Then choose Use image." to "Toca una carátula para seleccionarla o mantén pulsada una imagen. Luego elige Usar imagen.",
+    "Tap a button on the pad or in the list, then press the button on your controller." to "Toca un botón del mando en pantalla o de la lista y pulsa el botón correspondiente en tu control físico.",
+    "Press the button on your controller you want to use for it…" to "Pulsa en tu control físico el botón que quieras asignar…",
+    "Bind one button, or hold several together (a combination) and release. Buttons in a combination are not sent to the game." to "Asigna un botón o mantén varios pulsados a la vez para crear una combinación. Esos botones no se enviarán al juego.",
+    "No cheats for this game yet. Add a code or import a supported cheat file." to "Este juego aún no tiene trucos. Añade un código o importa un archivo compatible.",
+    "Import BIOS files into the app's active data folder. The location shown in System is where the emulator reads them." to "Importa los archivos BIOS a la carpeta de datos activa de la aplicación. El emulador los lee desde la ubicación indicada en Sistema.",
+    "Auto-tuned for the best performance this device can sustain." to "Ajustado automáticamente para ofrecer el mejor rendimiento sostenido de este dispositivo.",
+    "The data folder was saved. Close the app now, then open it again to use the selected folder directly. Existing destination files were preserved." to "Se guardó la carpeta de datos. Cierra la aplicación y vuelve a abrirla para usar directamente la carpeta elegida. Se conservaron los archivos que ya había en el destino.",
+    "Moving to the selected data folder…" to "Moviendo a la carpeta de datos seleccionada…",
+    "Reopen the app" to "Volver a abrir la aplicación",
+    "Check access" to "Comprobar acceso",
+    "Extended screen" to "Pantalla extendida",
+    "Quick menu" to "Menú rápido",
+    "Fast-forward audio" to "Audio en avance rápido",
+    "Settings" to "Ajustes",
+    "Loading time hacks" to "Aceleración de carga",
+    "More" to "Más",
+    "Search" to "Buscar",
+    "Search games" to "Buscar juegos",
+    "All games" to "Todos los juegos",
+    "Favorites" to "Favoritos",
+    "Recently played" to "Jugados recientemente",
+    "Play time" to "Tiempo de juego",
+    "Game library" to "Biblioteca de juegos",
+    "No games found" to "No se encontraron juegos",
+    "No games yet" to "Aún no hay juegos",
+    "Open" to "Abrir",
+    "Import" to "Importar",
+    "Select" to "Seleccionar",
+    "Apply" to "Aplicar",
+    "Restore" to "Restaurar",
+    "Next" to "Siguiente",
+    "Previous" to "Anterior",
+    "Loading…" to "Cargando…",
+    "Choose" to "Elegir",
+    "Choose image" to "Elegir imagen",
+    "Choose a folder" to "Elegir una carpeta",
+    "No image selected" to "No hay imagen seleccionada",
+    "Restore default" to "Restaurar valor predeterminado",
+    "Default theme" to "Tema predeterminado",
+    "System settings" to "Ajustes del sistema",
+    "Hardcore mode" to "Modo Hardcore",
+    "Offline achievements" to "Logros sin conexión",
+    "Logging in…" to "Iniciando sesión…",
+    "Challenge active" to "Desafío activo",
+    "Game mastered" to "Juego completado al 100 %",
+    "Achievement unlocked" to "Logro desbloqueado",
+    "No achievements available for this game (or it was not recognized)." to "No hay logros disponibles para este juego o no se pudo reconocer.",
+    "Enable RetroAchievements" to "Activar RetroAchievements",
+    "Earn achievements while playing. You need a RetroAchievements account and an internet connection; this does not affect emulation speed." to "Consigue logros mientras juegas. Necesitas una cuenta de RetroAchievements y conexión a internet. No afecta la velocidad de emulación.",
+    "Enables stricter achievement rules and extra points. Cheats and save states are disabled; turning it on during a game resets the game." to "Activa reglas más estrictas y puntos adicionales. Se desactivan los trucos y los estados guardados; activarlo durante una partida reinicia el juego.",
+    "Log in to RetroAchievements in Settings to earn achievements." to "Inicia sesión en RetroAchievements desde Ajustes para conseguir logros.",
+)
+
+@Composable
+private fun localizedKitText(text: String): String {
+    val tag = LocalConfiguration.current.locales[0]?.toLanguageTag().orEmpty()
+    val translations = when {
+        tag.startsWith("pt", ignoreCase = true) -> portugueseKitText
+        tag.startsWith("es", ignoreCase = true) -> spanishKitText
+        else -> emptyMap()
+    }
+    translations[text]?.let { return it }
+    if (text.equals("low", ignoreCase = true) || text.equals("entry", ignoreCase = true)) return translations["Low"] ?: text
+    if (text.equals("mid", ignoreCase = true)) return translations["Mid"] ?: text
+    if (text.equals("high", ignoreCase = true)) return translations["High"] ?: text
+    Regex("^(entry|low|mid|high) device · (.*)$", RegexOption.IGNORE_CASE).matchEntire(text)?.let { match ->
+        val tier = localizedKitText(match.groupValues[1])
+        val graphics = translations["Graphics detected"] ?: match.groupValues[2]
+        return when {
+            tag.startsWith("pt", ignoreCase = true) -> "Dispositivo $tier · $graphics"
+            tag.startsWith("es", ignoreCase = true) -> "Dispositivo $tier · $graphics"
+            else -> text
+        }
+    }
+    if (text.startsWith("Version ")) return translations["Version \$version"]?.replace("\$version", text.removePrefix("Version ")) ?: text
+    if (text.startsWith("Progress: ")) return when {
+        tag.startsWith("pt", ignoreCase = true) -> "Progresso: ${text.removePrefix("Progress: ")}"
+        tag.startsWith("es", ignoreCase = true) -> "Progreso: ${text.removePrefix("Progress: ")}"
+        else -> text
+    }
+    if (text.startsWith("Data folder: ")) return when {
+        tag.startsWith("pt", ignoreCase = true) -> "Pasta de dados: ${text.removePrefix("Data folder: ")}"
+        tag.startsWith("es", ignoreCase = true) -> "Carpeta de datos: ${text.removePrefix("Data folder: ")}"
+        else -> text
+    }
+    if (text.startsWith("Textures: ")) return when {
+        tag.startsWith("pt", ignoreCase = true) -> "Texturas: ${text.removePrefix("Textures: ")}"
+        tag.startsWith("es", ignoreCase = true) -> "Texturas: ${text.removePrefix("Textures: ")}"
+        else -> text
+    }
+    if (text.startsWith("Set ")) return when {
+        tag.startsWith("pt", ignoreCase = true) -> "Definir ${text.removePrefix("Set ")}"
+        tag.startsWith("es", ignoreCase = true) -> "Asignar ${text.removePrefix("Set ")}"
+        else -> text
+    }
+    if (text.startsWith("Remap ")) return when {
+        tag.startsWith("pt", ignoreCase = true) -> "Remapear ${text.removePrefix("Remap ")}"
+        tag.startsWith("es", ignoreCase = true) -> "Remapear ${text.removePrefix("Remap ")}"
+        else -> text
+    }
+    if (text.contains(" unlocked · ") && text.contains(" points")) return when {
+        tag.startsWith("pt", ignoreCase = true) -> text.replace(" unlocked · ", " desbloqueadas · ").replace(" points", " pontos")
+        tag.startsWith("es", ignoreCase = true) -> text.replace(" unlocked · ", " desbloqueados · ").replace(" points", " puntos")
+        else -> text
+    }
+    if (text.endsWith(" pts")) return when {
+        tag.startsWith("pt", ignoreCase = true) -> text.removeSuffix(" pts") + " pontos"
+        tag.startsWith("es", ignoreCase = true) -> text.removeSuffix(" pts") + " puntos"
+        else -> text
+    }
+    if (text == "Unassigned") return when {
+        tag.startsWith("pt", ignoreCase = true) -> "Sem atribuição"
+        tag.startsWith("es", ignoreCase = true) -> "Sin asignar"
+        else -> text
+    }
+    return text
+}
+
+/** Text primitive used by GBFrame screens so their UI follows the selected app language. */
+@Composable
+fun KitText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    fontStyle: FontStyle? = null,
+    fontWeight: FontWeight? = null,
+    fontFamily: FontFamily? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+    textDecoration: TextDecoration? = null,
+    textAlign: TextAlign? = null,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    overflow: TextOverflow = TextOverflow.Clip,
+    softWrap: Boolean = true,
+    maxLines: Int = Int.MAX_VALUE,
+    minLines: Int = 1,
+    onTextLayout: (TextLayoutResult) -> Unit = {},
+    style: TextStyle = LocalTextStyle.current,
+) {
+    MaterialText(
+        text = localizedKitText(text), modifier = modifier, color = color,
+        fontSize = fontSize, fontStyle = fontStyle, fontWeight = fontWeight,
+        fontFamily = fontFamily, letterSpacing = letterSpacing, textDecoration = textDecoration,
+        textAlign = textAlign, lineHeight = lineHeight, overflow = overflow, softWrap = softWrap,
+        maxLines = maxLines, minLines = minLines, onTextLayout = onTextLayout, style = style,
+    )
+}
+
+@Composable
+fun KitText(
+    text: AnnotatedString,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    fontStyle: FontStyle? = null,
+    fontWeight: FontWeight? = null,
+    fontFamily: FontFamily? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+    textDecoration: TextDecoration? = null,
+    textAlign: TextAlign? = null,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    overflow: TextOverflow = TextOverflow.Clip,
+    softWrap: Boolean = true,
+    maxLines: Int = Int.MAX_VALUE,
+    minLines: Int = 1,
+    inlineContent: Map<String, InlineTextContent> = mapOf(),
+    onTextLayout: (TextLayoutResult) -> Unit = {},
+    style: TextStyle = LocalTextStyle.current,
+) {
+    MaterialText(
+        text = text, modifier = modifier, color = color, fontSize = fontSize,
+        fontStyle = fontStyle, fontWeight = fontWeight, fontFamily = fontFamily,
+        letterSpacing = letterSpacing, textDecoration = textDecoration, textAlign = textAlign,
+        lineHeight = lineHeight, overflow = overflow, softWrap = softWrap, maxLines = maxLines,
+        minLines = minLines, inlineContent = inlineContent, onTextLayout = onTextLayout, style = style,
+    )
+}

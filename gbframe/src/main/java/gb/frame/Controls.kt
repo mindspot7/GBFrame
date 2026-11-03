@@ -116,7 +116,7 @@ fun TouchControlButton(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        KitText(label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -247,7 +247,7 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
             ) {
                 Icon(icon, null, tint = if (sel) p.highlight else p.dim, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(6.dp))
-                Text(label, color = if (sel) Color.White else p.dim, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
+                KitText(label, color = if (sel) Color.White else p.dim, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
             }
         }
     }
@@ -255,7 +255,7 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
         0 -> {
             if (controllerExtras != null) SettingsGroup("${host.console} controller", Icons.Default.SportsEsports) { controllerExtras() }
             SettingsGroup("Button mapping", Icons.Default.Gamepad) {
-                Text("Tap a button on the pad or in the list, then press the button on your controller.",
+                KitText("Tap a button on the pad or in the list, then press the button on your controller.",
                     style = MaterialTheme.typography.bodySmall, color = p.dim, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     PadDiagram(host.pad, host.remapTarget, { host.remapTarget = it },
@@ -270,13 +270,13 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
                 }
                 SettingsDivider()
                 Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { host.resetKeyMap() }) { Icon(Icons.Default.RestartAlt, null); Spacer(Modifier.width(6.dp)); Text("Reset to defaults") }
+                    TextButton(onClick = { host.resetKeyMap() }) { Icon(Icons.Default.RestartAlt, null); Spacer(Modifier.width(6.dp)); KitText("Reset to defaults") }
                 }
             }
         }
         1 -> {
             SettingsGroup("Hotkeys", Icons.Default.Keyboard) {
-                Text("Bind one button, or hold several together (a combination) and release. Buttons in a combination are not sent to the game.",
+                KitText("Bind one button, or hold several together (a combination) and release. Buttons in a combination are not sent to the game.",
                     style = MaterialTheme.typography.bodySmall, color = p.dim, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                 HotkeyAction.entries.forEachIndexed { i, a ->
                     if (i > 0) SettingsDivider()
@@ -314,11 +314,11 @@ private fun ControlButtonRow(b: ControlButton, keys: String, selected: Boolean, 
     ) {
         Box(Modifier.size(34.dp).clip(CircleShape).background(b.color), contentAlignment = Alignment.Center) {
             if (b.icon != null) Icon(b.icon, null, tint = Color.White)
-            else Text(b.badge ?: b.id, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            else KitText(b.badge ?: b.id, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
         }
         Spacer(Modifier.width(14.dp))
-        Text(b.label, style = MaterialTheme.typography.titleSmall, color = Color.White, modifier = Modifier.weight(1f))
-        Text(keys, style = MaterialTheme.typography.bodyMedium, color = if (keys == "Unassigned") p.warn else p.highlight)
+        KitText(b.label, style = MaterialTheme.typography.titleSmall, color = Color.White, modifier = Modifier.weight(1f))
+        KitText(keys, style = MaterialTheme.typography.bodyMedium, color = if (keys == "Unassigned") p.warn else p.highlight)
         Spacer(Modifier.width(8.dp))
         Icon(Icons.Default.Edit, "Remap", tint = p.dim, modifier = Modifier.size(18.dp))
     }
@@ -336,18 +336,18 @@ private fun HotkeyRow(host: ControlsHost, a: HotkeyAction, keys: Set<Int>) {
         })
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(a.label, style = MaterialTheme.typography.titleSmall, color = Color.White)
-            if (keys.isEmpty()) Text("Not set", style = MaterialTheme.typography.bodySmall, color = p.dim)
+            KitText(a.label, style = MaterialTheme.typography.titleSmall, color = Color.White)
+            if (keys.isEmpty()) KitText("Not set", style = MaterialTheme.typography.bodySmall, color = p.dim)
             else Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 keys.forEachIndexed { i, k ->
-                    if (i > 0) Text("+", color = p.dim)
-                    Text(keyName(k), color = Color.White, style = MaterialTheme.typography.labelMedium,
+                    if (i > 0) KitText("+", color = p.dim)
+                    KitText(keyName(k), color = Color.White, style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.background(Color.White.copy(alpha = .12f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 2.dp))
                 }
             }
         }
-        if (keys.isNotEmpty()) TextButton(onClick = { host.bindHotkey(a, emptySet()) }) { Text("Clear") }
-        FilledTonalButton(onClick = { host.hotkeyCaptureKeys = emptySet(); host.hotkeyCapture = a }) { Text("Set") }
+        if (keys.isNotEmpty()) TextButton(onClick = { host.bindHotkey(a, emptySet()) }) { KitText("Clear") }
+        FilledTonalButton(onClick = { host.hotkeyCaptureKeys = emptySet(); host.hotkeyCapture = a }) { KitText("Set") }
     }
 }
 
@@ -364,18 +364,18 @@ fun ControlsCapturePrompts(host: ControlsHost) {
         Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.widthIn(max = 460.dp).padding(16.dp)) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (remap != null) {
-                    Text("Remap ${host.buttons.firstOrNull { it.id == remap }?.label ?: remap}", style = MaterialTheme.typography.titleLarge)
+                    KitText("Remap ${host.buttons.firstOrNull { it.id == remap }?.label ?: remap}", style = MaterialTheme.typography.titleLarge)
                     PadDiagram(host.pad, remap, { host.remapTarget = it }, Modifier.fillMaxWidth().aspectRatio(host.pad.aspectRatio))
-                    Text("Press the button on your controller you want to use for it…", color = palette.dim, textAlign = TextAlign.Center)
-                    TextButton(onClick = { host.remapTarget = null }) { Text("Cancel") }
+                    KitText("Press the button on your controller you want to use for it…", color = palette.dim, textAlign = TextAlign.Center)
+                    TextButton(onClick = { host.remapTarget = null }) { KitText("Cancel") }
                 } else if (hk != null) {
-                    Text("Set ${hk.label}", style = MaterialTheme.typography.titleLarge)
-                    Text(
+                    KitText("Set ${hk.label}", style = MaterialTheme.typography.titleLarge)
+                    KitText(
                         if (host.hotkeyCaptureKeys.isEmpty()) "Press a button, or hold several buttons together, then release."
                         else host.hotkeyCaptureKeys.joinToString(" + ") { keyName(it) },
                         textAlign = TextAlign.Center,
                     )
-                    TextButton(onClick = { host.hotkeyCapture = null }) { Text("Cancel") }
+                    TextButton(onClick = { host.hotkeyCapture = null }) { KitText("Cancel") }
                 }
             }
         }

@@ -59,6 +59,7 @@ fun SettingsPageBackButton(pageKey: Any?, onBack: () -> Unit) {
 /** Shared defaults and enforcement policy for optional game-specific patches. */
 object GameHackPolicy {
     const val DEFAULT_ENABLED = true
+    const val WIDESCREEN_DEFAULT_ENABLED = false
 
     /** Hardcore always wins over a saved toggle value. */
     fun shouldApply(enabled: Boolean, hardcoreActive: Boolean): Boolean = enabled && !hardcoreActive
@@ -71,7 +72,7 @@ fun SettingsGroup(title: String?, icon: ImageVector?, content: @Composable Colum
     Column {
         if (title != null) Row(Modifier.padding(start = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) { Icon(icon, null, tint = p.highlight, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
-            Text(title.uppercase(), style = MaterialTheme.typography.labelLarge, color = p.highlight, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            KitText(title.uppercase(), style = MaterialTheme.typography.labelLarge, color = p.highlight, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         }
         Surface(shape = RoundedCornerShape(20.dp), color = p.card, border = p.panelBorder, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(vertical = 4.dp), content = content)
@@ -111,8 +112,8 @@ fun ToggleRow(icon: ImageVector, title: String, sub: String?, value: Boolean, en
         RowIcon(icon, focused = focused)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = if (focused) p.onAccent else MaterialTheme.colorScheme.onSurface)
-            if (sub != null) Text(sub, style = MaterialTheme.typography.bodySmall, color = if (focused) p.onAccent.copy(alpha = .82f) else p.dim)
+            KitText(title, style = MaterialTheme.typography.titleSmall, color = if (focused) p.onAccent else MaterialTheme.colorScheme.onSurface)
+            if (sub != null) KitText(sub, style = MaterialTheme.typography.bodySmall, color = if (focused) p.onAccent.copy(alpha = .82f) else p.dim)
         }
         Spacer(Modifier.width(12.dp))
         Switch(checked = value, onCheckedChange = null, enabled = enabled)
@@ -158,8 +159,8 @@ fun ActionRow(icon: ImageVector, title: String, sub: String?, action: String, on
         RowIcon(icon, warn)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-            if (sub != null) Text(sub, style = MaterialTheme.typography.bodySmall, color = if (warn) palette.warn else palette.dim,
+            KitText(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+            if (sub != null) KitText(sub, style = MaterialTheme.typography.bodySmall, color = if (warn) palette.warn else palette.dim,
                 maxLines = subMaxLines, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(12.dp))
@@ -167,7 +168,7 @@ fun ActionRow(icon: ImageVector, title: String, sub: String?, action: String, on
             onClick = onAction,
             modifier = Modifier.onFocusChanged { actionFocused = it.isFocused }
                 .then(if (actionFocused) Modifier.border(3.dp, p.highlight, RoundedCornerShape(12.dp)) else Modifier),
-        ) { Text(action) }
+        ) { KitText(action) }
     }
 }
 
@@ -177,8 +178,8 @@ fun ChoiceRow(title: String, sub: String?, options: List<String>, selected: Int,
     val p = palette
     var focusedIndex by remember(title) { mutableIntStateOf(-1) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text(title, style = MaterialTheme.typography.titleSmall, color = Color.White)
-        if (sub != null) Text(sub, style = MaterialTheme.typography.bodySmall, color = p.dim)
+        KitText(title, style = MaterialTheme.typography.titleSmall, color = Color.White)
+        if (sub != null) KitText(sub, style = MaterialTheme.typography.bodySmall, color = p.dim)
         Spacer(Modifier.height(10.dp))
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { i, label ->
@@ -195,7 +196,7 @@ fun ChoiceRow(title: String, sub: String?, options: List<String>, selected: Int,
                         activeBorderColor = p.highlight.copy(alpha = .8f),
                         inactiveBorderColor = if (focused) p.highlight else p.border,
                     ),
-                ) { Text(label, maxLines = 1) }
+                ) { KitText(label, maxLines = 1) }
             }
         }
     }
@@ -204,7 +205,7 @@ fun ChoiceRow(title: String, sub: String?, options: List<String>, selected: Int,
 @Composable
 fun InfoRow(title: String, sub: String) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text(title, style = MaterialTheme.typography.titleSmall, color = Color.White)
-        Text(sub, style = MaterialTheme.typography.bodySmall, color = palette.dim)
+        KitText(title, style = MaterialTheme.typography.titleSmall, color = Color.White)
+        KitText(sub, style = MaterialTheme.typography.bodySmall, color = palette.dim)
     }
 }

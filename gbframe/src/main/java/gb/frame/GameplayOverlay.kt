@@ -74,6 +74,6 @@ fun BoxScope.GameplayOverlayChrome(
         Surface(
             shape = RoundedCornerShape(20.dp), color = Color.Black.copy(alpha = .7f),
             modifier = Modifier.align(Alignment.TopCenter).gameOverlayInsets().padding(top = 12.dp),
-        ) { Text(msg, color = Color.White, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }
+        ) { KitText(msg, color = Color.White, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }
     }
 }

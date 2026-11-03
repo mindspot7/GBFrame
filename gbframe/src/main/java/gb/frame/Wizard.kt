@@ -42,8 +42,8 @@ fun SetupWizard(steps: List<WizardStep>, onFinish: () -> Unit, message: String? 
     val pad = if (compact) 12.dp else 24.dp
     Column(Modifier.fillMaxSize().background(palette.backgroundBrush).safeDrawingPadding().padding(horizontal = 24.dp, vertical = pad)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("GBFRAME SETUP", style = MaterialTheme.typography.labelLarge, color = palette.highlight, fontWeight = FontWeight.Bold)
-            Text("${(step + 1).toString().padStart(2, '0')} / ${steps.size.toString().padStart(2, '0')}",
+            KitText("GBFRAME SETUP", style = MaterialTheme.typography.labelLarge, color = palette.highlight, fontWeight = FontWeight.Bold)
+            KitText("${(step + 1).toString().padStart(2, '0')} / ${steps.size.toString().padStart(2, '0')}",
                 style = MaterialTheme.typography.labelMedium, color = palette.dim)
         }
         Spacer(Modifier.height(8.dp))
@@ -56,12 +56,12 @@ fun SetupWizard(steps: List<WizardStep>, onFinish: () -> Unit, message: String? 
             val s = steps[step]
             WizardPage(s.icon, s.title, s.colors, s.body, compact)
             s.content(this)
-            message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center) }
+            message?.let { KitText(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center) }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            if (step > 0) TextButton(onClick = { step--; onStepChange() }) { Text("Back") } else TextButton(onClick = onFinish) { Text("Skip") }
+            if (step > 0) TextButton(onClick = { step--; onStepChange() }) { KitText("Back") } else TextButton(onClick = onFinish) { KitText("Skip") }
             Button(onClick = { if (step < steps.size - 1) { step++; onStepChange() } else onFinish() }) {
-                Text(if (step < steps.size - 1) "Next" else "Start")
+                KitText(if (step < steps.size - 1) "Next" else "Start")
             }
         }
     }
@@ -77,9 +77,9 @@ fun WizardPage(icon: ImageVector, title: String, colors: List<Color>, body: Stri
             Icon(icon, null, Modifier.size(52.dp * k), tint = Color.White)
         }
     }
-    Text(title, style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
+    KitText(title, style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
         textAlign = TextAlign.Center, color = Color.White, fontWeight = FontWeight.Bold)
-    if (body.isNotBlank()) Text(body, style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+    if (body.isNotBlank()) KitText(body, style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center, color = Color.White.copy(alpha = .75f))
 }
 
@@ -89,7 +89,7 @@ fun WizardStatus(text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(8.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium)
+        KitText(text, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -110,8 +110,8 @@ fun PresetPicker(options: List<PresetOption>, selected: Int, onSelect: (Int) -> 
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = sel, onClick = { onSelect(i) })
                 Column {
-                    Text(p.label, style = MaterialTheme.typography.titleMedium)
-                    Text(p.description, style = MaterialTheme.typography.bodySmall)
+                    KitText(p.label, style = MaterialTheme.typography.titleMedium)
+                    KitText(p.description, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

@@ -135,7 +135,7 @@ fun CheatsScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
-                    Text(
+                    KitText(
                         "Cheats",
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f),
@@ -152,7 +152,7 @@ fun CheatsScreen(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Name") },
+                        label = { KitText("Name") },
                         singleLine = true,
                         enabled = !blocked,
                         modifier = Modifier.fillMaxWidth(),
@@ -161,7 +161,7 @@ fun CheatsScreen(
                     OutlinedTextField(
                         value = code,
                         onValueChange = { code = it },
-                        label = { Text(backend.codeHint) },
+                        label = { KitText(backend.codeHint) },
                         enabled = !blocked,
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
@@ -179,12 +179,12 @@ fun CheatsScreen(
                                     adding = false
                                 }
                             },
-                        ) { Text("Add") }
+                        ) { KitText("Add") }
                     }
                 }
 
                 backend.databaseStatus?.let {
-                    Text(
+                    KitText(
                         it,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -192,7 +192,7 @@ fun CheatsScreen(
                     )
                 }
                 backend.blockedMessage?.let {
-                    Text(
+                    KitText(
                         it,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
@@ -201,7 +201,7 @@ fun CheatsScreen(
                 }
                 feedback?.let { result ->
                     result.message?.let { message ->
-                        Text(
+                        KitText(
                             message,
                             color = if (result.success) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
@@ -211,7 +211,7 @@ fun CheatsScreen(
                 }
 
                 if (backend.cheats.isEmpty() && !adding) {
-                    Text(
+                    KitText(
                         "No cheats for this game yet. Add a code or import a supported cheat file.",
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(16.dp),
@@ -221,9 +221,9 @@ fun CheatsScreen(
                 LazyColumn(Modifier.weight(1f)) {
                     items(backend.cheats, key = { it.id }) { cheat ->
                         ListItem(
-                            headlineContent = { Text(cheat.name) },
+                            headlineContent = { KitText(cheat.name) },
                             supportingContent = {
-                                Text(
+                                KitText(
                                     buildString {
                                         cheat.sourceLabel?.takeIf { it.isNotBlank() }?.let { append(it).append(" · ") }
                                         append(cheat.code.lineSequence().firstOrNull().orEmpty().take(40))
