@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -137,17 +136,6 @@ fun AdaptiveGraphicsSettingsRow(value: Boolean, onChange: (Boolean) -> Unit) = T
     "Auto frame skip",
     "When the game slows down, skips drawing some frames so the CPU can keep running the game. This may improve speed, but motion looks less smooth. Audio timing stays normal.",
     value,
-    onChange,
-)
-
-/** Shared Performance control for an app-provided, per-game frame-rate hack. */
-@Composable
-fun FrameRateHackRow(control: CheatPatchControl, enabled: Boolean = true, onChange: (Boolean) -> Unit) = ToggleRow(
-    Icons.Default.Speed,
-    control.label,
-    control.description,
-    control.enabled,
-    enabled,
     onChange,
 )
 
