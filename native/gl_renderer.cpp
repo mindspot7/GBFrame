@@ -228,8 +228,10 @@ struct State {
     bool frameReady = false;
 
     // Zero-copy path: frames are written straight into GPU-visible AHardwareBuffers (no glTexSubImage2D upload, no
-    // intermediate copy). Several slots rotate so the emulator never writes the buffer being displayed.
-    static constexpr int kSlots = 4;
+    // intermediate copy). Several slots rotate so the emulator never writes the buffer being displayed: one shown, one
+    // being drawn, one queued and up to two being written (a Vulkan producer keeps one frame in flight: it acquires the
+    // target of frame N+1 before it submits frame N).
+    static constexpr int kSlots = kTargetSlots;
     struct Slot {
         AHardwareBuffer *hb = nullptr;
         uint32_t w = 0, h = 0, stride = 0;
@@ -238,7 +240,10 @@ struct State {
         bool vulkanTarget = false;
     } slots[kSlots];
     // drawingSlot: taken from readySlot and sampled by the presenter until it becomes shownSlot after the swap.
-    int readySlot = -1, shownSlot = -1, writingSlot = -1, drawingSlot = -1;
+    // writing[i]: handed to a producer and not submitted or cancelled yet. Per slot, since producers have several in
+    // flight; a single "writing slot" made every Vulkan submit after the next acquire be dropped (black screen).
+    int readySlot = -1, shownSlot = -1, drawingSlot = -1;
+    bool writing[kSlots] = {};
     std::atomic<bool> hbDisabled{false}; // set when the device lacks the EGL/GL extensions or allocation fails
     std::atomic<bool> hbSupportReady{false};
 
@@ -259,7 +264,7 @@ std::atomic<bool> gpuTimed{false};
 // A slot the producer may write: not queued, shown, being drawn or already being written. Call with S.m held.
 int FreeSlotLocked() {
     for (int i = 0; i < State::kSlots; ++i) {
-        if (i != S.readySlot && i != S.shownSlot && i != S.writingSlot && i != S.drawingSlot) return i;
+        if (i != S.readySlot && i != S.shownSlot && i != S.drawingSlot && !S.writing[i]) return i;
     }
     return -1;
 }
@@ -602,7 +607,7 @@ bool SubmitHardwareBuffer(const uint32_t *fb, uint32_t width, uint32_t height, u
         if (!S.started) return true;
         idx = FreeSlotLocked();
         if (idx < 0) return false;
-        S.writingSlot = idx;
+        S.writing[idx] = true;
     }
     auto &sl = S.slots[idx];
     bool ok = true;
@@ -634,7 +639,7 @@ bool SubmitHardwareBuffer(const uint32_t *fb, uint32_t width, uint32_t height, u
         AHardwareBuffer_unlock(sl.hb, nullptr);
     }
     std::lock_guard lk(S.m);
-    S.writingSlot = -1;
+    S.writing[idx] = false;
     if (!ok) {
         S.hbDisabled = true;
         LOGE("AHardwareBuffer path unavailable, using texture uploads");
@@ -659,7 +664,7 @@ VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height) {
             S.vulkanTargetDisabled.load()) return {};
         idx = FreeSlotLocked();
         if (idx < 0) return {};
-        S.writingSlot = idx;
+        S.writing[idx] = true;
     }
     auto &sl = S.slots[idx];
     const uint64_t usage = AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
@@ -681,7 +686,7 @@ VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height) {
     }
     std::lock_guard lk(S.m);
     if (!ok || !sl.hb) {
-        S.writingSlot = -1;
+        S.writing[idx] = false;
         S.vulkanTargetDisabled = true;
         LOGE("Vulkan AHardwareBuffer target unavailable, using readback presentation");
         return {};
@@ -696,9 +701,9 @@ void SubmitVulkanTarget(uint64_t token, uint32_t width, uint32_t height, uint32_
     const uint32_t idx = (uint32_t)token;
     const uint32_t gen = (uint32_t)(token >> 32);
     std::lock_guard lk(S.m);
-    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen || !S.slots[idx].hb) return;
-    S.writingSlot = -1;
-    S.readySlot = (int)idx;
+    if (idx >= State::kSlots || !S.writing[idx] || S.slots[idx].gen != gen || !S.slots[idx].hb) return;
+    S.writing[idx] = false;
+    S.readySlot = (int)idx; // latest frame wins: a queued older one is simply not drawn
     S.fw = width;
     S.fh = height;
     S.fscale = scale ? scale : 1;
@@ -710,8 +715,8 @@ void CancelVulkanTarget(uint64_t token) {
     const uint32_t idx = (uint32_t)token;
     const uint32_t gen = (uint32_t)(token >> 32);
     std::lock_guard lk(S.m);
-    if (idx >= State::kSlots || S.writingSlot != (int)idx || S.slots[idx].gen != gen) return;
-    S.writingSlot = -1;
+    if (idx >= State::kSlots || !S.writing[idx] || S.slots[idx].gen != gen) return;
+    S.writing[idx] = false;
     S.cv.notify_all();
 }
 

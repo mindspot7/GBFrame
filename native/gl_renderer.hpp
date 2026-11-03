@@ -12,6 +12,10 @@
 
 namespace glr {
 
+// Hardware-buffer slots the presenter rotates; a VulkanTarget token carries a slot index below this. A producer that
+// keeps one imported image per slot needs this many entries.
+constexpr int kTargetSlots = 5;
+
 struct VulkanTarget {
     AHardwareBuffer *buffer = nullptr;
     uint64_t token = 0; // slot index + allocation generation; valid until SubmitVulkanTarget/CancelVulkanTarget
