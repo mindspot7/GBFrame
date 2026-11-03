@@ -8,7 +8,7 @@ rem ---- app (ajuste ao copiar) ------------------------------------------------
 set TITLE=GBSat
 set NAME=gbsat
 set REPO=mindspotgb/GBSat
-set BRANCH=android-port
+set BRANCH=main
 set APP=app.gbsat.emulator
 rem APP is both applicationId and namespace; ACTIVITY is the fully qualified source class (it may use a different package).
 set ACTIVITY=app.gbsat.android.MainActivity

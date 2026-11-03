@@ -76,7 +76,7 @@ of these repositories.
 - The release has the **APK only**; the App Bundle (`.aab`, for Google Play) is built only for a release (VERSION
   without a GitHub release yet) or a manual run with `bundle: true`, and stays in that run's artifacts.
 - `versionCode` = CI run number (always increasing); `versionName` = `VERSION (build N)`.
-- Never create tags by hand. Commit/push only to the app's working branch (GBSat: `android-port`); no pushes upstream.
+- Never create tags by hand. Commit/push only to the app's working branch (`main` in every app); no pushes upstream.
 - This session type cannot edit or delete releases: tell the owner how to do it in the GitHub UI.
 
 ## License
