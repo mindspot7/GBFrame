@@ -402,3 +402,7 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 - A Vulkan producer keeps a frame in flight: it acquires the target of frame N+1 before submitting frame N. The presenter must track "being written" per slot (a single writingSlot dropped every submit: black screen) and have slots for shown + drawing + queued + two written (`glr::kTargetSlots`); a producer keeping one imported image per slot sizes its array from that constant.
 - Each `AcquireVulkanTarget` hands the caller one AHardwareBuffer reference: keep it with the imported VkImage or release it, also when the buffer is already imported (Ymir kept every per-frame reference).
 - With zero-copy on, Daytona USA on the Nova went from ~7.5 ms to ~5 ms per frame; GBCast's CPU use dropped from ~9% to ~7%.
+
+## Controller input
+
+- A motion event must only change what came from axes. GBSat rebuilt the D-pad directions from the stick/hat on every motion event and GBCast sent D-pad releases whenever HAT=0, so on pads whose D-pad sends DPAD keycodes and that also report axes, moving the stick or an analog trigger released a held D-pad. Keep axis-driven directions in their own state (OR them with the keys) and turn hat values into D-pad events only when they change. The Retroid Pocket Nova's D-pad is the hat (Generic.kl has no BTN_DPAD_* entries), so test the key case with a pad that sends DPAD keycodes.
