@@ -41,6 +41,9 @@ bool ReadShownFrame(const std::function<void(const uint32_t *, uint32_t, uint32_
 // filter: 0 nearest, 1 bilinear.
 // shader: 0 none, 1 scanlines, 2 CRT, 3 LCD3x, 5 CRT Royale, 6 GTU (4, dot matrix, was removed: shows none).
 void SetOptions(int filter, int shader);
+// The app's native pixel grid, which the shader patterns and the GTU filter follow whatever the internal scale of its
+// frames is (GBCast: the Dreamcast's 640x480). 0 x 0, the default, infers the grid from each frame's size.
+void SetNativeGrid(uint32_t width, uint32_t height);
 // Colour correction of the source colours, with any shader: 0 none, 1 bsnes gamma ramp.
 void SetColorCorrection(int mode);
 void Shutdown();

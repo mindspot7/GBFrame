@@ -250,6 +250,7 @@ struct State {
     std::atomic<int> filter{1};
     std::atomic<int> shader{0};
     std::atomic<int> colorRamp{0}; // 1: bsnes gamma ramp
+    std::atomic<uint32_t> gridW{0}, gridH{0}; // the app's native pixel grid; 0 infers it from each frame
     bool dirty = false;
 };
 
@@ -526,11 +527,20 @@ void Loop() {
         {
             // Hi-res (640/704 wide) and interlaced (448+ lines) modes, used by many games in menus and title screens,
             // are mapped back to the low-res grid so the scanline/dot patterns keep the same size instead of doubling up
-            float nw = (float)drawW / texScale, nh = (float)drawH / texScale;
-            if (nw >= 560.0f) nw *= 0.5f;
-            if (nh >= 400.0f) nh *= 0.5f;
+            // The app's own grid (SetNativeGrid) wins: a Dreamcast frame at 2x is still 640x480 pixels, and inferring
+            // the grid from its size made the scanlines follow 240 or 720 lines at other scales
+            const uint32_t gw = S.gridW.load(), gh = S.gridH.load();
+            const float frameW = (float)drawW / texScale, frameH = (float)drawH / texScale;
+            float nw = frameW, nh = frameH;
+            if (gw != 0 && gh != 0) {
+                nw = (float)gw;
+                nh = (float)gh;
+            } else {
+                if (nw >= 560.0f) nw *= 0.5f;
+                if (nh >= 400.0f) nh *= 0.5f;
+            }
             glUniform2f(uSrcSize, nw, nh);
-            glUniform2f(uFrameSize, (float)drawW / texScale, (float)drawH / texScale);
+            glUniform2f(uFrameSize, gw != 0 ? (float)gw : frameW, gh != 0 ? (float)gh : frameH);
         }
         glUniform2f(uOutSize, (float)sw, (float)sh);
         glUniform1i(uFilter, S.filter.load());
@@ -772,6 +782,11 @@ void SetOptions(int filter, int shader) {
     std::lock_guard lk(S.m);
     S.dirty = true;
     S.cv.notify_all();
+}
+
+void SetNativeGrid(uint32_t width, uint32_t height) {
+    S.gridW = width;
+    S.gridH = height;
 }
 
 void Shutdown() {
