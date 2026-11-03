@@ -78,14 +78,12 @@ object AppUpdates {
     /** Where this installation came from. See the class rules above. */
     fun channelOf(context: Context): UpdateChannel {
         val pm = context.packageManager
-        val marked = runCatching {
-            pm.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA).metaData?.getString(CHANNEL_METADATA)
-        }.getOrNull()
-        if (marked.equals("github", ignoreCase = true)) return UpdateChannel.GITHUB
         val installer = runCatching {
             if (Build.VERSION.SDK_INT >= 30) pm.getInstallSourceInfo(context.packageName).installingPackageName
             else @Suppress("DEPRECATION") pm.getInstallerPackageName(context.packageName)
         }.getOrNull()
+        // Only the Play Store installer means Play; the `github` build metadata and every other installer (ADB,
+        // file manager, browser, unknown) mean GitHub. A Play-installed copy cannot be a GitHub APK.
         return if (installer == PLAY_INSTALLER) UpdateChannel.PLAY else UpdateChannel.GITHUB
     }
 
