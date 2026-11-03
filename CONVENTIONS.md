@@ -86,6 +86,18 @@ of these repositories.
   source. Audit each packaged dependency separately. Google Play Billing and related Play Services artifacts use Google's
   Android SDK terms; do not describe them as open source or assume they are GPL-compatible without publication review.
 
+## Kit changes reaching the apps
+
+- Each app builds the GBFrame commit its `libs/gbframe` submodule points to, never the kit repository itself: a kit
+  change is in an app only after `libs/gbframe` is moved to it and that pointer is committed in the app. Bump both apps
+  in the same batch; CI warns ("GBFrame submodule behind") when an app builds an older kit.
+- Kotlin and resources come through the `:gbframe` Gradle module automatically. Native helpers do not: an app gets only
+  the ones its CMakeLists adds. Prefer `gb_native_add` (presenter, cpu_tuning, pgo, perf_probe, Skip Engine) and
+  `gb_native_storage`; an app that adds sources one by one must list what it leaves out and why (GBCast: no cpu_tuning
+  yet, Flycast has no hook for the frame's work time without the render wait).
+- A shared UI piece (quick-menu rows, settings rows) is used by every app that has the feature; reimplementing it in an
+  app hides kit fixes from that app.
+
 ## Signing
 
 - All APKs/AABs of an app are signed with one permanent release key from repository secrets (GBSat:
