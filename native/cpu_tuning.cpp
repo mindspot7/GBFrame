@@ -80,11 +80,14 @@ using GetManagerFn = APerformanceHintManager *(*)();
 using CreateFn = APerformanceHintSession *(*)(APerformanceHintManager *, const int32_t *, size_t, int64_t);
 using ReportFn = int (*)(APerformanceHintSession *, int64_t);
 using CloseFn = void (*)(APerformanceHintSession *);
+using UpdateTargetFn = int (*)(APerformanceHintSession *, int64_t);
 GetManagerFn getManager;
 CreateFn createSession;
 ReportFn report;
 CloseFn closeSession;
+UpdateTargetFn updateTarget;
 APerformanceHintSession *session = nullptr;
+int64_t targetNs = 16'666'666; // one frame of the emulated system (60 Hz NTSC, 50 Hz PAL: SetFrameRate)
 std::vector<int32_t> sessionTids;
 
 void UpdateSession(std::vector<int32_t> tids) {
@@ -96,6 +99,7 @@ void UpdateSession(std::vector<int32_t> tids) {
             createSession = (CreateFn)dlsym(lib, "APerformanceHint_createSession");
             report = (ReportFn)dlsym(lib, "APerformanceHint_reportActualWorkDuration");
             closeSession = (CloseFn)dlsym(lib, "APerformanceHint_closeSession");
+            updateTarget = (UpdateTargetFn)dlsym(lib, "APerformanceHint_updateTargetWorkDuration");
         }
     }
     if (!getManager || !createSession || !report || !closeSession) return;
@@ -103,7 +107,7 @@ void UpdateSession(std::vector<int32_t> tids) {
     if (session) { closeSession(session); session = nullptr; }
     APerformanceHintManager *mgr = getManager();
     if (!mgr) return;
-    session = createSession(mgr, tids.data(), tids.size(), 16'666'666); // one 60 Hz frame
+    session = createSession(mgr, tids.data(), tids.size(), targetNs);
     sessionTids = std::move(tids);
     if (session) LOGI("CPU tuning: performance hint session with %zu threads", sessionTids.size());
 }
@@ -176,6 +180,16 @@ void PinEmulationThreads() {
     // recreated when options change, and replacing the session each time left the CPU boost in a worse state until the
     // app was restarted.
     UpdateSession({self});
+}
+
+void SetFrameRate(double hz) {
+    if (hz <= 0.0) return;
+    std::lock_guard lk(m);
+    const int64_t ns = (int64_t)(1e9 / hz);
+    if (ns == targetNs) return;
+    targetNs = ns;
+    // A 60 Hz target on a 50 Hz (PAL) game asked for more CPU boost than needed
+    if (session && updateTarget) updateTarget(session, targetNs);
 }
 
 void ReportFrameWork(int64_t ns) {

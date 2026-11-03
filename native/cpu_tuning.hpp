@@ -15,6 +15,8 @@ void SetThreadRoles(std::vector<std::string> fast, std::vector<std::string> othe
 void PinEmulationThreads();
 // Number of fast (big/prime) cores: within 60% of the fastest core's capacity
 int FastCoreCount();
+// Frame rate of the emulated video (60 NTSC, 50 PAL): the performance hint session's target duration. Cheap when unchanged.
+void SetFrameRate(double hz);
 // Reports the time spent emulating the last frame to the performance hint session.
 void ReportFrameWork(int64_t ns);
 } // namespace cputune

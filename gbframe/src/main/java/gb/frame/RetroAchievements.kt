@@ -9,12 +9,14 @@ import android.util.AtomicFile
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -190,6 +192,8 @@ object RetroAchievements {
         }
         scope.launch {
             while (true) {
+                // Off and no login running: suspend (no JNI call, no wakeup) until it is enabled or a login starts
+                snapshotFlow { enabled || loginPending }.first { it }
                 poll()
                 delay(250)
             }
