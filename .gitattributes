@@ -1,0 +1,3 @@
+# Windows scripts keep their CRLF bytes; core.autocrlf=input must not rewrite them.
+*.bat -text
+*.ps1 -text
