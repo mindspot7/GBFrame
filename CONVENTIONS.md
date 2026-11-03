@@ -104,6 +104,10 @@ of these repositories.
 
 - targetSdk/compileSdk **36**, Android Gradle Plugin 8.10+, Gradle 8.14.
 - **16 KB page size**: `-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON` and `-Wl,-z,max-page-size=16384`; CI checks alignment.
+- **Edge-to-edge (SDK 35)**: every Activity calls `gb.frame.FullScreen.apply(this)` in `onCreate` and
+  `FullScreen.hideSystemBars` to re-hide the bars. Never use `enableEdgeToEdge()` (androidx still calls the deprecated
+  APIs), `Window.setStatusBarColor`/`setNavigationBarColor`/`setNavigationBarDividerColor`, the `shortEdges`/`default`
+  cutout modes or the `statusBarColor`/`navigationBarColor` theme attributes: Play Console flags them. Check a release APK with `dexdump` for those names before uploading.
 - **No `MANAGE_EXTERNAL_STORAGE`**: games are read through the Storage Access Framework (folder picker + persisted
   tree URI). The kit's `SafGames` stages disc files as `/proc/self/fd/N` symlinks so path-based cores work unchanged.
 - Data stays in the app's storage, with Export (saves and save states only) / Import data.

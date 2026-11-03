@@ -388,3 +388,7 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 ## Signing
 
 - A local build without the permanent key used to fall back to the debug key while keeping the official application ID. Once such an APK was on the device (GBSat and GBCast on the Retroid Pocket Nova, 2026-11-02), every properly signed update failed with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` and the only way out was uninstalling, which loses app data. Fix: local builds read the key from `local.properties`, and keyless builds become a side-by-side `.dev` app (CONVENTIONS.md "Signing").
+
+## Edge-to-edge
+
+- Play Console flagged GBSat 1.0 (build 2) for deprecated edge-to-edge APIs although the app code only called androidx `enableEdgeToEdge()`: androidx.activity (even 1.13.0) still calls `setStatusBarColor`/`setNavigationBarColor` and the `shortEdges` cutout mode for older Android versions. `dexdump -d` of the release APK plus `mapping.txt` shows who calls them. GBFrame `FullScreen` replaces it with only non-deprecated calls.
