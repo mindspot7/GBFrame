@@ -93,8 +93,9 @@ of these repositories.
   in the same batch; CI warns ("GBFrame submodule behind") when an app builds an older kit.
 - Kotlin and resources come through the `:gbframe` Gradle module automatically. Native helpers do not: an app gets only
   the ones its CMakeLists adds. Prefer `gb_native_add` (presenter, cpu_tuning, pgo, perf_probe, Skip Engine) and
-  `gb_native_storage`; an app that adds sources one by one must list what it leaves out and why (GBCast: no cpu_tuning
-  yet, Flycast has no hook for the frame's work time without the render wait).
+  `gb_native_storage`; an app that adds sources one by one must list what it leaves out and why. cpu_tuning needs the
+  app to report each frame's work time without its waits (GBSat: emulation time; GBCast: VBlank interval minus the
+  render-queue and audio waits, core/gbcast_cputune.cpp).
 - A shared UI piece (quick-menu rows, settings rows) is used by every app that has the feature; reimplementing it in an
   app hides kit fixes from that app.
 
