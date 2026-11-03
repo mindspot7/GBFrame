@@ -687,7 +687,7 @@ VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height) {
         return {};
     }
     sl.vulkanTarget = true;
-    AHardwareBuffer_acquire(sl.hb); // Ymir holds this reference while importing it into Vulkan.
+    AHardwareBuffer_acquire(sl.hb); // the caller's reference: kept by its imported VkImage or released (see header)
     const uint64_t token = ((uint64_t)sl.gen << 32) | (uint32_t)idx;
     return {sl.hb, token, sl.stride};
 }

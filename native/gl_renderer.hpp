@@ -26,6 +26,8 @@ void Submit(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t scale 
 void SubmitCpu(const uint32_t *fb, uint32_t width, uint32_t height, uint32_t scale = 1);
 // Reserve a presenter-owned AHardwareBuffer for a Vulkan GPU copy. The returned target is not CPU writable and must be
 // submitted or cancelled. Returns an empty target if EGLImage sharing is unavailable or no free slot exists.
+// Every call hands the caller one reference to `buffer`: keep it (one per imported VkImage) or release it, also when
+// the same buffer is already imported or the import fails, or the buffers of old sizes are never freed.
 VulkanTarget AcquireVulkanTarget(uint32_t width, uint32_t height);
 void SubmitVulkanTarget(uint64_t token, uint32_t width, uint32_t height, uint32_t scale = 1);
 void CancelVulkanTarget(uint64_t token);
