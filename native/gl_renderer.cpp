@@ -108,12 +108,17 @@ vec3 gtu(vec2 uv) {
     int rx = min(int(ceil(0.5 + w / 256.0)), 4);
     float temp = sqrt(2.0 * PI) * (250.0 / h);
     float rrr = 0.5 * (h / uOutSize.y);
+    // The horizontal weights depend on fx only, the same for the four scanlines: computed once, not per scanline
+    float wt[10];
+    for (int i = -rx; i <= rx + 1; ++i) {
+        wt[i + rx] = gtuStu(fx - float(i), bx);
+    }
     vec3 col = vec3(0.0);
     for (int j = -1; j <= 2; ++j) {
         float v = (y0 + float(j) + 0.5) / h;
         vec3 hc = vec3(0.0);
         for (int i = -rx; i <= rx + 1; ++i) {
-            hc += src(vec2((x0 + float(i) + 0.5) / w, v)) * gtuStu(fx - float(i), bx);
+            hc += src(vec2((x0 + float(i) + 0.5) / w, v)) * wt[i + rx];
         }
         hc = clamp(hc, 0.0, 1.0);
         float y = fy - float(j);
