@@ -406,3 +406,8 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 ## Controller input
 
 - A motion event must only change what came from axes. GBSat rebuilt the D-pad directions from the stick/hat on every motion event and GBCast sent D-pad releases whenever HAT=0, so on pads whose D-pad sends DPAD keycodes and that also report axes, moving the stick or an analog trigger released a held D-pad. Keep axis-driven directions in their own state (OR them with the keys) and turn hat values into D-pad events only when they change. The Retroid Pocket Nova's D-pad is the hat (Generic.kl has no BTN_DPAD_* entries), so test the key case with a pad that sends DPAD keycodes.
+
+## GPU compute on mobile
+
+- Workgroup size: Ymir's VDP2 compose and sprite-layer shaders used `[numthreads(32,1,1)]`; Adreno runs waves of 64+ threads, so half of every wave idled. 64-thread groups cut compose from ~3.3 to ~2.0 ms and the sprite layer from ~1.1 to ~0.76 ms per frame (Daytona USA at 4x, Retroid Pocket Nova). Check numthreads first when a compute pass is slow on mobile; guard widths that are no longer a multiple of the group size.
+- Measure per pass before optimizing: two timestamps around each dispatch, grouped by pipeline name, showed compose as the largest pass (VDP1 polygons, BG layers and sprites next).
