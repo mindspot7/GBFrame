@@ -92,9 +92,11 @@ float gtuStu(float x, float b) {
     float e = PI * b * min(max(a - 0.5, -1.0 / b), 1.0 / b);
     return (d + sin(d) - e - sin(e)) / (2.0 * PI);
 }
-float gtuGaussInt(float x) {
-    float t = 1.0 / (1.0 + 0.33267 * abs(x));
-    float g = exp(-x * x * 0.5) / sqrt(2.0 * PI);
+// mediump: the weights are fractions of one, so half precision keeps them to within a colour step (the coordinates
+// above stay highp, where half precision would move the texels)
+mediump float gtuGaussInt(highp float x) {
+    mediump float t = 1.0 / (1.0 + 0.33267 * abs(x));
+    mediump float g = exp(-x * x * 0.5) / sqrt(2.0 * PI);
     return (0.5 - g * (t * (0.4361836 + t * (-0.1201676 + 0.9372980 * t)))) * sign(x);
 }
 vec3 gtu(vec2 uv) {
@@ -109,20 +111,21 @@ vec3 gtu(vec2 uv) {
     float temp = sqrt(2.0 * PI) * (250.0 / h);
     float rrr = 0.5 * (h / uOutSize.y);
     // The horizontal weights depend on fx only, the same for the four scanlines: computed once, not per scanline
-    float wt[10];
+    mediump float wt[10];
     for (int i = -rx; i <= rx + 1; ++i) {
         wt[i + rx] = gtuStu(fx - float(i), bx);
     }
-    vec3 col = vec3(0.0);
+    mediump vec3 col = vec3(0.0);
     for (int j = -1; j <= 2; ++j) {
         float v = (y0 + float(j) + 0.5) / h;
-        vec3 hc = vec3(0.0);
+        mediump vec3 hc = vec3(0.0);
         for (int i = -rx; i <= rx + 1; ++i) {
             hc += src(vec2((x0 + float(i) + 0.5) / w, v)) * wt[i + rx];
         }
         hc = clamp(hc, 0.0, 1.0);
         float y = fy - float(j);
-        col += hc * (gtuGaussInt((y + rrr) * temp) - gtuGaussInt((y - rrr) * temp)) * (uOutSize.y / h);
+        mediump float beam = gtuGaussInt((y + rrr) * temp) - gtuGaussInt((y - rrr) * temp);
+        col += hc * beam * (uOutSize.y / h);
     }
     return clamp((col - 0.07) / (1.0 - 0.07), 0.0, 1.0);
 }
