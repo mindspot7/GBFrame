@@ -384,3 +384,7 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 
 - `allowBackup="true"` includes app preferences and private files by default. Keep authentication tokens in `noBackupFilesDir`, and exclude legacy preference files that once held tokens from both cloud backup and device transfer. Move non-secret preferences into a separate backupable file so ordinary settings survive migration.
 - Inspect each consumer's `BackupAgent`: GBCast's custom agent serializes selected files from external app storage and does not serialize SharedPreferences. Framework backup rules alone cannot constrain a custom agent's explicit helpers.
+
+## Signing
+
+- A local build without the permanent key used to fall back to the debug key while keeping the official application ID. Once such an APK was on the device (GBSat and GBCast on the Retroid Pocket Nova, 2026-11-02), every properly signed update failed with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` and the only way out was uninstalling, which loses app data. Fix: local builds read the key from `local.properties`, and keyless builds become a side-by-side `.dev` app (CONVENTIONS.md "Signing").

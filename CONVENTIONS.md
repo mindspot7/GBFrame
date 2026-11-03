@@ -90,6 +90,13 @@ of these repositories.
 
 - All APKs/AABs of an app are signed with one permanent release key from repository secrets (GBSat:
   `GBSAT_KEYSTORE_BASE64` and `GBSAT_KEYSTORE_PASSWORD`, alias `gbsat`), so updates install over each other.
+- Debug and release use the same permanent key. Gradle finds it from `<APP>_KEYSTORE_FILE`/`<APP>_KEYSTORE_PASSWORD`
+  (CI) or, for local builds, from `<app>.keystore.file` and `<app>.keystore.passwordFile` in the git-ignored
+  `local.properties`, so a plain local build is already release-signed.
+- Without the permanent key (forks, a PC without it) the build must switch to `applicationIdSuffix = ".dev"` and the
+  label "<App> Dev" (manifest `${appLabel}` placeholder) and use the debug key. An APK signed with any other key must
+  never carry the official application ID: on a device it blocks every later update until the app is uninstalled.
+  Never hard-code the package name in code or manifests; use `${applicationId}` / `context.packageName`.
 - A new app gets its own key (generate it, send it to the owner, ask them to add the secrets). On Google Play, upload
   with "use my own key" so the Play and GitHub builds share the signature.
 
