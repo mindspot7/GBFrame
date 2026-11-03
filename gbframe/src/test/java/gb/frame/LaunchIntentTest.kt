@@ -19,6 +19,19 @@ class LaunchIntentTest {
         assertEquals(crazyTaxi, LaunchIntent.resolve("crazy taxi", listOf(crazyTaxi)))
     }
 
+    @Test fun resolvesShortFrontendTitleWhenItUniquelyMatchesLongDiscName() {
+        val daytona = Game("Daytona USA - Championship Circuit Edition", "saf:/Daytona USA - Championship Circuit Edition.chd")
+
+        assertEquals(daytona, LaunchIntent.resolve("Daytona USA", listOf(daytona)))
+    }
+
+    @Test fun doesNotGuessWhenShortFrontendTitleMatchesMultipleGames() {
+        val daytonaSaturn = Game("Daytona USA - Championship Circuit Edition", "saf:/saturn/Daytona USA - Championship Circuit Edition.chd")
+        val daytonaDreamcast = Game("Daytona USA", "saf:/dreamcast/Daytona USA.chd")
+
+        assertNull(LaunchIntent.resolve("Daytona", listOf(daytonaSaturn, daytonaDreamcast)))
+    }
+
     @Test fun resolvesUrlEncodedFilenameFromCachedIndex() {
         val crazyTaxi = Game("Crazy Taxi", "saf:/Crazy Taxi.chd")
 

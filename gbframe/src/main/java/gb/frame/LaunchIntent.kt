@@ -28,19 +28,28 @@ object LaunchIntent {
     /** File name of the game requested by the last intent, until the app takes it ([done]). */
     val pending = mutableStateOf<String?>(null)
 
-    /** Extras that frontends use for the game's path or URI. */
-    private val EXTRAS = listOf("ROM", "rom", "path", "PATH", "file", "filePath", "game", "uri")
+    /** Extras commonly used by frontends for a game's path or URI. */
+    private val EXTRAS = listOf("ROM", "rom", "path", "PATH", "file", "filePath", "game", "uri", Intent.EXTRA_STREAM)
 
     fun handle(context: Context, intent: Intent?) {
         if (intent == null || intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return // reopened from recents
         val name = intent.data?.let { fileName(context, it) }
+            ?: intent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri?.let { fileName(context, it) }
             ?: EXTRAS.firstNotNullOfOrNull { key ->
                 val value = runCatching { intent.extras?.get(key) }.getOrNull()
                 when (value) {
                     is Uri -> fileName(context, value)
-                    is String -> value.takeIf { it.isNotBlank() }?.let {
-                        if (it.startsWith("content://") || it.startsWith("file://")) fileName(context, Uri.parse(it))
-                        else it.substringAfterLast('/')
+                    is String -> value.takeIf { it.isNotBlank() }?.let { stringValue ->
+                        if (stringValue.startsWith("content://") || stringValue.startsWith("file://")) {
+                            runCatching { fileName(context, Uri.parse(stringValue)) }.getOrNull()
+                        } else stringValue.replace('\\', '/').substringAfterLast('/')
+                    }
+                    is ArrayList<*> -> value.firstNotNullOfOrNull { item ->
+                        when (item) {
+                            is Uri -> fileName(context, item)
+                            is String -> item.replace('\\', '/').substringAfterLast('/').takeIf(String::isNotBlank)
+                            else -> null
+                        }
                     }
                     else -> null
                 }
@@ -50,14 +59,22 @@ object LaunchIntent {
         pending.value = name
     }
 
-    /** The matching library game (file name first, then displayed title; exact case before case-insensitive), or null. */
+    /**
+     * Match exact filenames and titles first. Some frontends send a shorter database title than the image filename;
+     * accept a title/filename prefix only when it uniquely identifies a library entry.
+     */
     fun resolve(name: String, games: List<Game>): Game? {
-        val request = decodeSegment(name.trim())
+        val request = normalize(decodeSegment(name))
+        if (request.isBlank()) return null
         fun file(g: Game) = decodeSegment(g.path.substringAfterLast('/').substringAfterLast(':'))
-        return games.firstOrNull { file(it) == request }
-            ?: games.firstOrNull { file(it).equals(request, ignoreCase = true) }
-            ?: games.firstOrNull { it.title == request }
-            ?: games.firstOrNull { it.title.equals(request, ignoreCase = true) }
+        fun fileKey(g: Game) = normalize(file(g))
+        fun titleKey(g: Game) = normalize(g.title)
+        games.firstOrNull { fileKey(it) == request }?.let { return it }
+        games.firstOrNull { titleKey(it) == request }?.let { return it }
+        val prefixMatches = games.filter { game ->
+            titleKey(game).startsWith(request) || fileKey(game).substringBeforeLast('.', fileKey(game)).startsWith(request)
+        }
+        return prefixMatches.singleOrNull()
     }
 
     /** Resolve from the saved library index first, refreshing it only when the request is missing. */
@@ -75,6 +92,8 @@ object LaunchIntent {
         // throws NoSuchMethodError there, which would otherwise leave encoded filenames unmatched.
         URLDecoder.decode(value.replace("+", "%2B"), "UTF-8")
     }.getOrDefault(value)
+
+    private fun normalize(value: String): String = value.trim().replace(Regex("\\s+"), " ").lowercase()
 
     private fun fileName(context: Context, uri: Uri): String? {
         if (uri.scheme == "content") {
