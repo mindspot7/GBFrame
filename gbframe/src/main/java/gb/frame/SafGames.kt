@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.system.Os
 import android.util.Log
 import java.io.File
@@ -96,8 +97,23 @@ open class SafGames(
             ?.let { id -> id.substringAfter(':').ifBlank { id.substringBefore(':') } }?.ifBlank { null } ?: "Selected folder"
     } else dir
 
-    /** File name (with extension) of a game path. */
-    fun fileName(path: String) = path.substringAfterLast('/')
+    /** File name (with extension) of a game path, including document providers with opaque URI paths. */
+    fun fileName(path: String): String {
+        if (path.startsWith("content://", ignoreCase = true)) {
+            val uri = runCatching { Uri.parse(path) }.getOrNull()
+            val displayName = runCatching {
+                uri?.let { appContext.contentResolver.query(it, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null) }
+                    ?.use { c -> if (c.moveToFirst()) c.getString(0)?.takeIf(String::isNotBlank) else null }
+            }.getOrNull()
+            if (displayName != null) return displayName
+            val id = uri?.let { runCatching { DocumentsContract.getDocumentId(it) }.getOrNull() ?: it.lastPathSegment }
+            return id?.substringAfterLast('/')?.substringAfterLast(':') ?: path.substringAfterLast('/')
+        }
+        if (path.startsWith("file://", ignoreCase = true)) {
+            return runCatching { Uri.parse(path).path?.substringAfterLast('/') }.getOrNull() ?: path.substringAfterLast('/')
+        }
+        return path.substringAfterLast('/')
+    }
 
     private data class Child(
         val docId: String, val name: String, val isDir: Boolean,
@@ -163,6 +179,17 @@ open class SafGames(
     /** Lists every supported disc image, including later discs hidden from the main library list. */
     fun scanAllDiscs(dir: String, maxDepth: Int = 3): List<Game> =
         scanFolder(dir, maxDepth, keepFirstDisc = false)
+
+    /** Shared frontend contract: match an indexed game first, then use its granted file URI/path if supported. */
+    fun resolveLaunchRequest(
+        request: GameLaunchRequest,
+        cachedGames: List<Game>,
+        refresh: () -> List<Game>,
+    ): Game? {
+        val supported = discExt + archiveDiscExt
+        val contentSingleFile = supported - setOf("cue", "gdi", "mds", "ccd", "lst", "dat", "bin")
+        return LaunchIntent.resolveOrRefresh(request, cachedGames, refresh, supported, contentSingleFile)
+    }
 
     private fun scanFolder(dir: String, maxDepth: Int, keepFirstDisc: Boolean): List<Game> {
         if (!dir.startsWith("content://")) {
@@ -234,6 +261,7 @@ open class SafGames(
             return openArchive(path, extension, onArchiveProgress)
         }
         if (!path.startsWith(PREFIX) && File(path).canRead()) return OpenDisc(path, emptyList())
+        if (path.startsWith("content://", ignoreCase = true)) return openExternalDocument(path, stageCopy)
         val tree = tree() ?: run { Log.e(TAG, "no SAF tree URI"); return null }
         val located = locate(path) ?: run { Log.e(TAG, "locate failed path=" + path); return null }
         val (_, siblings) = located
@@ -326,6 +354,71 @@ open class SafGames(
         return OpenDisc(stagedMain, fds, stage)
     }
 
+    /** Open a one-file game supplied by a frontend's temporary content URI grant. */
+    private fun openExternalDocument(path: String, stageCopy: Boolean): OpenDisc? {
+        val uri = runCatching { Uri.parse(path) }.getOrNull() ?: return null
+        val name = fileName(path).replace(Regex("[/\\\\]"), "_")
+        val extension = name.substringAfterLast('.', "").lowercase()
+        val size = runCatching {
+            appContext.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+                if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else -1L
+            } ?: -1L
+        }.getOrDefault(-1L)
+
+        if (stageCopy && (extension == "chd" || extension == "iso")) {
+            return copyExternalDocument(uri, name, size)
+        }
+
+        val descriptor = runCatching { appContext.contentResolver.openFileDescriptor(uri, "r") }.getOrNull()
+        if (descriptor == null) {
+            // Some document providers expose a stream but not a seekable descriptor. CHD/ISO can still be staged.
+            if (extension == "chd" || extension == "iso") return copyExternalDocument(uri, name, size)
+            lastArchiveError = "The frontend did not grant read access to $name."
+            Log.e(TAG, "content URI descriptor denied name=$name")
+            return null
+        }
+
+        val stage = newStage()
+        val stagedMain = File(stage, name)
+        val linked = runCatching { Os.symlink("/proc/self/fd/${descriptor.fd}", stagedMain.path) }.isSuccess
+        if (!linked) {
+            descriptor.close()
+            stage.deleteRecursively()
+            lastArchiveError = "Could not stage $name from the frontend URI."
+            return null
+        }
+        Log.i(TAG, "opened frontend document name=$name; size=$size; descriptor=${descriptor.fd}")
+        return OpenDisc(stagedMain.path, listOf(descriptor), stage)
+    }
+
+    private fun copyExternalDocument(uri: Uri, name: String, size: Long): OpenDisc? {
+        val extension = name.substringAfterLast('.', "").lowercase()
+        val identity = "${uri}|$size"
+        val digest = sha256(identity)
+        val cacheDir = File(appContext.cacheDir, "disc-cache").apply { mkdirs() }
+        val staged = File(cacheDir, "$digest-${size.coerceAtLeast(0)}.$extension")
+        if (!staged.isFile || (size > 0L && staged.length() != size)) {
+            val temp = File(cacheDir, staged.name + ".tmp")
+            val copied = runCatching {
+                appContext.contentResolver.openInputStream(uri)?.use { input ->
+                    temp.outputStream().buffered().use { output -> input.copyTo(output, 1024 * 1024) }
+                } ?: error("The frontend URI returned no input stream")
+                val actual = temp.length()
+                if (actual <= 0L || (size > 0L && actual != size)) error("The shared file download was incomplete")
+                if (staged.exists()) staged.delete()
+                if (!temp.renameTo(staged)) error("Could not finalize the cached game file")
+                actual
+            }.getOrElse {
+                temp.delete()
+                lastArchiveError = "Could not copy $name from the frontend: ${it.message ?: "access denied"}"
+                Log.e(TAG, lastArchiveError!!, it)
+                return null
+            }
+            Log.i(TAG, "cached frontend document name=$name; size=$copied")
+        }
+        return OpenDisc(staged.path, emptyList())
+    }
+
     /** Result of [openAndLoad]: the open disc when loading worked (the caller closes it when the game ends), else the error. */
     class DiscLoad(val disc: OpenDisc?, val error: String?)
 
@@ -341,7 +434,7 @@ open class SafGames(
         load: (OpenDisc) -> String?,
     ): DiscLoad {
         var disc = open(path, onArchiveProgress = onArchiveProgress)
-            ?: return DiscLoad(null, lastArchiveError ?: "Unable to open ${fileName(path)}. Check games folder permission and logcat.")
+            ?: return DiscLoad(null, lastArchiveError ?: "Unable to access ${fileName(path)}. Check file permission and companion tracks.")
         var error = load(disc)
         val copyable = isCopyable(path)
         var copied = false
@@ -487,7 +580,28 @@ open class SafGames(
     }
 
     private fun archiveSource(path: String, extension: String): ArchiveSource? {
-        if (!path.startsWith(PREFIX) && !path.startsWith("content://")) {
+        if (path.startsWith("content://", ignoreCase = true)) {
+            val uri = Uri.parse(path)
+            val size = runCatching {
+                appContext.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+                    if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else -1L
+                } ?: -1L
+            }.getOrDefault(-1L)
+            val identity = "$path|$size"
+            val archiveDir = File(appContext.cacheDir, "zip-input").apply { mkdirs() }
+            val staged = File.createTempFile(sha256(identity), ".$extension", archiveDir)
+            try {
+                appContext.contentResolver.openInputStream(uri)?.use { input ->
+                    staged.outputStream().buffered().use { output -> input.copyTo(output, 1024 * 1024) }
+                } ?: run { staged.delete(); return null }
+                if (size > 0L && staged.length() != size) error("The shared archive download was incomplete")
+            } catch (failure: Exception) {
+                staged.delete()
+                throw failure
+            }
+            return ArchiveSource(staged, extension, identity, staged.length(), 0L, true)
+        }
+        if (!path.startsWith(PREFIX)) {
             val file = File(path)
             if (!file.isFile || !file.canRead()) return null
             val canonical = file.canonicalPath

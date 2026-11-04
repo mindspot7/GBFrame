@@ -2,17 +2,22 @@
 
 The user-selected folder is the **authoritative working storage**, not a backup
 or a synchronized mirror. Every consumer exposes the shared **Data folder** in
-its initial wizard and **System**. Without a selection, app-specific storage is
-the default. Games are a separate selection.
+its initial wizard and **System**. Before permission is granted, app-specific
+storage is only a temporary fallback. The first-run wizard requires the user to
+grant the recommended shared folder; Games are a separate selection.
 
-The app's data never goes straight into the selected folder: `AppDataFolder` uses
-a subfolder named after the app (`<selected>/GBSat`, `<selected>/GBCast`), created
-on first use, so one shared folder (e.g. `Emuladores`) can hold every emulator.
-If the selected folder already has the app's name it is used as is. Selections
-made before storage version 3 (mounts and `.gbframe-app` at the top) are moved
-into the app folder at startup; files that already exist there are kept.
+The default public layout is `EMULATORS/<app name>` (for example,
+`EMULATORS/GBSat` and `EMULATORS/GBCast`). The wizard asks the user to grant the
+`EMULATORS` parent through SAF; `AppDataFolder` creates the app subfolder there.
+If the selected folder already has the app's name it is used as is. A custom
+shared tree may still be chosen in System. Selections made before storage
+version 3 (mounts and `.gbframe-app` at the top) are moved into the app folder
+at startup; files that already exist there are kept.
 
-Use `ACTION_OPEN_DOCUMENT_TREE` and persistent read/write URI grants. Access the
+Use `ACTION_OPEN_DOCUMENT_TREE` and persistent read/write URI grants. Seed the
+picker at `EMULATORS` for data and at the console's recommended games folder.
+Do not silently advance the setup wizard without its required data and games
+grants: Next opens the system picker at the recommended location. Access the
 selected documents through `ContentResolver`; never guess a filesystem path from
 a URI or request `MANAGE_EXTERNAL_STORAGE`, legacy storage, or all-files access.
 Android's official SAF model supports creating, reading and editing documents in
@@ -20,6 +25,12 @@ the selected tree. This storage approach does not require Play's restricted
 all-files permission; full app publication remains subject to all other policies.
 Sources: https://developer.android.com/training/data-storage/shared/documents-files
 and https://support.google.com/googleplay/android-developer/answer/10467955
+
+Do not silently scan the storage root or `Download` for BIOS files. On Android 11
+and later, SAF cannot grant either of those locations as a tree. Keep the existing
+user-initiated BIOS file/folder import controls; do not add all-files access just
+to search for firmware.
+Source: https://developer.android.com/about/versions/11/privacy/storage
 
 ## Shared implementation
 
@@ -64,6 +75,10 @@ storage strategy, and must never become a hidden persistent directory mirror.
 
 Each app owns its mount names and formats. Never mount credentials, private
 preferences, games, temporary disc staging, or disposable caches.
+Games use a separate selected SAF tree, with defaults `ROMS/SATURN` for GBSat
+and `ROMS/DREAMCAST` for GBCast. The SAF picker opens at those paths when no
+custom folder has been selected.
+
 GBSat mounts `bios`, `saves`, `savestates`, `cheats`, `covers`, `carts`.
 
 Folder names come from `DataLayout`. Save states follow `SaveStateFiles`: `savestates/<Game>/<Game>_<slot>.state` (slot

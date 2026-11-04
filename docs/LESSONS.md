@@ -63,6 +63,18 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
   the library's displayed title. Resolve exact and case-insensitive filenames first, then titles, so title-based
   requests (for example `Crazy Taxi`) keep using the indexed game path, per-game settings, and multi-file disc data.
   Keep the matching rule and its tests in the kit so every consumer behaves the same.
+- **GBFrame / frontend file access:** exported `ACTION_VIEW` routes must enter the GBFrame library Activity (GBCast's
+  native gameplay Activity must not own the filter). Read the URI or path plus common `ROM`/`path`/`file` extras, keep
+  the Android read grant, and match the library before using a direct source. A granted `content://` URI can open a
+  single-file image/archive directly; CUE/GDI/MDS and similar descriptors need the selected SAF games folder to expose
+  companion tracks. A title-only intent can only resolve an indexed game; no app can access an arbitrary external path
+  when the caller sends neither a URI grant nor a readable path. Verify the actual game opened after launching an
+  intent, not just that the library Activity appeared.
+- **GBFrame / shared storage defaults:** use `EMULATORS/<app name>` for data and `ROMS/SATURN` or `ROMS/DREAMCAST`
+  for game libraries. These are user-visible shared folders, so the first-run wizard must get explicit SAF grants and
+  open the picker at the recommended location; do not request all-files access for this. Android 11+ also blocks SAF
+  grants for the storage root and `Download`, so automatic BIOS searches there cannot be guaranteed for Play builds;
+  preserve the current file/folder import controls.
 - **GBFrame / Android intent filenames:** Android API 31 does not provide `URLDecoder.decode(String, Charset)`. A `runCatching` around that call silently leaves `%20` encoded, so a frontend launch such as `Crazy%20Taxi.chd` fails even when the title and SAF path are indexed. Use the API-compatible `URLDecoder.decode(String, "UTF-8")`, preserve literal `+` in path segments, and keep an encoded-filename test in the shared kit.
 
 ## Measure before optimizing

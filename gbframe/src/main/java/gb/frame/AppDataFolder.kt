@@ -16,7 +16,13 @@ import java.io.InputStream
  * The selected tree is the authoritative storage, shared by Kotlin and native clients. Data lives in a
  * subfolder named after the app (`<selected>/<appName>`), unless the selected folder already has that name.
  */
-class AppDataFolder(context: Context, val appName: String, private val mounts: Map<String, File>, val texturesRelativePath: String? = null) {
+class AppDataFolder(
+    context: Context,
+    val appName: String,
+    private val mounts: Map<String, File>,
+    val texturesRelativePath: String? = null,
+    val recommendedLocation: String? = null,
+) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("gbframe.dataFolder", Context.MODE_PRIVATE)
     private var active = prefs.getString("tree", null)
@@ -34,7 +40,7 @@ class AppDataFolder(context: Context, val appName: String, private val mounts: M
             tree.substringAfterLast('/').equals(appName, ignoreCase = true) -> tree
             else -> "$tree/$appName"
         }
-    } ?: "App storage (default)"
+    } ?: recommendedLocation?.let { "Recommended: $it" } ?: "App storage (default)"
 
     /** Display the effective storage location, never the source directory used for an import. */
     fun displayPath(file: File): String {

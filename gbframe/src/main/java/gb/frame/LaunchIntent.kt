@@ -9,82 +9,137 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import java.net.URLDecoder
 
+/** A frontend request keeps both its human-readable name and the URI/path that grants access to the actual file. */
+data class GameLaunchRequest(val name: String, val source: String? = null)
+
 /**
- * Starting a game straight from an intent, for frontends (ES-DE, Daijishou, Pegasus) and scripts:
+ * Starting a game straight from an intent, for frontends (ES-DE, Daijishou, Pegasus) and scripts.
  *
- * ```
- * adb shell am start -n <appId>/<activity> -a android.intent.action.VIEW -d "content://…/Virtua%20Fighter%202.chd"
- * adb shell am start -n <appId>/<activity> --es ROM "/storage/emulated/0/ROMS/SATURN/Virtua Fighter 2.chd"
- * ```
- *
- * The request is matched to a library game by file name first, then by its displayed title. This lets frontends pass
- * either a ROM path or a title such as `Crazy Taxi`; the disc is still opened through the configured games folder, so
- * multi-file discs find their tracks and save states, play time and per-game options stay with the same game. The
- * Activity calls [handle] from `onCreate` (when
- * `savedInstanceState` is null) and `onNewIntent`; the app watches [pending] once it can start games, resolves it with
- * [resolve] and calls [done].
+ * Match the request against the library first so CUE/GDI sets, per-game settings and saves use their SAF paths. If no
+ * library entry matches, SafGames may open a supported single-file URI/path directly. Multi-file descriptors still need
+ * the games-folder grant so the emulator can read their companion tracks.
  */
 object LaunchIntent {
-    /** File name of the game requested by the last intent, until the app takes it ([done]). */
-    val pending = mutableStateOf<String?>(null)
+    /** Request from the most recent intent, until the app takes it ([done]). */
+    val pending = mutableStateOf<GameLaunchRequest?>(null)
 
-    /** Extras commonly used by frontends for a game's path or URI. */
-    private val EXTRAS = listOf("ROM", "rom", "path", "PATH", "file", "filePath", "game", "uri", Intent.EXTRA_STREAM)
+    /** Extras commonly used by frontends for a game's path, URI or title. */
+    private val EXTRAS = listOf(
+        "ROM", "rom", "romPath", "rom_path", "path", "PATH", "file", "filePath", "file_path",
+        "filename", "game", "gamePath", "game_path", "uri", Intent.EXTRA_STREAM, Intent.EXTRA_TEXT,
+    )
 
     fun handle(context: Context, intent: Intent?) {
         if (intent == null || intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return // reopened from recents
-        val name = intent.data?.let { fileName(context, it) }
-            ?: intent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri?.let { fileName(context, it) }
+        val request = intent.data?.let { request(context, it) }
+            ?: intent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri?.let { request(context, it) }
             ?: EXTRAS.firstNotNullOfOrNull { key ->
                 val value = runCatching { intent.extras?.get(key) }.getOrNull()
                 when (value) {
-                    is Uri -> fileName(context, value)
-                    is String -> value.takeIf { it.isNotBlank() }?.let { stringValue ->
-                        if (stringValue.startsWith("content://") || stringValue.startsWith("file://")) {
-                            runCatching { fileName(context, Uri.parse(stringValue)) }.getOrNull()
-                        } else stringValue.replace('\\', '/').substringAfterLast('/')
-                    }
+                    is Uri -> request(context, value)
+                    is String -> request(context, value)
                     is ArrayList<*> -> value.firstNotNullOfOrNull { item ->
                         when (item) {
-                            is Uri -> fileName(context, item)
-                            is String -> item.replace('\\', '/').substringAfterLast('/').takeIf(String::isNotBlank)
+                            is Uri -> request(context, item)
+                            is String -> request(context, item)
+                            else -> null
+                        }
+                    }
+                    is Array<*> -> value.firstNotNullOfOrNull { item ->
+                        when (item) {
+                            is Uri -> request(context, item)
+                            is String -> request(context, item)
                             else -> null
                         }
                     }
                     else -> null
                 }
             }
-        if (name.isNullOrBlank()) return
-        Log.i("GBFrame-Intent", "launch request: $name")
-        pending.value = name
+        if (request == null || request.name.isBlank()) return
+        val sourceKind = request.source?.let { runCatching { Uri.parse(it).scheme }.getOrNull() ?: "path" } ?: "title"
+        Log.i("GBFrame-Intent", "launch request: ${request.name}; source=$sourceKind")
+        pending.value = request
     }
 
-    /**
-     * Match exact filenames and titles first. Some frontends send a shorter database title than the image filename;
-     * accept a title/filename prefix only when it uniquely identifies a library entry.
-     */
+    private fun request(context: Context, uri: Uri): GameLaunchRequest? {
+        val name = fileName(context, uri) ?: uri.lastPathSegment?.substringAfterLast(':') ?: return null
+        return GameLaunchRequest(name, uri.toString())
+    }
+
+    private fun request(context: Context, value: String): GameLaunchRequest? {
+        if (value.isBlank()) return null
+        val normalized = value.trim().replace('\\', '/')
+        if (normalized.startsWith("content://", true) || normalized.startsWith("file://", true)) {
+            val uri = runCatching { Uri.parse(normalized) }.getOrNull() ?: return null
+            return request(context, uri)
+        }
+        val name = normalized.substringAfterLast('/').substringAfterLast(':').takeIf { it.isNotBlank() } ?: return null
+        // A bare frontend title is only a library key; paths and filenames are retained as fallback sources.
+        val source = normalized.takeIf {
+            it.startsWith("/") || it.startsWith("saf:/", true) || '/' in it || '\\' in value || '.' in name
+        }
+        return GameLaunchRequest(decodeSegment(name), source)
+    }
+
+    fun done() { pending.value = null }
+
+    /** Match exact filenames and titles first; only a unique prefix can stand in for a shorter frontend title. */
     fun resolve(name: String, games: List<Game>): Game? {
         val request = normalize(decodeSegment(name))
         if (request.isBlank()) return null
         fun file(g: Game) = decodeSegment(g.path.substringAfterLast('/').substringAfterLast(':'))
         fun fileKey(g: Game) = normalize(file(g))
         fun titleKey(g: Game) = normalize(g.title)
-        games.firstOrNull { fileKey(it) == request }?.let { return it }
-        games.firstOrNull { titleKey(it) == request }?.let { return it }
+        games.filter { fileKey(it) == request }.singleOrNull()?.let { return it }
+        games.filter { titleKey(it) == request }.singleOrNull()?.let { return it }
         val prefixMatches = games.filter { game ->
             titleKey(game).startsWith(request) || fileKey(game).substringBeforeLast('.', fileKey(game)).startsWith(request)
         }
         return prefixMatches.singleOrNull()
     }
 
-    /** Resolve from the saved library index first, refreshing it only when the request is missing. */
+    /** Resolve through the library first; its indexed path carries sibling-track access and stable game identity. */
     fun resolveOrRefresh(name: String, cachedGames: List<Game>, refresh: () -> List<Game>): Game? =
         resolve(name, cachedGames) ?: resolve(name, refresh())
 
-    fun done() { pending.value = null }
+    /** Resolve a direct frontend source after the library lookup failed. */
+    fun directGame(
+        request: GameLaunchRequest,
+        supportedExtensions: Set<String>,
+        contentSingleFileExtensions: Set<String>,
+    ): Game? {
+        val source = request.source?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val name = decodeSegment(request.name.replace('\\', '/').substringAfterLast('/').substringAfterLast(':'))
+        val extension = name.substringAfterLast('.', "").lowercase()
+        if (extension !in supportedExtensions) return null
+        val path = when {
+            source.startsWith("content://", true) -> {
+                // A single document grant cannot expose the sibling tracks referenced by a descriptor.
+                if (extension !in contentSingleFileExtensions) return null
+                source
+            }
+            source.startsWith("file://", true) -> runCatching { Uri.parse(source).path }.getOrNull() ?: return null
+            source.startsWith("saf:/", true) || source.startsWith('/') -> source
+            source.startsWith("http://", true) || source.startsWith("https://", true) -> return null
+            else -> name // a filename extra can still be located under the selected SAF games folder
+        }
+        return Game(name.substringBeforeLast('.', name), path)
+    }
 
-    /** Message for a request that matches no library game. */
-    fun notFound(name: String) = "\"$name\" is not in the games folder"
+    fun resolveOrRefresh(
+        request: GameLaunchRequest,
+        cachedGames: List<Game>,
+        refresh: () -> List<Game>,
+        supportedExtensions: Set<String>,
+        contentSingleFileExtensions: Set<String>,
+    ): Game? = resolveOrRefresh(request.name, cachedGames, refresh)
+        ?: directGame(request, supportedExtensions, contentSingleFileExtensions)
+
+    fun notFound(request: GameLaunchRequest): String = if (request.source != null) {
+        "Could not open \"${request.name}\" from the frontend. Check its file permission; multi-track games need the selected games folder."
+    } else {
+        "\"${request.name}\" was not found in the library. Check the selected games folder or send a ROM filename, path, or URI."
+    }
 
     private fun decodeSegment(value: String): String = runCatching {
         // URLDecoder treats '+' as a space; in a URI path it is a literal plus.
@@ -102,10 +157,10 @@ object LaunchIntent {
                     if (c.moveToFirst()) c.getString(0)?.takeIf { it.isNotBlank() }?.let { return it }
                 }
             }
-            // No access to the provider: the document id or the path usually ends with the file name
+            // Providers without OpenableColumns may expose the name in their document id or URI path.
             val id = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull() ?: uri.lastPathSegment
-            return id?.substringAfterLast('/')?.substringAfterLast(':')
+            return id?.substringAfterLast('/')?.substringAfterLast(':')?.let(::decodeSegment)
         }
-        return uri.lastPathSegment ?: uri.path?.substringAfterLast('/')
+        return uri.lastPathSegment?.let(::decodeSegment) ?: uri.path?.substringAfterLast('/')?.let(::decodeSegment)
     }
 }

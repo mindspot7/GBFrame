@@ -69,4 +69,53 @@ class LaunchIntentTest {
     @Test fun doesNotMatchUnknownGame() {
         assertNull(LaunchIntent.resolve("Missing Game", listOf(Game("Crazy Taxi", "/games/crazy.cdi"))))
     }
+
+    @Test fun directFrontendContentUriSupportsSingleFileDisc() {
+        val request = GameLaunchRequest("Daytona USA.chd", "content://frontend.documents/document/primary%3AROMS%2FSATURN%2FDaytona%20USA.chd")
+
+        assertEquals(
+            Game("Daytona USA", request.source!!),
+            LaunchIntent.directGame(request, setOf("chd", "cue", "iso"), setOf("chd", "iso")),
+        )
+    }
+
+    @Test fun directFrontendContentUriRejectsMultiFileDescriptor() {
+        val request = GameLaunchRequest("Daytona USA.cue", "content://frontend.documents/document/primary%3AROMS%2FSATURN%2FDaytona.cue")
+
+        assertNull(LaunchIntent.directGame(request, setOf("chd", "cue", "iso"), setOf("chd", "iso")))
+    }
+
+    @Test fun directFrontendPathSupportsAReadableSingleFile() {
+        val request = GameLaunchRequest("Crazy Taxi.cdi", "/storage/emulated/0/ROMS/DREAMCAST/Crazy Taxi.cdi")
+
+        assertEquals(
+            Game("Crazy Taxi", request.source!!),
+            LaunchIntent.directGame(request, setOf("cdi", "gdi"), setOf("cdi")),
+        )
+    }
+
+    @Test fun indexedLibraryEntryTakesPriorityOverDirectUri() {
+        val indexed = Game("Daytona USA", "saf:/Daytona USA.chd")
+        val request = GameLaunchRequest("Daytona USA.chd", "content://frontend.documents/document/game.chd")
+
+        assertEquals(
+            indexed,
+            LaunchIntent.resolveOrRefresh(
+                request,
+                listOf(indexed),
+                { error("A cached match should not rescan the library") },
+                setOf("chd"),
+                setOf("chd"),
+            ),
+        )
+    }
+
+    @Test fun directFallbackRunsAfterLibraryRefreshMisses() {
+        val request = GameLaunchRequest("Daytona USA.chd", "content://frontend.documents/document/game.chd")
+
+        assertEquals(
+            Game("Daytona USA", request.source!!),
+            LaunchIntent.resolveOrRefresh(request, emptyList(), { emptyList() }, setOf("chd"), setOf("chd")),
+        )
+    }
 }

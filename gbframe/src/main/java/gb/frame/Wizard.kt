@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
  */
 class WizardStep(
     val icon: ImageVector, val title: String, val colors: List<Color>, val body: String,
+    val canAdvance: (() -> Boolean)? = null,
+    val onAdvanceBlocked: (() -> Unit)? = null,
     val content: @Composable ColumnScope.() -> Unit = {},
 )
 
@@ -37,6 +39,22 @@ class WizardStep(
 @Composable
 fun SetupWizard(steps: List<WizardStep>, onFinish: () -> Unit, message: String? = null, onStepChange: () -> Unit = {}) {
     var step by remember { mutableIntStateOf(0) }
+    fun moveForward(index: Int): Boolean {
+        val current = steps[index]
+        if (current.canAdvance?.invoke() == false) {
+            current.onAdvanceBlocked?.invoke()
+            return false
+        }
+        return true
+    }
+    fun finishOrOpenRequiredStep() {
+        val required = steps.indexOfFirst { it.canAdvance?.invoke() == false }
+        if (required >= 0) {
+            step = required
+            onStepChange()
+            steps[required].onAdvanceBlocked?.invoke()
+        } else onFinish()
+    }
     // Short screens (e.g. 640x480 handhelds): smaller badge and spacing so the step's content stays visible
     val compact = LocalConfiguration.current.screenHeightDp < 560
     val pad = if (compact) 12.dp else 24.dp
@@ -59,8 +77,12 @@ fun SetupWizard(steps: List<WizardStep>, onFinish: () -> Unit, message: String? 
             message?.let { KitText(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center) }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            if (step > 0) TextButton(onClick = { step--; onStepChange() }) { KitText("Back") } else TextButton(onClick = onFinish) { KitText("Skip") }
-            Button(onClick = { if (step < steps.size - 1) { step++; onStepChange() } else onFinish() }) {
+            if (step > 0) TextButton(onClick = { step--; onStepChange() }) { KitText("Back") } else TextButton(onClick = ::finishOrOpenRequiredStep) { KitText("Skip") }
+            Button(onClick = {
+                if (moveForward(step)) {
+                    if (step < steps.size - 1) { step++; onStepChange() } else finishOrOpenRequiredStep()
+                }
+            }) {
                 KitText(if (step < steps.size - 1) "Next" else "Start")
             }
         }

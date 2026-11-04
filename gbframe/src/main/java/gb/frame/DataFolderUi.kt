@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -20,15 +21,22 @@ import kotlinx.coroutines.withContext
 
 /** Same data-folder picker/status in first-run setup and System, independently of the emulated console. */
 @Composable
-fun DataFolderControls(store: AppDataFolder, compact: Boolean = false) {
+fun DataFolderControls(store: AppDataFolder, compact: Boolean = false, onChooseFolder: (() -> Unit)? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var syncing by remember { mutableStateOf(false) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) scope.launch { store.choose(uri) }
     }
-    ActionRow(Icons.Default.Folder, "Data folder", if (store.folder == null) "Saves, save states, BIOS, cheats and covers. Uses app storage until you choose a folder." else store.label, "Choose", {
-        if (!store.busy && !syncing) picker.launch(store.folder?.let(android.net.Uri::parse))
+    val chooseFolder = onChooseFolder ?: {
+        val start = store.folder?.let(android.net.Uri::parse)
+            ?: store.recommendedLocation?.substringBeforeLast('/')?.let(StorageDefaults::treePickerUri)
+        if (!store.busy && !syncing) picker.launch(start)
+    }
+    val unselectedLabel = store.recommendedLocation?.let { "Select $it to use shared storage" }
+        ?: "Saves, save states, BIOS, cheats and covers. Uses app storage until you choose a folder."
+    ActionRow(Icons.Default.Folder, "Data folder", if (store.folder == null) unselectedLabel else store.label, "Choose", {
+        if (!store.busy && !syncing) chooseFolder()
     }, subMaxLines = Int.MAX_VALUE)
     if (!compact) KitText("BIOS, saves, save states, cheats and covers. Files are read and written directly in a ${store.appName} folder created inside the selected folder. Reopen the app after changing it.",
         style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
@@ -56,11 +64,36 @@ fun DataFolderControls(store: AppDataFolder, compact: Boolean = false) {
     )
 }
 
-fun dataFolderWizardStep(store: AppDataFolder): WizardStep = WizardStep(
+fun dataFolderWizardStep(store: AppDataFolder, onChooseFolder: () -> Unit): WizardStep = WizardStep(
     Icons.Default.Folder, "Data folder",
     listOf(androidx.compose.ui.graphics.Color(0xFF3EC6FF), androidx.compose.ui.graphics.Color(0xFF1B6F99)),
-    "Choose where to keep this app's data, including on an SD card. You can keep app storage and change this later in System.",
-) { DataFolderControls(store) }
+    store.recommendedLocation?.let { "Recommended: $it. Android asks you to select the shared folder once so the app can use it." }
+        ?: "Choose where to keep this app's data, including on an SD card. You can change this later in System.",
+    canAdvance = { store.folder != null },
+    onAdvanceBlocked = onChooseFolder,
+) { DataFolderControls(store, onChooseFolder = onChooseFolder) }
+
+/** Shared console-specific games-folder step; Next opens the SAF picker until the user grants a tree. */
+fun gamesFolderWizardStep(
+    recommendedLocation: String,
+    body: String,
+    selectedLocation: () -> String?,
+    onChooseFolder: () -> Unit,
+): WizardStep = WizardStep(
+    androidx.compose.material.icons.Icons.Default.VideoLibrary,
+    "Games folder",
+    listOf(androidx.compose.ui.graphics.Color(0xFF66E3A4), androidx.compose.ui.graphics.Color(0xFF1FA2A8)),
+    body,
+    canAdvance = { !selectedLocation().isNullOrBlank() },
+    onAdvanceBlocked = onChooseFolder,
+) {
+    KitText("Recommended folder: $recommendedLocation. Select it once to grant access to your games.",
+        style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
+    androidx.compose.material3.Button(onClick = onChooseFolder) {
+        KitText(if (selectedLocation().isNullOrBlank()) "Choose games folder" else "Change games folder")
+    }
+    selectedLocation()?.let { WizardStatus(it) }
+}
 
 /**
  * The setup wizard's last step: detected device class, recommended preset and the options it applies. Nothing is
