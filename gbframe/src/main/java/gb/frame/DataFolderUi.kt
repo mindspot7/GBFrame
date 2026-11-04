@@ -70,7 +70,7 @@ fun DataFolderControls(
     )
 }
 
-fun dataFolderWizardStep(store: AppDataFolder, onChooseFolder: () -> Unit): WizardStep = WizardStep(
+fun dataFolderWizardStep(store: AppDataFolder, onChooseFolder: () -> Unit = {}): WizardStep = WizardStep(
     Icons.Default.Folder, "Data folder",
     listOf(androidx.compose.ui.graphics.Color(0xFF3EC6FF), androidx.compose.ui.graphics.Color(0xFF1B6F99)),
     "Choose where to keep this app's data, including on an SD card. You can keep app storage and change this later in System.",
