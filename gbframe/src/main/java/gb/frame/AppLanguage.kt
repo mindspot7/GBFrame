@@ -3,6 +3,7 @@ package gb.frame
 import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.LocaleList
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
@@ -23,6 +24,18 @@ object AppLanguage {
             .getString(KEY_LANGUAGE, ENGLISH)
             ?.takeIf { it == ENGLISH || it == PORTUGUESE_BRAZIL || it == SPANISH_LATIN_AMERICA }
             ?: ENGLISH
+
+    /** Wizard default follows the device locale; an explicit language choice still takes precedence. */
+    fun wizardTag(context: Context): String {
+        val preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (preferences.contains(KEY_LANGUAGE)) return currentTag(context)
+        val deviceTag = Resources.getSystem().configuration.locales[0]?.toLanguageTag().orEmpty()
+        return when {
+            deviceTag.startsWith("pt", ignoreCase = true) -> PORTUGUESE_BRAZIL
+            deviceTag.startsWith("es", ignoreCase = true) -> SPANISH_LATIN_AMERICA
+            else -> ENGLISH
+        }
+    }
 
     /** Wrap each Activity base context so resource lookups use the selected app language. */
     fun wrap(context: Context): Context {

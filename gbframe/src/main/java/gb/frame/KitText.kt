@@ -2,6 +2,7 @@ package gb.frame
 
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -486,6 +487,9 @@ private val spanishKitText = mapOf(
 
 private val completePortugueseKitText = portugueseKitText + extraPortugueseKitText
 private val completeSpanishKitText = spanishKitText + extraSpanishKitText
+
+/** Optional language override for surfaces such as first-run setup that must follow the device locale. */
+internal val LocalKitLanguageOverride = compositionLocalOf<String?> { null }
 private val textPlaceholder = Regex("\\$(?:\\{[^}]+\\}|[A-Za-z_][A-Za-z0-9_]*)")
 private data class TextTemplate(val pattern: Regex, val targetTokens: List<String>, val translated: String)
 
@@ -513,7 +517,7 @@ private val spanishTextTemplates = compileTextTemplates(completeSpanishKitText)
 
 @Composable
 private fun localizedKitText(text: String): String {
-    val tag = LocalConfiguration.current.locales[0]?.toLanguageTag().orEmpty()
+    val tag = LocalKitLanguageOverride.current ?: LocalConfiguration.current.locales[0]?.toLanguageTag().orEmpty()
     return translatedAppText(text, tag)
 }
 

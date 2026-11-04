@@ -5,6 +5,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TouchControlsLayoutTest {
+    @Test fun sharedOverlayTreatmentIsLimitedToSquareFourThreeAndSixteenNineDisplays() {
+        assertTrue(TouchControlsLayoutPlanner.usesResponsiveLayout(720f, 720f))
+        assertTrue(TouchControlsLayoutPlanner.usesResponsiveLayout(600f, 450f))
+        assertTrue(TouchControlsLayoutPlanner.usesResponsiveLayout(800f, 450f))
+        assertEquals(false, TouchControlsLayoutPlanner.usesResponsiveLayout(1080f, 2400f))
+    }
+
     @Test fun portraitPhonePlacesNativeAspectVideoAtTopAndControlsBelow() {
         val plan = TouchControlsLayoutPlanner.plan(360f, 800f, 4f / 3f)
 
@@ -21,6 +28,7 @@ class TouchControlsLayoutTest {
         assertEquals(TouchControlsPlacement.LANDSCAPE_SIDES, plan.placement)
         assertTrue(plan.video.left > 0f)
         assertEquals(plan.video.left, 800f - plan.video.left - plan.video.width, 0.01f)
+        assertEquals(800f * 0.62f, plan.video.width, 0.01f)
         assertEquals(plan.video.width / plan.video.height, 4f / 3f, 0.01f)
     }
 

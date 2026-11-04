@@ -35,6 +35,16 @@ data class TouchControlsLayoutPlan(
 )
 
 object TouchControlsLayoutPlanner {
+    /** Handheld-style target ratios for the shared full-screen overlay treatment. */
+    @JvmStatic
+    fun usesResponsiveLayout(width: Float, height: Float): Boolean {
+        if (width <= 0f || height <= 0f) return false
+        val ratio = max(width, height) / min(width, height)
+        return ratio <= 1.10f ||
+            abs(ratio - (4f / 3f)) <= 0.10f ||
+            abs(ratio - (16f / 9f)) <= 0.10f
+    }
+
     /**
      * [width] and [height] can be pixels or dp, but must use the same unit. Aspect is the intended landscape game
      * ratio (normally 4:3 or 16:9). The returned video bounds use that same unit.
@@ -83,7 +93,8 @@ object TouchControlsLayoutPlanner {
         }
 
         // Reserve side room for the controller while keeping the game image at its selected aspect ratio.
-        val videoWidth = min(width * 0.54f, height * 0.90f * aspect)
+        // Leave enough room for reachable side controls on phones held landscape without shrinking the game view too far.
+        val videoWidth = min(width * 0.62f, height * 0.96f * aspect)
         val videoHeight = videoWidth / aspect
         return TouchControlsLayoutPlan(
             TouchControlsPlacement.LANDSCAPE_SIDES,

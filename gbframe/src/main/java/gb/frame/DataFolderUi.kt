@@ -21,7 +21,12 @@ import kotlinx.coroutines.withContext
 
 /** Same data-folder picker/status in first-run setup and System, independently of the emulated console. */
 @Composable
-fun DataFolderControls(store: AppDataFolder, compact: Boolean = false, onChooseFolder: (() -> Unit)? = null) {
+fun DataFolderControls(
+    store: AppDataFolder,
+    compact: Boolean = false,
+    onChooseFolder: (() -> Unit)? = null,
+    wizard: Boolean = false,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var syncing by remember { mutableStateOf(false) }
@@ -30,11 +35,12 @@ fun DataFolderControls(store: AppDataFolder, compact: Boolean = false, onChooseF
     }
     val chooseFolder = onChooseFolder ?: {
         val start = store.folder?.let(android.net.Uri::parse)
-            ?: store.recommendedLocation?.substringBeforeLast('/')?.let(StorageDefaults::treePickerUri)
+            ?: if (!wizard) store.recommendedLocation?.substringBeforeLast('/')?.let(StorageDefaults::treePickerUri) else null
         if (!store.busy && !syncing) picker.launch(start)
     }
-    val unselectedLabel = store.recommendedLocation?.let { "Select $it to use shared storage" }
+    val unselectedLabel = if (!wizard) store.recommendedLocation?.let { "Select $it to use shared storage" }
         ?: "Saves, save states, BIOS, cheats and covers. Uses app storage until you choose a folder."
+    else "Saves, save states, BIOS, cheats and covers. Uses app storage until you choose a folder."
     ActionRow(Icons.Default.Folder, "Data folder", if (store.folder == null) unselectedLabel else store.label, "Choose", {
         if (!store.busy && !syncing) chooseFolder()
     }, subMaxLines = Int.MAX_VALUE)
@@ -67,13 +73,10 @@ fun DataFolderControls(store: AppDataFolder, compact: Boolean = false, onChooseF
 fun dataFolderWizardStep(store: AppDataFolder, onChooseFolder: () -> Unit): WizardStep = WizardStep(
     Icons.Default.Folder, "Data folder",
     listOf(androidx.compose.ui.graphics.Color(0xFF3EC6FF), androidx.compose.ui.graphics.Color(0xFF1B6F99)),
-    store.recommendedLocation?.let { "Recommended: $it. Android asks you to select the shared folder once so the app can use it." }
-        ?: "Choose where to keep this app's data, including on an SD card. You can change this later in System.",
-    canAdvance = { store.folder != null },
-    onAdvanceBlocked = onChooseFolder,
-) { DataFolderControls(store, onChooseFolder = onChooseFolder) }
+    "Choose where to keep this app's data, including on an SD card. You can keep app storage and change this later in System.",
+) { DataFolderControls(store, onChooseFolder = onChooseFolder, wizard = true) }
 
-/** Shared console-specific games-folder step; Next opens the SAF picker until the user grants a tree. */
+/** Shared console-specific games-folder step; choosing a folder is optional and can also be done later in System. */
 fun gamesFolderWizardStep(
     recommendedLocation: String,
     body: String,
@@ -84,10 +87,8 @@ fun gamesFolderWizardStep(
     "Games folder",
     listOf(androidx.compose.ui.graphics.Color(0xFF66E3A4), androidx.compose.ui.graphics.Color(0xFF1FA2A8)),
     body,
-    canAdvance = { !selectedLocation().isNullOrBlank() },
-    onAdvanceBlocked = onChooseFolder,
 ) {
-    KitText("Recommended folder: $recommendedLocation. Select it once to grant access to your games.",
+    KitText("You can choose the recommended games folder now or later in System: $recommendedLocation.",
         style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
     androidx.compose.material3.Button(onClick = onChooseFolder) {
         KitText(if (selectedLocation().isNullOrBlank()) "Choose games folder" else "Change games folder")

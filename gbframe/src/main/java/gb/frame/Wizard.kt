@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -38,6 +39,14 @@ class WizardStep(
 /** First-run setup wizard: progress bar, one page per step, Back/Skip and Next/Start. */
 @Composable
 fun SetupWizard(steps: List<WizardStep>, onFinish: () -> Unit, message: String? = null, onStepChange: () -> Unit = {}) {
+    val language = AppLanguage.wizardTag(LocalContext.current)
+    CompositionLocalProvider(LocalKitLanguageOverride provides language) {
+        SetupWizardContent(steps, onFinish, message, onStepChange)
+    }
+}
+
+@Composable
+private fun SetupWizardContent(steps: List<WizardStep>, onFinish: () -> Unit, message: String?, onStepChange: () -> Unit) {
     var step by remember { mutableIntStateOf(0) }
     fun moveForward(index: Int): Boolean {
         val current = steps[index]
