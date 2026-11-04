@@ -62,11 +62,16 @@ fun dataFolderWizardStep(store: AppDataFolder): WizardStep = WizardStep(
     "Choose where to keep this app's data, including on an SD card. You can keep app storage and change this later in System.",
 ) { DataFolderControls(store) }
 
-/** The setup wizard's last step: detected device class, recommended preset and the options it applies. */
+/**
+ * The setup wizard's last step: detected device class, recommended preset and the options it applies. Nothing is
+ * applied by opening it: an app starts with the default settings (OpenGL, 1x, no shader, linear filter, auto frame
+ * skip off) and only switches to the recommended ones when the user taps "Apply settings" ([onApply]).
+ */
 fun performanceWizardStep(
     preset: String,
     options: List<String>,
     device: DeviceTier.Info = DeviceTier.detect(),
+    onApply: () -> Unit = {},
 ): WizardStep = WizardStep(
     Icons.Default.Speed, "Performance",
     listOf(androidx.compose.ui.graphics.Color(0xFFFFB15A), androidx.compose.ui.graphics.Color(0xFF8A4B12)),
@@ -82,12 +87,23 @@ fun performanceWizardStep(
             }
         }
         KitText("Auto-tuned for the best performance this device can sustain.", style = MaterialTheme.typography.bodySmall)
-        KitText("SETTINGS APPLIED", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        KitText("RECOMMENDED SETTINGS", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         options.forEach { option ->
             Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .65f)) {
                 KitText(option, Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp), style = MaterialTheme.typography.bodyMedium)
             }
         }
+        var applied by remember { mutableStateOf(false) }
+        Button(
+            enabled = !applied,
+            onClick = { onApply(); applied = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) { KitText(if (applied) "Settings applied" else "Apply settings") }
+        KitText(
+            if (applied) "The recommended settings are in use. You can change them later in Settings."
+            else "Without applying, the app starts with the default settings: OpenGL, 1x, no shader, linear filter and auto frame skip off.",
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 
