@@ -7,6 +7,90 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+
+/** Shared screen arrangement for touch gameplay. */
+enum class TouchControlsPlacement {
+    /** 4:3 and square devices keep the whole game view and draw transparent controls above it. */
+    FULLSCREEN_OVERLAY,
+    /** Tall phones put the game at the top and the controller below it. */
+    PORTRAIT_BOTTOM,
+    /** Widescreen landscape devices put the game in the center and controls in side panels. */
+    LANDSCAPE_SIDES,
+    /** Touch controls are disabled; the game view fills the device. */
+    FULLSCREEN,
+}
+
+/** A game surface rectangle in the same units passed to [TouchControlsLayoutPlanner.plan]. */
+@Immutable
+data class TouchControlsVideoBounds(val left: Float, val top: Float, val width: Float, val height: Float)
+
+/** Pure responsive layout result shared by Compose overlays and native game-surface containers. */
+@Immutable
+data class TouchControlsLayoutPlan(
+    val placement: TouchControlsPlacement,
+    val video: TouchControlsVideoBounds,
+)
+
+object TouchControlsLayoutPlanner {
+    /**
+     * [width] and [height] can be pixels or dp, but must use the same unit. Aspect is the intended landscape game
+     * ratio (normally 4:3 or 16:9). The returned video bounds use that same unit.
+     */
+    @JvmStatic
+    fun plan(width: Float, height: Float, videoAspect: Float = 4f / 3f, controlsEnabled: Boolean = true): TouchControlsLayoutPlan {
+        if (width <= 0f || height <= 0f) {
+            return TouchControlsLayoutPlan(TouchControlsPlacement.FULLSCREEN, TouchControlsVideoBounds(0f, 0f, width, height))
+        }
+        if (!controlsEnabled) {
+            return TouchControlsLayoutPlan(TouchControlsPlacement.FULLSCREEN, TouchControlsVideoBounds(0f, 0f, width, height))
+        }
+
+        val longSide = max(width, height)
+        val shortSide = min(width, height)
+        val deviceRatio = longSide / shortSide
+        val square = deviceRatio <= 1.10f
+        val fourThree = abs(deviceRatio - (4f / 3f)) <= 0.10f
+        val aspect = videoAspect.takeIf { it.isFinite() && it in 1f..2.4f } ?: (4f / 3f)
+        if (square) {
+            // Keep a 4:3 (or selected widescreen) image centered on square displays. The overlay still
+            // spans the full screen, so transparent controls remain easy to reach without covering a
+            // top-aligned, letterboxed image.
+            val videoWidth = min(width, height * aspect)
+            val videoHeight = videoWidth / aspect
+            return TouchControlsLayoutPlan(
+                TouchControlsPlacement.FULLSCREEN_OVERLAY,
+                TouchControlsVideoBounds((width - videoWidth) * 0.5f, (height - videoHeight) * 0.5f, videoWidth, videoHeight),
+            )
+        }
+        if (fourThree) {
+            return TouchControlsLayoutPlan(
+                TouchControlsPlacement.FULLSCREEN_OVERLAY,
+                TouchControlsVideoBounds(0f, 0f, width, height),
+            )
+        }
+
+        // Console output remains landscape even when a user selects Fullscreen on a portrait phone.
+        if (height > width) {
+            val videoHeight = min(width / aspect, height * 0.55f)
+            val videoWidth = videoHeight * aspect
+            return TouchControlsLayoutPlan(
+                TouchControlsPlacement.PORTRAIT_BOTTOM,
+                TouchControlsVideoBounds((width - videoWidth) * 0.5f, 0f, videoWidth, videoHeight),
+            )
+        }
+
+        // Reserve side room for the controller while keeping the game image at its selected aspect ratio.
+        val videoWidth = min(width * 0.54f, height * 0.90f * aspect)
+        val videoHeight = videoWidth / aspect
+        return TouchControlsLayoutPlan(
+            TouchControlsPlacement.LANDSCAPE_SIDES,
+            TouchControlsVideoBounds((width - videoWidth) * 0.5f, (height - videoHeight) * 0.5f, videoWidth, videoHeight),
+        )
+    }
+}
 
 /** Screen metrics for a touch overlay. The overlay stays transparent and never takes space from the game view. */
 @Immutable
@@ -17,6 +101,7 @@ data class TouchControlsLayoutMetrics(
     val edgePadding: Dp,
     val compact: Boolean,
     val nearSquare: Boolean,
+    val plan: TouchControlsLayoutPlan,
 )
 
 /**
@@ -28,6 +113,8 @@ fun TouchControlsOverlay(
     modifier: Modifier = Modifier,
     referenceWidth: Dp,
     referenceHeight: Dp,
+    videoAspectRatio: Float = 4f / 3f,
+    controlsEnabled: Boolean = true,
     content: @Composable BoxScope.(TouchControlsLayoutMetrics) -> Unit,
 ) {
     BoxWithConstraints(modifier) {
@@ -40,6 +127,7 @@ fun TouchControlsOverlay(
             compact -> 8.dp
             else -> 16.dp
         }
-        content(TouchControlsLayoutMetrics(maxWidth, maxHeight, scale, edgePadding, compact, nearSquare))
+        val plan = TouchControlsLayoutPlanner.plan(maxWidth.value, maxHeight.value, videoAspectRatio, controlsEnabled)
+        content(TouchControlsLayoutMetrics(maxWidth, maxHeight, scale, edgePadding, compact, nearSquare, plan))
     }
 }
