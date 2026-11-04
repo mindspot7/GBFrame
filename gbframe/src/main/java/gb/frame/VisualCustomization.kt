@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -384,25 +385,24 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                 tonalElevation = 8.dp,
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 20.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier.size(48.dp).clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(Icons.Default.Palette, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(25.dp))
-                        }
-                        Spacer(Modifier.width(14.dp))
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            KitText(if (unlocked) "Themes unlocked" else "Gold themes",
-                                style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-                            KitText(if (unlocked) appName else "Support the developer",
-                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    Box(
+                        modifier = Modifier.size(64.dp).clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Default.Palette, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(34.dp))
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        KitText("$appName - PRO", style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center)
+                        KitText(if (unlocked) "Themes unlocked" else "Support the developer",
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center)
                     }
 
                     KitText(
@@ -410,6 +410,7 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                         else "Make a one-time purchase to support development and unlock all themes in $appName.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
                     )
 
                     if (!unlocked) {
@@ -418,7 +419,7 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                             color = MaterialTheme.colorScheme.primaryContainer,
                         ) {
                             KitText(
-                                text = if (price != null) "ONE-TIME PURCHASE  ·  $price" else "ONE-TIME PURCHASE",
+                                text = "ONE-TIME PURCHASE",
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -429,7 +430,7 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                         }
                         message?.let {
                             KitText(it, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                         }
                         Button(
                             enabled = status == VisualCustomization.Status.Ready,
@@ -439,11 +440,11 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                         ) {
                             KitText("👑", style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.width(8.dp))
-                            KitText(if (price == null) "Support & unlock" else "Support · $price")
+                            KitText(if (price == null) "Support & unlock" else "Support · $price", textAlign = TextAlign.Center)
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             TextButton(onClick = VisualCustomization::restore) { KitText("Restore purchase") }
