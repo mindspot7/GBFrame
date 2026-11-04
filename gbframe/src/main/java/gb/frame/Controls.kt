@@ -76,7 +76,7 @@ data class ControlButton(
 )
 
 /** Visibility policy for the on-screen controls shared by all GBFrame apps. */
-enum class TouchControlsMode { AUTO, SHOW }
+enum class TouchControlsMode { AUTO, ON, OFF }
 
 /** Directions reported by [TouchDPad]. Diagonals are represented by two entries at once. */
 enum class TouchDirection { UP, DOWN, LEFT, RIGHT }
@@ -293,9 +293,18 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
         }
         else -> {
             SettingsGroup("On-screen controls", Icons.Default.TouchApp) {
-                ChoiceRow("Touch controls", "Auto hides the on-screen buttons when a physical controller is connected. Show keeps them visible.",
-                    listOf("Auto", "Show"), if (host.touchControlsMode == TouchControlsMode.AUTO) 0 else 1) {
-                    host.touchControlsMode = if (it == 0) TouchControlsMode.AUTO else TouchControlsMode.SHOW
+                val touchModeIndex = when (host.touchControlsMode) {
+                    TouchControlsMode.AUTO -> 0
+                    TouchControlsMode.ON -> 1
+                    TouchControlsMode.OFF -> 2
+                }
+                ChoiceRow("Touch controls", "Auto hides the on-screen buttons when a physical controller is connected. On always shows them; Off always hides them.",
+                    listOf("Auto", "On", "Off"), touchModeIndex) {
+                    host.touchControlsMode = when (it) {
+                        1 -> TouchControlsMode.ON
+                        2 -> TouchControlsMode.OFF
+                        else -> TouchControlsMode.AUTO
+                    }
                 }
                 SettingsDivider()
                 ChoiceRow("Haptic feedback", "Vibrate briefly when you press an on-screen control.",

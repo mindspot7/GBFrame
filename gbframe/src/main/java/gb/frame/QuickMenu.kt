@@ -462,8 +462,18 @@ fun TouchControlsQuickMenuItem(
     id = id,
     icon = Icons.Default.TouchApp,
     label = "Touch controls",
-    value = if (value == TouchControlsMode.AUTO) "Auto" else "Show",
-    onClick = { onChange(if (value == TouchControlsMode.AUTO) TouchControlsMode.SHOW else TouchControlsMode.AUTO) },
+    value = when (value) {
+        TouchControlsMode.AUTO -> "Auto"
+        TouchControlsMode.ON -> "On"
+        TouchControlsMode.OFF -> "Off"
+    },
+    onClick = {
+        onChange(when (value) {
+            TouchControlsMode.AUTO -> TouchControlsMode.ON
+            TouchControlsMode.ON -> TouchControlsMode.OFF
+            TouchControlsMode.OFF -> TouchControlsMode.AUTO
+        })
+    },
 )
 
 /** Shared in-game Performance row for adaptive render skipping; app supplies and persists the core setting. */
