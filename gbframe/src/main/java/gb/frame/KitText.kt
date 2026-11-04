@@ -162,6 +162,29 @@ private val portugueseKitText = mapOf(
     "Google Play purchase is unavailable in this build." to "A compra pelo Google Play não está disponível nesta versão.",
     "Could not connect to Google Play. Try again later." to "Não foi possível conectar ao Google Play. Tente novamente mais tarde.",
     "Checking purchases for this Google Play account…" to "Verificando as compras desta conta do Google Play…",
+    "Check for updates" to "Verificar atualizações",
+    "Checking…" to "Verificando…",
+    "Check" to "Verificar",
+    "Update available" to "Atualização disponível",
+    "Update" to "Atualizar",
+    "Open Google Play" to "Abrir Google Play",
+    "Later" to "Mais tarde",
+    "Update not available" to "Atualização indisponível",
+    "Release page" to "Página da versão",
+    "No release found" to "Nenhuma versão publicada foi encontrada.",
+    "Up to date" to "Atualizado",
+    "You have the latest version." to "Você está usando a versão mais recente.",
+    "Could not check for updates. Check your connection and try again." to "Não foi possível verificar atualizações. Confira sua conexão e tente novamente.",
+    "Google Play could not be reached" to "Não foi possível acessar o Google Play.",
+    "The release has no APK" to "Esta versão não contém um APK.",
+    "Allow installing from this app, then try again" to "Permita instalações por este app e tente novamente.",
+    "SHA-256 does not match; update rejected" to "O SHA-256 não confere; a atualização foi recusada.",
+    "The downloaded file is not a valid APK" to "O arquivo baixado não é um APK válido.",
+    "The APK is for a different app; update rejected" to "O APK pertence a outro app; a atualização foi recusada.",
+    "The APK signature does not match this app; update rejected" to "A assinatura do APK não corresponde a este app; a atualização foi recusada.",
+    "Could not start the update. Try again later." to "Não foi possível iniciar a atualização. Tente novamente mais tarde.",
+    "Google Play could not start the update. Try again later." to "O Google Play não conseguiu iniciar a atualização. Tente novamente mais tarde.",
+    "An update is available, but Google Play cannot apply it right now." to "Há uma atualização disponível, mas o Google Play não pode aplicá-la agora.",
     "Could not load the purchase from Google Play." to "Não foi possível carregar a compra do Google Play.",
     "This app's one-time product is not available in Google Play yet." to "O produto de compra única deste app ainda não está disponível no Google Play.",
     "Could not check Google Play purchases. Try again later." to "Não foi possível verificar as compras do Google Play. Tente novamente mais tarde.",
@@ -361,6 +384,29 @@ private val spanishKitText = mapOf(
     "Google Play purchase is unavailable in this build." to "La compra en Google Play no está disponible en esta versión.",
     "Could not connect to Google Play. Try again later." to "No se pudo conectar con Google Play. Inténtalo de nuevo más tarde.",
     "Checking purchases for this Google Play account…" to "Comprobando las compras de esta cuenta de Google Play…",
+    "Check for updates" to "Buscar actualizaciones",
+    "Checking…" to "Comprobando…",
+    "Check" to "Buscar",
+    "Update available" to "Actualización disponible",
+    "Update" to "Actualizar",
+    "Open Google Play" to "Abrir Google Play",
+    "Later" to "Más tarde",
+    "Update not available" to "Actualización no disponible",
+    "Release page" to "Página de la versión",
+    "No release found" to "No se encontró ninguna versión publicada.",
+    "Up to date" to "Actualizado",
+    "You have the latest version." to "Tienes la versión más reciente.",
+    "Could not check for updates. Check your connection and try again." to "No se pudieron buscar actualizaciones. Comprueba tu conexión e inténtalo de nuevo.",
+    "Google Play could not be reached" to "No se pudo acceder a Google Play.",
+    "The release has no APK" to "Esta versión no incluye un APK.",
+    "Allow installing from this app, then try again" to "Permite las instalaciones desde esta app e inténtalo de nuevo.",
+    "SHA-256 does not match; update rejected" to "El SHA-256 no coincide; se rechazó la actualización.",
+    "The downloaded file is not a valid APK" to "El archivo descargado no es un APK válido.",
+    "The APK is for a different app; update rejected" to "El APK pertenece a otra app; se rechazó la actualización.",
+    "The APK signature does not match this app; update rejected" to "La firma del APK no coincide con esta app; se rechazó la actualización.",
+    "Could not start the update. Try again later." to "No se pudo iniciar la actualización. Inténtalo de nuevo más tarde.",
+    "Google Play could not start the update. Try again later." to "Google Play no pudo iniciar la actualización. Inténtalo de nuevo más tarde.",
+    "An update is available, but Google Play cannot apply it right now." to "Hay una actualización disponible, pero Google Play no puede aplicarla ahora.",
     "Could not load the purchase from Google Play." to "No se pudo cargar la compra desde Google Play.",
     "This app's one-time product is not available in Google Play yet." to "El producto de pago único de esta app aún no está disponible en Google Play.",
     "Could not check Google Play purchases. Try again later." to "No se pudieron comprobar las compras de Google Play. Inténtalo de nuevo más tarde.",
@@ -443,6 +489,26 @@ private fun localizedKitText(text: String): String {
         else -> emptyMap()
     }
     translations[text]?.let { return it }
+    if (text.startsWith("Current version ")) return when {
+        tag.startsWith("pt", ignoreCase = true) -> "Versão atual ${text.removePrefix("Current version ")}"
+        tag.startsWith("es", ignoreCase = true) -> "Versión actual ${text.removePrefix("Current version ")}"
+        else -> text
+    }
+    if (text.startsWith("Version ") && text.endsWith(" is available.")) {
+        val version = text.removePrefix("Version ").removeSuffix(" is available.").removePrefix("build ")
+        return when {
+            tag.startsWith("pt", ignoreCase = true) -> "A versão $version está disponível."
+            tag.startsWith("es", ignoreCase = true) -> "La versión $version está disponible."
+            else -> text
+        }
+    }
+    Regex("^Download failed \\(HTTP (\\d+)\\)$").matchEntire(text)?.let { match ->
+        return when {
+            tag.startsWith("pt", ignoreCase = true) -> "Falha no download (HTTP ${match.groupValues[1]})."
+            tag.startsWith("es", ignoreCase = true) -> "Error de descarga (HTTP ${match.groupValues[1]})."
+            else -> text
+        }
+    }
     if (text.equals("low", ignoreCase = true) || text.equals("entry", ignoreCase = true)) return translations["Low"] ?: text
     if (text.equals("mid", ignoreCase = true)) return translations["Mid"] ?: text
     if (text.equals("high", ignoreCase = true)) return translations["High"] ?: text

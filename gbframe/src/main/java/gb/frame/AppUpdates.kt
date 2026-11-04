@@ -15,7 +15,6 @@ import android.provider.Settings as AndroidSettings
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
 import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.ActivityResult as PlayActivityResult
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +65,14 @@ enum class UpdateChannel { PLAY, GITHUB }
 sealed interface UpdateResult {
     data object UpToDate : UpdateResult
     /** [versionName] is the available version, [notes] the release notes (GitHub only). */
-    data class Available(val versionName: String, val notes: String, val releasePage: String) : UpdateResult
+    data class Available(
+        val versionName: String,
+        val notes: String,
+        val releasePage: String,
+        val channel: UpdateChannel = UpdateChannel.GITHUB,
+        /** Preferred Play update type, or null when Play has no in-app flow available. */
+        val playUpdateType: Int? = null,
+    ) : UpdateResult
     /** The check failed (network, unknown channel, missing APK...). [releasePage] is the manual alternative. */
     data class Failed(val reason: String, val releasePage: String) : UpdateResult
 }
@@ -110,10 +117,13 @@ object AppUpdates {
         val page = releasePage(config)
         return runCatching {
             when (channelOf(context)) {
-                UpdateChannel.PLAY -> checkPlay(context, page)
+                UpdateChannel.PLAY -> checkPlay(context, playStorePage(context))
                 UpdateChannel.GITHUB -> checkGitHub(context, config, page)
             }
-        }.getOrElse { UpdateResult.Failed(it.message ?: it.javaClass.simpleName, page) }
+        }.getOrElse {
+            val fallback = if (channelOf(context) == UpdateChannel.PLAY) playStorePage(context) else page
+            UpdateResult.Failed("Could not check for updates. Check your connection and try again.", fallback)
+        }
     }
 
     private suspend fun checkPlay(context: Context, page: String): UpdateResult {
@@ -122,10 +132,23 @@ object AppUpdates {
                 .addOnSuccessListener { cont.resume(it) }
                 .addOnFailureListener { cont.resume(null) }
         } ?: return UpdateResult.Failed("Google Play could not be reached", page)
-        val available = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
-            info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
-        return if (available) UpdateResult.Available("build ${info.availableVersionCode()}", "", page) else UpdateResult.UpToDate
+        if (info.updateAvailability() != UpdateAvailability.UPDATE_AVAILABLE) return UpdateResult.UpToDate
+        val updateType = when {
+            info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> AppUpdateType.FLEXIBLE
+            info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE) -> AppUpdateType.IMMEDIATE
+            else -> null
+        }
+        return UpdateResult.Available(
+            versionName = "build ${info.availableVersionCode()}",
+            notes = "",
+            releasePage = page,
+            channel = UpdateChannel.PLAY,
+            playUpdateType = updateType,
+        )
     }
+
+    private fun playStorePage(context: Context) =
+        "https://play.google.com/store/apps/details?id=${Uri.encode(context.packageName)}"
 
     private class Release(val tag: String, val notes: String, val apkUrl: String?, val apkName: String?, val sha256: String?, val shaUrl: String?)
 
@@ -155,7 +178,7 @@ object AppUpdates {
         val release = fetchRelease(config)
         if (release.tag.isBlank()) return UpdateResult.Failed("No release found", page)
         if (compareVersions(release.tag, currentVersion(context)) <= 0) return UpdateResult.UpToDate
-        if (release.apkUrl == null) return UpdateResult.Failed("The release ${release.tag} has no APK", page)
+        if (release.apkUrl == null) return UpdateResult.Failed("The release has no APK", page)
         return UpdateResult.Available(release.tag.removePrefix("v"), release.notes, page)
     }
 
@@ -177,14 +200,19 @@ object AppUpdates {
             UpdateChannel.PLAY -> installPlay(activity)
             UpdateChannel.GITHUB -> installGitHub(activity, config)
         }
-    }.getOrElse { it.message ?: it.javaClass.simpleName }
+    }.getOrElse { "Could not start the update. Try again later." }
 
     private suspend fun installPlay(activity: Activity): String? {
         val manager = AppUpdateManagerFactory.create(activity)
         val info = suspendCancellableCoroutine<com.google.android.play.core.appupdate.AppUpdateInfo?> { cont ->
             manager.appUpdateInfo.addOnSuccessListener { cont.resume(it) }.addOnFailureListener { cont.resume(null) }
         } ?: return "Google Play could not be reached"
-        manager.registerListener(object : com.google.android.play.core.install.InstallStateUpdatedListener {
+        val updateType = when {
+            info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> AppUpdateType.FLEXIBLE
+            info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE) -> AppUpdateType.IMMEDIATE
+            else -> return "An update is available, but Google Play cannot apply it right now."
+        }
+        val listener = object : com.google.android.play.core.install.InstallStateUpdatedListener {
             override fun onStateUpdate(state: com.google.android.play.core.install.InstallState) {
                 // Downloaded in the background; the user confirms the restart that applies it.
                 if (state.installStatus() == InstallStatus.DOWNLOADED) {
@@ -192,9 +220,34 @@ object AppUpdates {
                     manager.completeUpdate()
                 }
             }
-        })
-        manager.startUpdateFlow(info, activity, AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build())
-        return null
+        }
+        if (updateType == AppUpdateType.FLEXIBLE) manager.registerListener(listener)
+        return suspendCancellableCoroutine { continuation ->
+            val task = try {
+                manager.startUpdateFlow(info, activity, AppUpdateOptions.newBuilder(updateType).build())
+            } catch (_: Exception) {
+                if (updateType == AppUpdateType.FLEXIBLE) manager.unregisterListener(listener)
+                if (continuation.isActive) continuation.resume("Google Play could not start the update. Try again later.")
+                return@suspendCancellableCoroutine
+            }
+            task.addOnSuccessListener { result ->
+                    // A canceled flow is a normal user choice; no update listener is needed afterward.
+                    if (updateType == AppUpdateType.FLEXIBLE &&
+                        (result == Activity.RESULT_CANCELED || result == PlayActivityResult.RESULT_IN_APP_UPDATE_FAILED)
+                    ) {
+                        manager.unregisterListener(listener)
+                    }
+                    if (continuation.isActive) continuation.resume(
+                        if (result == PlayActivityResult.RESULT_IN_APP_UPDATE_FAILED)
+                            "Google Play could not start the update. Try again later."
+                        else null,
+                    )
+                }
+                .addOnFailureListener {
+                    if (updateType == AppUpdateType.FLEXIBLE) manager.unregisterListener(listener)
+                    if (continuation.isActive) continuation.resume("Google Play could not start the update. Try again later.")
+                }
+        }
     }
 
     private suspend fun installGitHub(activity: Activity, config: AppUpdateConfig): String? = withContext(Dispatchers.IO) {
@@ -295,29 +348,38 @@ fun AppUpdatePrompt(config: AppUpdateConfig, manual: UpdateController = remember
         when (state) {
             is UpdateResult.Available -> AlertDialog(
                 onDismissRequest = { manual.dialog = null },
-                title = { Text("Update available") },
-                text = { Text("Version ${state.versionName} is available." + if (state.notes.isNotBlank()) "\n\n" + state.notes.take(600) else "") },
+                title = { KitText("Update available") },
+                text = { KitText("Version ${state.versionName} is available.") },
                 confirmButton = {
                     TextButton(onClick = {
                         manual.dialog = null
+                        if (state.channel == UpdateChannel.PLAY && state.playUpdateType == null) {
+                            openPage()
+                            return@TextButton
+                        }
                         val a = activity ?: return@TextButton
                         scope.launch { AppUpdates.install(a, config)?.let { manual.dialog = UpdateResult.Failed(it, page) } }
-                    }) { Text("Update") }
+                    }) {
+                        KitText(if (state.channel == UpdateChannel.PLAY && state.playUpdateType == null) "Open Google Play" else "Update")
+                    }
                 },
-                dismissButton = { TextButton(onClick = { manual.dialog = null }) { Text("Later") } },
+                dismissButton = { TextButton(onClick = { manual.dialog = null }) { KitText("Later") } },
             )
             is UpdateResult.Failed -> AlertDialog(
                 onDismissRequest = { manual.dialog = null },
-                title = { Text("Update not available") },
-                text = { Text(state.reason) },
-                confirmButton = { TextButton(onClick = openPage) { Text("Release page") } },
-                dismissButton = { TextButton(onClick = { manual.dialog = null }) { Text("Close") } },
+                title = { KitText("Update not available") },
+                text = { KitText(state.reason) },
+                confirmButton = {
+                    val label = if (state.releasePage.contains("play.google.com")) "Open Google Play" else "Release page"
+                    TextButton(onClick = openPage) { KitText(label) }
+                },
+                dismissButton = { TextButton(onClick = { manual.dialog = null }) { KitText("Close") } },
             )
             UpdateResult.UpToDate -> AlertDialog(
                 onDismissRequest = { manual.dialog = null },
-                title = { Text("Up to date") },
-                text = { Text("You have the latest version.") },
-                confirmButton = { TextButton(onClick = { manual.dialog = null }) { Text("OK") } },
+                title = { KitText("Up to date") },
+                text = { KitText("You have the latest version.") },
+                confirmButton = { TextButton(onClick = { manual.dialog = null }) { KitText("OK") } },
             )
         }
     }

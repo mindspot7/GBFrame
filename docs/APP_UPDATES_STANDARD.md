@@ -26,8 +26,10 @@ reported as Play.
 
 ## Play flow
 
-`AppUpdateManager` reports an available update; the kit shows its dialog, then starts the flexible flow. When the
-download finishes the update is completed (the app restarts).
+`AppUpdateManager` reports an available update; the kit prefers the flexible flow and uses the immediate flow only when
+Google Play does not allow flexible updates. If Play reports an update but offers neither in-app flow, the dialog opens
+the app's Play Store page instead of reporting that it is up to date. A failed update-flow task is surfaced in the UI.
+When a flexible download finishes, the kit asks Play to complete the update.
 
 ## UX rules
 
@@ -36,6 +38,9 @@ download finishes the update is completed (the app restarts).
 - The manual "Check for updates" row lives on the About page: pass `updateConfig = ...` to `AboutPage` and the kit
   adds it; it reports up to date, errors and failures.
 - Network errors, unknown channel and a release without an APK never throw; the dialog offers the release page.
+- All update prompts, results, actions and version labels use `KitText`, so English, Portuguese and Spanish follow the
+  language selected in the app. GitHub release notes are not copied into the dialog because they are publisher text and
+  are not localized by the kit.
 
 ## App integration
 
