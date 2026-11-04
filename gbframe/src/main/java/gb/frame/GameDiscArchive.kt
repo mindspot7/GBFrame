@@ -85,13 +85,14 @@ internal object GameDiscArchive {
             if (entries.size > MAX_ENTRIES) throw DiscArchiveException("The archive contains too many files.")
             val total = declaredTotal(entries.filter { !it.isDirectory && it.hasStream() && !it.isAntiItem }.map { it.size })
             val writer = DiscExtractionWriter(destination, playableExtensions, maxUnpackedBytes, total, onProgress)
-            for (entry in entries) {
+            while (true) {
+                val entry = source.nextEntry ?: break
                 if (entry.isAntiItem) throw DiscArchiveException("Archives containing delete records are not supported.")
                 if (entry.contentMethods?.any { it.method == SevenZMethod.AES256SHA256 } == true) {
                     throw DiscArchiveException("Password-protected 7z files are not supported.")
                 }
                 writer.add(entry.name, entry.isDirectory, entry.size) { output ->
-                    if (entry.hasStream()) source.copyCurrentEntryBoundedTo(output)
+                    if (entry.hasStream()) source.getInputStream(entry).use { it.copyBoundedTo(output) }
                 }
             }
             return writer.finish()
