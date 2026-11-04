@@ -9,6 +9,8 @@ import android.system.Os
 import android.util.Log
 import java.io.File
 import java.security.MessageDigest
+import java.util.Properties
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Game files read through the Storage Access Framework (no broad storage permission, Google Play compliant).
@@ -39,19 +41,36 @@ class OpenDisc(
     val path: String,
     private val fds: List<android.os.ParcelFileDescriptor>,
     private val stage: File? = null,
+    private val onClose: (() -> Unit)? = null,
 ) : AutoCloseable {
     /** Number of SAF descriptors retained for native readers using /proc/self/fd links. */
     val descriptorCount: Int get() = fds.size
+    private val closed = AtomicBoolean(false)
 
     override fun close() {
+        if (!closed.compareAndSet(false, true)) return
         // Links first: once a descriptor is closed its number can be reused by any other file
         stage?.let { runCatching { it.deleteRecursively() } }
         fds.forEach { runCatching { it.close() } }
+        runCatching { onClose?.invoke() }
     }
 }
 
-open class SafGames(private val discExt: Set<String>, private val gamesDir: () -> String) {
+open class SafGames(
+    private val discExt: Set<String>,
+    private val gamesDir: () -> String,
+    /** Disc-image extensions accepted inside a ZIP package. Empty disables ZIP game loading. */
+    private val zipDiscExt: Set<String> = emptySet(),
+) {
     private val PREFIX = "saf:/"
+    private val zipCacheLock = Any()
+    private val pinnedZipCaches = HashMap<String, Int>()
+    @Volatile private var lastZipError: String? = null
+
+    private companion object {
+        const val MAX_ZIP_UNPACKED_BYTES = 8L * 1024 * 1024 * 1024
+        const val ZIP_CACHE_BUDGET_BYTES = 8L * 1024 * 1024 * 1024
+    }
 
     private lateinit var appContext: Context
     fun init(context: Context) { appContext = context.applicationContext }
@@ -197,7 +216,12 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
      * app cache instead, for devices where that fails (the caller retries with it when loading fails).
      */
     fun open(path: String, stageCopy: Boolean = false): OpenDisc? {
+        lastZipError = null
         Log.i(TAG, "open start path=" + path + "; folderConfigured=" + gamesDir().startsWith("content://"))
+        if (fileName(path).substringAfterLast('.', "").equals("zip", ignoreCase = true)) {
+            if (zipDiscExt.isEmpty()) return null
+            return openZip(path)
+        }
         if (!path.startsWith(PREFIX) && File(path).canRead()) return OpenDisc(path, emptyList())
         val tree = tree() ?: run { Log.e(TAG, "no SAF tree URI"); return null }
         val located = locate(path) ?: run { Log.e(TAG, "locate failed path=" + path); return null }
@@ -302,7 +326,7 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
      */
     fun openAndLoad(path: String, load: (OpenDisc) -> String?): DiscLoad {
         var disc = open(path)
-            ?: return DiscLoad(null, "Unable to open ${fileName(path)}. Check games folder permission and logcat.")
+            ?: return DiscLoad(null, lastZipError ?: "Unable to open ${fileName(path)}. Check games folder permission and logcat.")
         var error = load(disc)
         val copyable = isCopyable(path)
         var copied = false
@@ -322,6 +346,9 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
         }
         return DiscLoad(disc, null)
     }
+
+    /** A specific ZIP validation/read error from the most recent [open], when available. */
+    fun lastOpenError(): String? = lastZipError
 
     /** Runs [attempt] on the opened disc and closes it; like [openAndLoad], a CHD/ISO that yields null is retried from a copy. */
     fun <T : Any> useDisc(path: String, attempt: (OpenDisc) -> T?): T? {
@@ -355,4 +382,149 @@ open class SafGames(private val discExt: Set<String>, private val gamesDir: () -
             }?.forEach { it.delete() }
         }
     }
+
+    private data class ZipSource(val file: File, val identity: String, val size: Long, val modified: Long, val temporary: Boolean)
+
+    private fun openZip(path: String): OpenDisc? {
+        lastZipError = null
+        val source = try { zipSource(path) } catch (failure: Exception) {
+            lastZipError = "Could not read ${fileName(path)}: ${failure.message ?: "access denied"}"
+            Log.e(TAG, lastZipError!!, failure)
+            return null
+        } ?: run {
+            lastZipError = "Could not find ${fileName(path)} in the selected games folder."
+            return null
+        }
+        try {
+            synchronized(zipCacheLock) {
+                val key = sha256(source.identity)
+                val root = File(appContext.cacheDir, "zip-games")
+                if (!root.exists() && !root.mkdirs()) throw ZipDiscArchiveException("Could not create the ZIP game cache.")
+                val target = File(root, key)
+                val marker = File(target, ".gbframe-zip.properties")
+                val primary: String
+                val unpackedBytes: Long
+                if (cacheMatches(marker, source)) {
+                    val metadata = Properties().apply { marker.inputStream().use(::load) }
+                    primary = metadata.getProperty("primary")
+                    unpackedBytes = metadata.getProperty("bytes").toLongOrNull() ?: 0L
+                    val cachedDisc = File(target, primary)
+                    if (!cachedDisc.canonicalPath.startsWith(target.canonicalPath + File.separator) || !cachedDisc.isFile) {
+                        throw ZipDiscArchiveException("The cached ZIP game is incomplete.")
+                    }
+                    marker.setLastModified(System.currentTimeMillis())
+                    Log.i(TAG, "reusing ZIP game cache name=${fileName(path)} bytes=$unpackedBytes")
+                } else {
+                    target.deleteRecursively()
+                    val temp = File(root, "$key.tmp")
+                    temp.deleteRecursively()
+                    val extracted = ZipDiscArchive.extract(source.file, temp, zipDiscExt, MAX_ZIP_UNPACKED_BYTES)
+                    Properties().apply {
+                        setProperty("identity", source.identity)
+                        setProperty("size", source.size.toString())
+                        setProperty("modified", source.modified.toString())
+                        setProperty("primary", extracted.primaryPath)
+                        setProperty("bytes", extracted.unpackedBytes.toString())
+                    }.let { props -> File(temp, ".gbframe-zip.properties").outputStream().use { props.store(it, null) } }
+                    if (!temp.renameTo(target)) {
+                        temp.deleteRecursively()
+                        throw ZipDiscArchiveException("Could not finalize the ZIP game cache.")
+                    }
+                    primary = extracted.primaryPath
+                    unpackedBytes = extracted.unpackedBytes
+                    Log.i(TAG, "extracted ZIP game name=${fileName(path)} bytes=$unpackedBytes")
+                }
+                pinnedZipCaches[key] = (pinnedZipCaches[key] ?: 0) + 1
+                trimZipCacheLocked()
+                val disc = File(target, primary)
+                return OpenDisc(disc.path, emptyList(), onClose = {
+                    synchronized(zipCacheLock) {
+                        val count = pinnedZipCaches[key] ?: 0
+                        if (count <= 1) pinnedZipCaches.remove(key) else pinnedZipCaches[key] = count - 1
+                        File(target, ".gbframe-zip.properties").setLastModified(System.currentTimeMillis())
+                        trimZipCacheLocked()
+                    }
+                })
+            }
+        } catch (failure: Exception) {
+            lastZipError = failure.message ?: "Could not extract ${fileName(path)}."
+            Log.e(TAG, "ZIP open failed name=${fileName(path)} error=$lastZipError", failure)
+            return null
+        } finally {
+            if (source.temporary) source.file.delete()
+        }
+    }
+
+    private fun zipSource(path: String): ZipSource? {
+        if (!path.startsWith(PREFIX) && !path.startsWith("content://")) {
+            val file = File(path)
+            if (!file.isFile || !file.canRead()) return null
+            val canonical = file.canonicalPath
+            val identity = "$canonical|${file.length()}|${file.lastModified()}"
+            return ZipSource(file, identity, file.length(), file.lastModified(), false)
+        }
+        val tree = tree() ?: return null
+        val located = locate(path) ?: return null
+        val name = fileName(path)
+        val main = located.second.firstOrNull { !it.isDir && it.name == name } ?: return null
+        val uri = DocumentsContract.buildDocumentUriUsingTree(tree, main.docId)
+        val size = main.size.coerceAtLeast(0L)
+        val modified = main.lastModified.coerceAtLeast(0L)
+        val identity = "${path}|$size|$modified"
+        val archiveDir = File(appContext.cacheDir, "zip-input").apply { mkdirs() }
+        val staged = File(archiveDir, sha256(identity) + ".zip")
+        val temp = File(archiveDir, staged.name + ".tmp")
+        temp.delete()
+        appContext.contentResolver.openInputStream(uri)?.use { input ->
+            temp.outputStream().buffered().use { output -> input.copyTo(output, 1024 * 1024) }
+        } ?: return null
+        if (size > 0 && temp.length() != size) {
+            temp.delete()
+            throw ZipDiscArchiveException("The ZIP download was incomplete.")
+        }
+        if (staged.exists()) staged.delete()
+        if (!temp.renameTo(staged)) {
+            temp.delete()
+            throw ZipDiscArchiveException("Could not prepare the ZIP file.")
+        }
+        return ZipSource(staged, identity, staged.length(), modified, true)
+    }
+
+    private fun cacheMatches(marker: File, source: ZipSource): Boolean {
+        if (!marker.isFile) return false
+        return runCatching {
+            val props = Properties().apply { marker.inputStream().use(::load) }
+            props.getProperty("identity") == source.identity &&
+                props.getProperty("size") == source.size.toString() &&
+                props.getProperty("modified") == source.modified.toString() &&
+                props.getProperty("primary").orEmpty().isNotBlank() &&
+                (props.getProperty("bytes").toLongOrNull() ?: -1L) >= 0
+        }.getOrDefault(false)
+    }
+
+    private fun trimZipCacheLocked() {
+        val root = File(appContext.cacheDir, "zip-games")
+        root.listFiles()?.filter { it.isDirectory && it.name.endsWith(".tmp") }?.forEach { it.deleteRecursively() }
+        val entries = root.listFiles()?.filter { it.isDirectory }.orEmpty()
+        var total = entries.sumOf { dir ->
+            runCatching {
+                val marker = File(dir, ".gbframe-zip.properties")
+                Properties().apply { marker.inputStream().use(::load) }.getProperty("bytes").toLongOrNull() ?: 0L
+            }.getOrDefault(0L)
+        }
+        entries.sortedBy { File(it, ".gbframe-zip.properties").lastModified() }.forEach { dir ->
+            if (total <= ZIP_CACHE_BUDGET_BYTES) return
+            if (dir.name in pinnedZipCaches) return@forEach
+            val bytes = runCatching {
+                Properties().apply { File(dir, ".gbframe-zip.properties").inputStream().use(::load) }
+                    .getProperty("bytes").toLongOrNull() ?: 0L
+            }.getOrDefault(0L)
+            if (dir.deleteRecursively()) total -= bytes
+        }
+        root.listFiles()?.filter { it.isFile && (it.name.endsWith(".tmp") || it.name.endsWith(".zip")) }
+            ?.forEach { if (it.name.endsWith(".tmp")) it.delete() }
+    }
+
+    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 }

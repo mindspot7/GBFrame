@@ -13,6 +13,8 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 
 ## Lessons by project
 
+- **GBFrame / ZIP game loading:** expose each archive as one library item using the ZIP filename as its game identity. Extract supported disc files to the private cache before opening the core, retain cue/gdi companion tracks, reject archives with zero or multiple supported disc images, cap expanded size and entry count, and evict least-recently-used unpinned extractions. Never decompress disc data on the emulation thread; the core receives ordinary file paths and ZIP loading adds storage/launch cost, not frame-time work.
+
 - **GBSat / Ymir (Sega Saturn):** renderer changes must be evaluated separately from CPU bottlenecks. On the RK3568,
   Vulkan presentation overhead and Saturn CPU limits are distinct; renderer experiments did not justify changing the
   proven OpenGL CPU path. Keep tested per-game CPU recommendations in GBFrame profiles and document the device/game
