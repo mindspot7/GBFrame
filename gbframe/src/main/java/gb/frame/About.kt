@@ -68,6 +68,7 @@ fun AboutPage(
     privacyPolicyUrl: String,
     tagline: String? = null,
     licenseDocuments: List<AboutLicenseDocument> = emptyList(),
+    updateConfig: AppUpdateConfig? = null,
 ) {
     val ctx = LocalContext.current
     val uriHandler = LocalUriHandler.current
@@ -110,6 +111,7 @@ fun AboutPage(
             KitText("appid: ${ctx.packageName}", color = p.dim, style = MaterialTheme.typography.labelMedium)
         }
     }
+    updateConfig?.let { SettingsGroup("Updates", null) { UpdateCheckRow(rememberUpdateController(it)) } }
     if (visibleCredits.isNotEmpty()) SettingsGroup("Credits", Icons.Default.Favorite) {
         visibleCredits.forEachIndexed { i, credit ->
             if (i > 0) SettingsDivider()

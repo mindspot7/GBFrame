@@ -33,8 +33,8 @@ download finishes the update is completed (the app restarts).
 
 - `AppUpdatePrompt(config)` goes once in the app root (library screen, not during gameplay). It checks once per process
   and only shows a dialog when an update exists; errors and "up to date" stay silent.
-- `UpdateCheckRow(rememberUpdateController(config))` is the manual "Check for updates" row in Extras; it reports
-  up to date, errors and failures.
+- The manual "Check for updates" row lives on the About page: pass `updateConfig = ...` to `AboutPage` and the kit
+  adds it; it reports up to date, errors and failures.
 - Network errors, unknown channel and a release without an APK never throw; the dialog offers the release page.
 
 ## App integration
