@@ -240,11 +240,11 @@ fun QuickMenuHost(
             // width became only ~120 dp on high-density portrait screens and wrapped labels.
             val compactMenu = maxWidth < 600.dp || maxHeight < 600.dp
             val widthFraction = when {
-                isPortrait -> .82f
+                isPortrait -> .68f // narrower than a landscape-style panel: a phone held upright is mostly picture and pad
                 isLandscapeFourByThree -> .46f
                 else -> .45f
             }
-            val panelWidth = minOf(maxWidth * widthFraction, 400.dp)
+            val panelWidth = minOf(maxWidth * widthFraction, if (isPortrait) 320.dp else 400.dp)
             Box(Modifier.fillMaxSize()) {
             AnimatedVisibility(
                 visible = true,
@@ -267,7 +267,7 @@ fun QuickMenuHost(
                     color = p.panel,
                     shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
                     border = BorderStroke(1.dp, p.border),
-                    modifier = Modifier.fillMaxHeight().width(panelWidth)
+                    modifier = Modifier.fillMaxHeight(if (isPortrait) .72f else 1f).width(panelWidth)
                         .pointerInput(Unit) { detectTapGestures(onTap = {}) },
                 ) {
                     // The panel itself reaches the top and bottom of the app window. Only inset
