@@ -49,7 +49,9 @@ object FullScreen {
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.apply {
+            // Accessing Window.insetsController before PhoneWindow creates its decor can throw on newer Android.
+            // decorView initializes it; its controller can still be null until attachment and focus will retry.
+            window.decorView.windowInsetsController?.apply {
                 hide(WindowInsets.Type.systemBars())
                 systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
@@ -64,7 +66,7 @@ object FullScreen {
     fun showSystemBars(activity: Activity) {
         val window = activity.window
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.show(WindowInsets.Type.systemBars())
+            window.decorView.windowInsetsController?.show(WindowInsets.Type.systemBars())
         } else {
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = LAYOUT_FLAGS
