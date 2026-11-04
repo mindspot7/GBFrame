@@ -33,7 +33,7 @@ internal object GameDiscArchive {
         maxUnpackedBytes: Long,
         onProgress: (completedBytes: Long, totalBytes: Long?) -> Unit = { _, _ -> },
     ): ExtractedDiscArchive {
-        try {
+        return try {
             when (extension.lowercase()) {
                 "zip" -> extractZip(archive, destination, playableExtensions, maxUnpackedBytes, onProgress)
                 "7z" -> extractSevenZip(archive, destination, playableExtensions, maxUnpackedBytes, onProgress)
