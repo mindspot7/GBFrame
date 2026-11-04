@@ -486,7 +486,7 @@ private val spanishKitText = mapOf(
 
 private val completePortugueseKitText = portugueseKitText + extraPortugueseKitText
 private val completeSpanishKitText = spanishKitText + extraSpanishKitText
-private val textPlaceholder = Regex("\\$(?:\\{[^}]+}|[A-Za-z_][A-Za-z0-9_]*)")
+private val textPlaceholder = Regex("\\$(?:\\{[^}]+\\}|[A-Za-z_][A-Za-z0-9_]*)")
 private data class TextTemplate(val pattern: Regex, val targetTokens: List<String>, val translated: String)
 
 private fun compileTextTemplates(translations: Map<String, String>): List<TextTemplate> = translations.mapNotNull { (source, target) ->
