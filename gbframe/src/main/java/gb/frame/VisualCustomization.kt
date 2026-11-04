@@ -440,7 +440,7 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                         ) {
                             KitText("👑", style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.width(8.dp))
-                            KitText(if (price == null) "Support & unlock" else "Support · $price", textAlign = TextAlign.Center)
+                            KitText("Support and unlock", textAlign = TextAlign.Center)
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
