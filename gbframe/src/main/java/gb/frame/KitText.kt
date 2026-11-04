@@ -153,6 +153,7 @@ private val portugueseKitText = mapOf(
     "Gold themes" to "Temas Gold",
     "Support the developer" to "Apoie o desenvolvedor",
     "Support & unlock" to "Apoiar e desbloquear",
+    "ONE-TIME PURCHASE" to "COMPRA ÚNICA",
     "Done" to "Concluído",
     "Use image" to "Usar imagem",
     "Use this cover?" to "Usar esta capa?",
@@ -326,6 +327,7 @@ private val spanishKitText = mapOf(
     "Gold themes" to "Temas Gold",
     "Support the developer" to "Apoya al desarrollador",
     "Support & unlock" to "Apoyar y desbloquear",
+    "ONE-TIME PURCHASE" to "COMPRA ÚNICA",
     "Use image" to "Usar imagen",
     "Use this cover?" to "¿Usar esta carátula?",
     "Tap a cover to select it, or hold an image. Then choose Use image." to "Toca una carátula para seleccionarla o mantén pulsada una imagen. Luego elige Usar imagen.",
@@ -437,6 +439,29 @@ private fun localizedKitText(text: String): String {
     if (text.endsWith(" pts")) return when {
         tag.startsWith("pt", ignoreCase = true) -> text.removeSuffix(" pts") + " pontos"
         tag.startsWith("es", ignoreCase = true) -> text.removeSuffix(" pts") + " puntos"
+        else -> text
+    }
+    val oneTime = "Make a one-time purchase to support development and unlock all themes in "
+    if (text.startsWith(oneTime)) {
+        val app = text.removePrefix(oneTime).removeSuffix(".")
+        return when {
+            tag.startsWith("pt", ignoreCase = true) -> "Faça uma compra única para apoiar o desenvolvimento e desbloquear todos os temas no $app."
+            tag.startsWith("es", ignoreCase = true) -> "Haz una compra única para apoyar el desarrollo y desbloquear todos los temas en $app."
+            else -> text
+        }
+    }
+    val thanks = "Thanks for supporting development. All themes are unlocked in "
+    if (text.startsWith(thanks)) {
+        val app = text.removePrefix(thanks).removeSuffix(".")
+        return when {
+            tag.startsWith("pt", ignoreCase = true) -> "Obrigado por apoiar o desenvolvimento. Todos os temas estão liberados no $app."
+            tag.startsWith("es", ignoreCase = true) -> "Gracias por apoyar el desarrollo. Todos los temas están desbloqueados en $app."
+            else -> text
+        }
+    }
+    if (text.startsWith("Support · ")) return when {
+        tag.startsWith("pt", ignoreCase = true) -> "Apoiar · " + text.removePrefix("Support · ")
+        tag.startsWith("es", ignoreCase = true) -> "Apoyar · " + text.removePrefix("Support · ")
         else -> text
     }
     if (text == "Unassigned") return when {
