@@ -126,16 +126,19 @@ fun TouchDPad(
     onDirectionsChanged: (Set<TouchDirection>) -> Unit,
     modifier: Modifier = Modifier,
     hapticsEnabled: Boolean = true,
+    track: Color = Color(0xFF25283A).copy(alpha = .78f),
+    normal: Color = Color(0xFF555B75).copy(alpha = .72f),
+    selected: Color = Color(0xFF8C78F0).copy(alpha = .96f),
+    center: Color = Color(0xFF30354A),
+    arrow: Color = Color.White,
+    border: Color = Color.White.copy(alpha = .24f),
 ) {
     var active by remember { mutableStateOf(emptySet<TouchDirection>()) }
     val haptic = LocalHapticFeedback.current
-    val track = Color(0xFF25283A).copy(alpha = .78f)
-    val normal = Color(0xFF555B75).copy(alpha = .72f)
-    val selected = Color(0xFF8C78F0).copy(alpha = .96f)
     Box(
         modifier.size(164.dp).clip(CircleShape)
             .background(track)
-            .border(1.dp, Color.White.copy(alpha = .24f), CircleShape)
+            .border(1.dp, border, CircleShape)
             .pointerInput(hapticsEnabled) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
@@ -177,18 +180,18 @@ fun TouchDPad(
     ) {
         val armShape = RoundedCornerShape(10.dp)
         Box(Modifier.align(Alignment.TopCenter).size(54.dp, 67.dp).clip(armShape).background(if (TouchDirection.UP in active) selected else normal), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.KeyboardArrowUp, null, tint = Color.White, modifier = Modifier.size(30.dp))
+            Icon(Icons.Default.KeyboardArrowUp, null, tint = arrow, modifier = Modifier.size(30.dp))
         }
         Box(Modifier.align(Alignment.BottomCenter).size(54.dp, 67.dp).clip(armShape).background(if (TouchDirection.DOWN in active) selected else normal), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.White, modifier = Modifier.size(30.dp))
+            Icon(Icons.Default.KeyboardArrowDown, null, tint = arrow, modifier = Modifier.size(30.dp))
         }
         Box(Modifier.align(Alignment.CenterStart).size(67.dp, 54.dp).clip(armShape).background(if (TouchDirection.LEFT in active) selected else normal), contentAlignment = Alignment.Center) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = Color.White, modifier = Modifier.size(30.dp))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = arrow, modifier = Modifier.size(30.dp))
         }
         Box(Modifier.align(Alignment.CenterEnd).size(67.dp, 54.dp).clip(armShape).background(if (TouchDirection.RIGHT in active) selected else normal), contentAlignment = Alignment.Center) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.White, modifier = Modifier.size(30.dp))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = arrow, modifier = Modifier.size(30.dp))
         }
-        Box(Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF30354A)).border(1.dp, Color.White.copy(alpha = .22f), CircleShape))
+        Box(Modifier.size(40.dp).clip(CircleShape).background(center).border(1.dp, border, CircleShape))
     }
 }
 
