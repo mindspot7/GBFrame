@@ -484,15 +484,63 @@ private val spanishKitText = mapOf(
     "Log in to RetroAchievements in Settings to earn achievements." to "Inicia sesión en RetroAchievements desde Ajustes para conseguir logros.",
 )
 
+private val completePortugueseKitText = portugueseKitText + extraPortugueseKitText
+private val completeSpanishKitText = spanishKitText + extraSpanishKitText
+private val textPlaceholder = Regex("\\$(?:\\{[^}]+}|[A-Za-z_][A-Za-z0-9_]*)")
+private data class TextTemplate(val pattern: Regex, val targetTokens: List<String>, val translated: String)
+
+private fun compileTextTemplates(translations: Map<String, String>): List<TextTemplate> = translations.mapNotNull { (source, target) ->
+    val placeholders = textPlaceholder.findAll(source).toList()
+    if (placeholders.isEmpty()) return@mapNotNull null
+    val pattern = buildString {
+        append('^')
+        var cursor = 0
+        placeholders.forEach { token ->
+            append(Regex.escape(source.substring(cursor, token.range.first)))
+            append("(.*?)")
+            cursor = token.range.last + 1
+        }
+        append(Regex.escape(source.substring(cursor)))
+        append('$')
+    }.toRegex()
+    val targetTokens = textPlaceholder.findAll(target).map { it.value }.toList()
+    if (targetTokens.size != placeholders.size) return@mapNotNull null
+    TextTemplate(pattern, targetTokens, target)
+}.sortedByDescending { it.pattern.pattern.length }
+
+private val portugueseTextTemplates = compileTextTemplates(completePortugueseKitText)
+private val spanishTextTemplates = compileTextTemplates(completeSpanishKitText)
+
 @Composable
 private fun localizedKitText(text: String): String {
     val tag = LocalConfiguration.current.locales[0]?.toLanguageTag().orEmpty()
+    return translatedAppText(text, tag)
+}
+
+/** Localize a GBFrame/app toast or snackbar using the same dictionary as Compose labels. */
+fun localizeAppText(context: android.content.Context, text: String): String =
+    translatedAppText(text, AppLanguage.currentTag(context))
+
+private fun translatedAppText(text: String, tag: String): String {
     val translations = when {
-        tag.startsWith("pt", ignoreCase = true) -> portugueseKitText
-        tag.startsWith("es", ignoreCase = true) -> spanishKitText
+        tag.startsWith("pt", ignoreCase = true) -> completePortugueseKitText
+        tag.startsWith("es", ignoreCase = true) -> completeSpanishKitText
         else -> emptyMap()
     }
+    val templates = when {
+        tag.startsWith("pt", ignoreCase = true) -> portugueseTextTemplates
+        tag.startsWith("es", ignoreCase = true) -> spanishTextTemplates
+        else -> emptyList()
+    }
     translations[text]?.let { return it }
+    for (template in templates) {
+        val match = template.pattern.matchEntire(text) ?: continue
+        var result = template.translated
+        template.targetTokens.forEachIndexed { index, token ->
+            result = result.replaceFirst(token, match.groupValues[index + 1])
+        }
+        return result
+    }
     if (text.startsWith("Current version ")) return when {
         tag.startsWith("pt", ignoreCase = true) -> "Versão atual ${text.removePrefix("Current version ")}"
         tag.startsWith("es", ignoreCase = true) -> "Versión actual ${text.removePrefix("Current version ")}"
@@ -517,7 +565,12 @@ private fun localizedKitText(text: String): String {
     if (text.equals("mid", ignoreCase = true)) return translations["Mid"] ?: text
     if (text.equals("high", ignoreCase = true)) return translations["High"] ?: text
     Regex("^(entry|low|mid|high) device · (.*)$", RegexOption.IGNORE_CASE).matchEntire(text)?.let { match ->
-        val tier = localizedKitText(match.groupValues[1])
+        val tierKey = when (match.groupValues[1].lowercase()) {
+            "entry", "low" -> "Low"
+            "mid" -> "Mid"
+            else -> "High"
+        }
+        val tier = translations[tierKey] ?: match.groupValues[1]
         val graphics = translations["Graphics detected"] ?: match.groupValues[2]
         return when {
             tag.startsWith("pt", ignoreCase = true) -> "Dispositivo $tier · $graphics"
