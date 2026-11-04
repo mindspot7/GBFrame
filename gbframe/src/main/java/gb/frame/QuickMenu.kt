@@ -267,7 +267,8 @@ fun QuickMenuHost(
                     color = p.panel,
                     shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
                     border = BorderStroke(1.dp, p.border),
-                    modifier = Modifier.fillMaxHeight(if (isPortrait) .72f else 1f).width(panelWidth)
+                    modifier = (if (isPortrait) Modifier.windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Top)).padding(top = 8.dp) else Modifier)
+                        .fillMaxHeight(if (isPortrait) .6f else 1f).width(panelWidth)
                         .pointerInput(Unit) { detectTapGestures(onTap = {}) },
                 ) {
                     // The panel itself reaches the top and bottom of the app window. Only inset
