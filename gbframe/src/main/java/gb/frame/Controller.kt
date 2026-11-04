@@ -3,19 +3,34 @@ package gb.frame
 import android.content.Context
 import android.hardware.input.InputManager
 import android.view.InputDevice
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+
+/**
+ * True when a real game controller is connected (built into a handheld, or paired/wired). A bare joystick-class source
+ * is not enough: phones expose sensor, stylus and remote devices like that. It must report gamepad buttons.
+ */
+fun hasPhysicalController(context: Context): Boolean {
+    val im = context.getSystemService(Context.INPUT_SERVICE) as InputManager
+    return im.inputDeviceIds.any { id ->
+        val d = im.getInputDevice(id) ?: return@any false
+        if (d.isVirtual) return@any false
+        val gamepad = d.sources and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD
+        val joystick = d.sources and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+        (gamepad || joystick) && d.hasKeys(android.view.KeyEvent.KEYCODE_BUTTON_A)[0]
+    }
+}
 
 /** True while a physical controller (gamepad/joystick) is connected; updates when one is plugged in or removed. */
 @Composable
 fun rememberHasGamepad(): Boolean {
     val ctx = LocalContext.current
     val im = remember { ctx.getSystemService(Context.INPUT_SERVICE) as InputManager }
-    fun check() = im.inputDeviceIds.any { id ->
-        val d = im.getInputDevice(id) ?: return@any false
-        !d.isVirtual && (d.sources and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD ||
-            d.sources and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK)
-    }
+    fun check() = hasPhysicalController(ctx)
     var has by remember { mutableStateOf(check()) }
     DisposableEffect(im) {
         val l = object : InputManager.InputDeviceListener {
@@ -37,7 +52,15 @@ fun rememberHasGamepad(): Boolean {
  */
 fun android.app.Activity.setControllerContent(content: @androidx.compose.runtime.Composable () -> Unit) {
     val activity = this
-    val compose = androidx.compose.ui.platform.ComposeView(this).apply { setContent(content) }
+    val compose = androidx.compose.ui.platform.ComposeView(this).apply {
+        setContent {
+            // Keeps the UI clear of the status/navigation bars while they are visible (touch-only device outside
+            // games); the insets are zero when the bars are hidden.
+            androidx.compose.foundation.layout.Box(
+                androidx.compose.ui.Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)
+            ) { content() }
+        }
+    }
     val frame = object : android.widget.FrameLayout(this) {
         override fun dispatchKeyEventPreIme(event: android.view.KeyEvent): Boolean {
             if (isInTouchMode && event.keyCode in TouchModeNavKeys) {

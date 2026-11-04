@@ -8,8 +8,8 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 
 /**
- * Edge-to-edge, full-screen window shared by every GB app. The apps keep the system bars hidden all the time, so the
- * bar colors never show and are not set.
+ * Edge-to-edge, full-screen window shared by every GB app. The system bars are hidden in games and on devices with a
+ * physical controller (see [hideSystemBars]), so the bar colors never show and are not set.
  *
  * Google Play flags apps that target SDK 35 and still use the edge-to-edge window APIs that Android 15 deprecates
  * (`Window.setStatusBarColor`/`setNavigationBarColor`, the `shortEdges`/`default` cutout modes, the
@@ -37,9 +37,17 @@ object FullScreen {
         hideSystemBars(activity)
     }
 
-    /** Hides the status and navigation bars; a swipe shows them for a moment. Call again when the window regains focus. */
-    fun hideSystemBars(activity: Activity) {
+    /**
+     * Hides the status and navigation bars; a swipe shows them for a moment. Call again when the window regains focus.
+     * The bars are only hidden in a game ([inGame]) or on a device with a physical controller, which has no need for
+     * the on-screen navigation. On a touch-only device they stay visible in menus and the library.
+     */
+    fun hideSystemBars(activity: Activity, inGame: Boolean = false) {
         val window = activity.window
+        if (!inGame && !hasPhysicalController(activity)) {
+            showSystemBars(activity)
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.apply {
                 hide(WindowInsets.Type.systemBars())
@@ -49,6 +57,17 @@ object FullScreen {
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = LAYOUT_FLAGS or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        }
+    }
+
+    /** Makes the status and navigation bars visible again. */
+    fun showSystemBars(activity: Activity) {
+        val window = activity.window
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.insetsController?.show(WindowInsets.Type.systemBars())
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = LAYOUT_FLAGS
         }
     }
 
