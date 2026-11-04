@@ -32,6 +32,12 @@ private const val TAG = "GBFrame-SAF"
 /** A game found in the games folder: [path] is a virtual `saf:/` path (or a plain file path). */
 data class Game(val title: String, val path: String)
 
+/** Byte-based extraction progress for an archived disc. [fraction] is null when the format has no reliable total size. */
+data class DiscArchiveProgress(val completedBytes: Long, val totalBytes: Long?) {
+    val fraction: Float?
+        get() = totalBytes?.takeIf { it > 0 }?.let { (completedBytes.toDouble() / it).toFloat().coerceIn(0f, 1f) }
+}
+
 /**
  * A disc opened for the emulator: [path] is a real file path for the core; close it when the game ends. [stage] is its
  * own folder of /proc/self/fd links, deleted on close, so opening another disc (a disc swap, a RetroAchievements hash)
@@ -215,13 +221,17 @@ open class SafGames(
      * The core reads every format straight through the descriptor (no copy). [stageCopy] makes a CHD or ISO be copied to the
      * app cache instead, for devices where that fails (the caller retries with it when loading fails).
      */
-    fun open(path: String, stageCopy: Boolean = false): OpenDisc? {
+    fun open(
+        path: String,
+        stageCopy: Boolean = false,
+        onArchiveProgress: (DiscArchiveProgress) -> Unit = {},
+    ): OpenDisc? {
         lastArchiveError = null
         Log.i(TAG, "open start path=" + path + "; folderConfigured=" + gamesDir().startsWith("content://"))
         val extension = fileName(path).substringAfterLast('.', "").lowercase()
         if (extension in GameDiscArchive.extensions) {
             if (archiveDiscExt.isEmpty()) return null
-            return openArchive(path, extension)
+            return openArchive(path, extension, onArchiveProgress)
         }
         if (!path.startsWith(PREFIX) && File(path).canRead()) return OpenDisc(path, emptyList())
         val tree = tree() ?: run { Log.e(TAG, "no SAF tree URI"); return null }
@@ -325,8 +335,12 @@ open class SafGames(
      * copy in the app cache (devices whose core can't read that way), and when it works without the copy, copies kept by
      * earlier versions are deleted. The same for every app: only [load] is the app's own.
      */
-    fun openAndLoad(path: String, load: (OpenDisc) -> String?): DiscLoad {
-        var disc = open(path)
+    fun openAndLoad(
+        path: String,
+        onArchiveProgress: (DiscArchiveProgress) -> Unit = {},
+        load: (OpenDisc) -> String?,
+    ): DiscLoad {
+        var disc = open(path, onArchiveProgress = onArchiveProgress)
             ?: return DiscLoad(null, lastArchiveError ?: "Unable to open ${fileName(path)}. Check games folder permission and logcat.")
         var error = load(disc)
         val copyable = isCopyable(path)
@@ -393,7 +407,11 @@ open class SafGames(
         val temporary: Boolean,
     )
 
-    private fun openArchive(path: String, extension: String): OpenDisc? {
+    private fun openArchive(
+        path: String,
+        extension: String,
+        onProgress: (DiscArchiveProgress) -> Unit,
+    ): OpenDisc? {
         lastArchiveError = null
         val source = try { archiveSource(path, extension) } catch (failure: Exception) {
             lastArchiveError = "Could not read ${fileName(path)}: ${failure.message ?: "access denied"}"
@@ -427,7 +445,9 @@ open class SafGames(
                     target.deleteRecursively()
                     val temp = File(root, "$key.tmp")
                     temp.deleteRecursively()
-                    val extracted = GameDiscArchive.extract(source.file, source.extension, temp, archiveDiscExt, MAX_ARCHIVE_UNPACKED_BYTES)
+                    val extracted = GameDiscArchive.extract(
+                        source.file, source.extension, temp, archiveDiscExt, MAX_ARCHIVE_UNPACKED_BYTES,
+                    ) { completed, total -> onProgress(DiscArchiveProgress(completed, total)) }
                     Properties().apply {
                         setProperty("identity", source.identity)
                         setProperty("extension", source.extension)

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +30,8 @@ import androidx.compose.ui.zIndex
 @Composable
 fun LaunchLoadingOverlay(
     message: String = "The first opening of a large archive can take a few minutes. The screen will stay on while it loads.",
+    extractionProgress: Float? = null,
+    extractingArchive: Boolean = false,
 ) {
     val view = LocalView.current
     DisposableEffect(view) {
@@ -48,8 +51,27 @@ fun LaunchLoadingOverlay(
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            CircularProgressIndicator(color = palette.highlight, strokeWidth = 4.dp, modifier = Modifier.size(54.dp))
-            KitText("Opening game…", color = content, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            if (extractingArchive) {
+                val barModifier = Modifier.widthIn(min = 220.dp, max = 320.dp)
+                if (extractionProgress == null) {
+                    LinearProgressIndicator(color = palette.highlight, modifier = barModifier)
+                } else {
+                    LinearProgressIndicator(
+                        progress = { extractionProgress.coerceIn(0f, 1f) },
+                        color = palette.highlight,
+                        modifier = barModifier,
+                    )
+                }
+                KitText(
+                    extractionProgress?.let { "${(it.coerceIn(0f, 1f) * 100).toInt()}%" } ?: "Extracting archive…",
+                    color = content,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+            } else {
+                CircularProgressIndicator(color = palette.highlight, strokeWidth = 4.dp, modifier = Modifier.size(54.dp))
+                KitText("Opening game…", color = content, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
             KitText(
                 message,
                 color = content.copy(alpha = .78f),

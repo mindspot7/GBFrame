@@ -31,16 +31,15 @@ internal object GameDiscArchive {
         destination: File,
         playableExtensions: Set<String>,
         maxUnpackedBytes: Long,
+        onProgress: (completedBytes: Long, totalBytes: Long?) -> Unit = { _, _ -> },
     ): ExtractedDiscArchive {
-        val writer = DiscExtractionWriter(destination, playableExtensions, maxUnpackedBytes)
         try {
             when (extension.lowercase()) {
-                "zip" -> extractZip(archive, writer)
-                "7z" -> extractSevenZip(archive, writer)
-                "rar" -> extractRar(archive, writer)
+                "zip" -> extractZip(archive, destination, playableExtensions, maxUnpackedBytes, onProgress)
+                "7z" -> extractSevenZip(archive, destination, playableExtensions, maxUnpackedBytes, onProgress)
+                "rar" -> extractRar(archive, destination, playableExtensions, maxUnpackedBytes, onProgress)
                 else -> throw DiscArchiveException("This game archive format is not supported.")
             }
-            return writer.finish()
         } catch (failure: DiscArchiveException) {
             destination.deleteRecursively()
             throw failure
@@ -50,29 +49,43 @@ internal object GameDiscArchive {
         }
     }
 
-    private fun extractZip(archive: File, writer: DiscExtractionWriter) {
+    private fun extractZip(
+        archive: File,
+        destination: File,
+        playableExtensions: Set<String>,
+        maxUnpackedBytes: Long,
+        onProgress: (Long, Long?) -> Unit,
+    ): ExtractedDiscArchive {
         val zip = try { ZipFile(archive) } catch (failure: Exception) {
             throw DiscArchiveException("The ZIP file is invalid or cannot be opened.", failure)
         }
         zip.use { source ->
-            val iterator = source.entries()
-            var count = 0
-            while (iterator.hasMoreElements()) {
-                if (++count > MAX_ENTRIES) throw DiscArchiveException("The archive contains too many files.")
-                val entry = iterator.nextElement()
+            val entries = java.util.Collections.list(source.entries())
+            if (entries.size > MAX_ENTRIES) throw DiscArchiveException("The archive contains too many files.")
+            val total = declaredTotal(entries.filterNot { it.isDirectory }.map { it.size })
+            val writer = DiscExtractionWriter(destination, playableExtensions, maxUnpackedBytes, total, onProgress)
+            for (entry in entries) {
                 writer.add(entry.name, entry.isDirectory, entry.size) { output ->
                     source.getInputStream(entry).use { it.copyBoundedTo(output) }
                 }
             }
+            return writer.finish()
         }
     }
 
-    private fun extractSevenZip(archive: File, writer: DiscExtractionWriter) {
+    private fun extractSevenZip(
+        archive: File,
+        destination: File,
+        playableExtensions: Set<String>,
+        maxUnpackedBytes: Long,
+        onProgress: (Long, Long?) -> Unit,
+    ): ExtractedDiscArchive {
         SevenZFile.builder().setFile(archive).setMaxMemoryLimitKiB(SEVEN_Z_MEMORY_LIMIT_KIB).get().use { source ->
-            var count = 0
-            while (true) {
-                val entry = source.nextEntry ?: break
-                if (++count > MAX_ENTRIES) throw DiscArchiveException("The archive contains too many files.")
+            val entries = source.entries.toList()
+            if (entries.size > MAX_ENTRIES) throw DiscArchiveException("The archive contains too many files.")
+            val total = declaredTotal(entries.filter { !it.isDirectory && it.hasStream() && !it.isAntiItem }.map { it.size })
+            val writer = DiscExtractionWriter(destination, playableExtensions, maxUnpackedBytes, total, onProgress)
+            for (entry in entries) {
                 if (entry.isAntiItem) throw DiscArchiveException("Archives containing delete records are not supported.")
                 if (entry.contentMethods?.any { it.method == SevenZMethod.AES256SHA256 } == true) {
                     throw DiscArchiveException("Password-protected 7z files are not supported.")
@@ -81,37 +94,56 @@ internal object GameDiscArchive {
                     if (entry.hasStream()) source.copyCurrentEntryBoundedTo(output)
                 }
             }
+            return writer.finish()
         }
     }
 
-    private fun extractRar(archive: File, writer: DiscExtractionWriter) {
+    private fun extractRar(
+        archive: File,
+        destination: File,
+        playableExtensions: Set<String>,
+        maxUnpackedBytes: Long,
+        onProgress: (Long, Long?) -> Unit,
+    ): ExtractedDiscArchive {
         Archive(archive).use { source ->
             if (source.mainHeader?.isMultiVolume == true) {
                 throw DiscArchiveException("Multi-volume RAR archives are not supported; use one complete archive file.")
             }
             if (source.isPasswordProtected) throw DiscArchiveException("Password-protected RAR files are not supported.")
-            var count = 0
-            while (true) {
-                val entry = source.nextFileHeader() ?: break
-                if (++count > MAX_ENTRIES) throw DiscArchiveException("The archive contains too many files.")
+            val entries = source.fileHeaders
+            if (entries.size > MAX_ENTRIES) throw DiscArchiveException("The archive contains too many files.")
+            val total = declaredTotal(entries.filterNot { it.isDirectory }.map { it.fullUnpackSize })
+            val writer = DiscExtractionWriter(destination, playableExtensions, maxUnpackedBytes, total, onProgress)
+            for (entry in entries) {
                 if (entry.isSplitBefore || entry.isSplitAfter) {
                     throw DiscArchiveException("Split RAR files are not supported; use one complete archive file.")
                 }
                 if (entry.isEncrypted) throw DiscArchiveException("Password-protected RAR files are not supported.")
                 writer.add(entry.fileName, entry.isDirectory, entry.fullUnpackSize) { output -> source.extractFile(entry, output) }
             }
+            return writer.finish()
         }
     }
+
+    private fun declaredTotal(sizes: List<Long>): Long? =
+        if (sizes.any { it < 0 }) null else sizes.sum()
 
     private class DiscExtractionWriter(
         private val destination: File,
         private val playableExtensions: Set<String>,
         private val maxUnpackedBytes: Long,
+        private val expectedBytes: Long?,
+        private val onProgress: (Long, Long?) -> Unit,
     ) {
         private val filesSeen = HashSet<String>()
         private val candidates = mutableListOf<String>()
         private var totalBytes = 0L
         private var entryCount = 0
+        private var copiedBytes = 0L
+        private var lastReportedBytes = 0L
+        private var lastReportedAtNanos = 0L
+
+        init { onProgress(0, expectedBytes) }
 
         fun add(name: String, directory: Boolean, declaredSize: Long, extract: (OutputStream) -> Unit) {
             if (++entryCount > MAX_ENTRIES) throw DiscArchiveException("The archive contains too many files.")
@@ -127,12 +159,19 @@ internal object GameDiscArchive {
                 throw DiscArchiveException("The archive contains an unsafe file path.")
             }
             output.parentFile?.let { if (!it.exists() && !it.mkdirs()) throw DiscArchiveException("Could not create the game cache.") }
-            val copied = BoundedOutputStream(BufferedOutputStream(FileOutputStream(output)), maxUnpackedBytes - totalBytes)
+            val copied = BoundedOutputStream(BufferedOutputStream(FileOutputStream(output)), maxUnpackedBytes - totalBytes) { bytes ->
+                copiedBytes += bytes
+                val now = System.nanoTime()
+                if (copiedBytes - lastReportedBytes >= 2L * 1024 * 1024 || now - lastReportedAtNanos >= 200_000_000L) {
+                    reportProgress(now)
+                }
+            }
             copied.use(extract)
             if (declaredSize >= 0 && copied.count != declaredSize) {
                 throw DiscArchiveException("An archive entry was incomplete or damaged.")
             }
             totalBytes += copied.count
+            reportProgress(System.nanoTime(), force = true)
             if (output.extension.lowercase() in playableExtensions) candidates += relative
         }
 
@@ -150,11 +189,25 @@ internal object GameDiscArchive {
                 throw DiscArchiveException("The disc image could not be extracted.")
             }
             validateDescriptorReferences(destination, primaryFile)
+            if (expectedBytes != null) onProgress(expectedBytes, expectedBytes)
+            else onProgress(copiedBytes, null)
             return ExtractedDiscArchive(primary, totalBytes)
+        }
+
+        private fun reportProgress(now: Long, force: Boolean = false) {
+            if (force || copiedBytes - lastReportedBytes >= 2L * 1024 * 1024 || now - lastReportedAtNanos >= 200_000_000L) {
+                onProgress(copiedBytes, expectedBytes)
+                lastReportedBytes = copiedBytes
+                lastReportedAtNanos = now
+            }
         }
     }
 
-    private class BoundedOutputStream(private val target: OutputStream, private val limit: Long) : OutputStream() {
+    private class BoundedOutputStream(
+        private val target: OutputStream,
+        private val limit: Long,
+        private val onBytesWritten: (Long) -> Unit,
+    ) : OutputStream() {
         var count = 0L
             private set
 
@@ -162,12 +215,14 @@ internal object GameDiscArchive {
             ensureWithinLimit(1)
             target.write(value)
             count++
+            onBytesWritten(1)
         }
 
         override fun write(buffer: ByteArray, offset: Int, length: Int) {
             ensureWithinLimit(length.toLong())
             target.write(buffer, offset, length)
             count += length
+            onBytesWritten(length.toLong())
         }
 
         override fun flush() = target.flush()

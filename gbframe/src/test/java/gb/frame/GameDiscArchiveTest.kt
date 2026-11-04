@@ -36,6 +36,23 @@ class GameDiscArchiveTest {
         assertEquals("image-data", File(File(dir, "out"), result.primaryPath).readText())
     }
 
+    @Test fun reportsByteProgressForArchiveExtraction() = withTempDir { dir ->
+        val archive = File(dir, "progress.zip")
+        val image = "x".repeat(128 * 1024)
+        writeZip(archive, "game.iso" to image)
+        val progress = mutableListOf<Pair<Long, Long?>>()
+
+        GameDiscArchive.extract(archive, "zip", File(dir, "out"), setOf("iso"), 1024 * 1024) { done, total ->
+            progress += done to total
+        }
+
+        assertTrue(progress.size >= 2)
+        assertEquals(0L, progress.first().first)
+        assertEquals(image.length.toLong(), progress.last().first)
+        assertEquals(image.length.toLong(), progress.last().second)
+        assertTrue(progress.zipWithNext().all { (before, after) -> after.first >= before.first })
+    }
+
     @Test fun rejectsArchiveWithMoreThanOneDiscImage() = withTempDir { dir ->
         val archive = File(dir, "multi.zip")
         writeZip(archive, "one.iso" to "1", "two.chd" to "2")
