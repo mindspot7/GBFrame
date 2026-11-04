@@ -395,9 +395,9 @@ open class SafGames(
             lastZipError = "Could not find ${fileName(path)} in the selected games folder."
             return null
         }
+        val key = sha256(source.identity)
         try {
             synchronized(zipCacheLock) {
-                val key = sha256(source.identity)
                 val root = File(appContext.cacheDir, "zip-games")
                 if (!root.exists() && !root.mkdirs()) throw ZipDiscArchiveException("Could not create the ZIP game cache.")
                 val target = File(root, key)
@@ -448,6 +448,7 @@ open class SafGames(
             }
         } catch (failure: Exception) {
             lastZipError = failure.message ?: "Could not extract ${fileName(path)}."
+            File(File(appContext.cacheDir, "zip-games"), "$key.tmp").deleteRecursively()
             Log.e(TAG, "ZIP open failed name=${fileName(path)} error=$lastZipError", failure)
             return null
         } finally {
@@ -472,20 +473,15 @@ open class SafGames(
         val modified = main.lastModified.coerceAtLeast(0L)
         val identity = "${path}|$size|$modified"
         val archiveDir = File(appContext.cacheDir, "zip-input").apply { mkdirs() }
-        val staged = File(archiveDir, sha256(identity) + ".zip")
-        val temp = File(archiveDir, staged.name + ".tmp")
-        temp.delete()
-        appContext.contentResolver.openInputStream(uri)?.use { input ->
-            temp.outputStream().buffered().use { output -> input.copyTo(output, 1024 * 1024) }
-        } ?: return null
-        if (size > 0 && temp.length() != size) {
-            temp.delete()
-            throw ZipDiscArchiveException("The ZIP download was incomplete.")
-        }
-        if (staged.exists()) staged.delete()
-        if (!temp.renameTo(staged)) {
-            temp.delete()
-            throw ZipDiscArchiveException("Could not prepare the ZIP file.")
+        val staged = File.createTempFile(sha256(identity), ".zip", archiveDir)
+        try {
+            appContext.contentResolver.openInputStream(uri)?.use { input ->
+                staged.outputStream().buffered().use { output -> input.copyTo(output, 1024 * 1024) }
+            } ?: run { staged.delete(); return null }
+            if (size > 0 && staged.length() != size) throw ZipDiscArchiveException("The ZIP download was incomplete.")
+        } catch (failure: Exception) {
+            staged.delete()
+            throw failure
         }
         return ZipSource(staged, identity, staged.length(), modified, true)
     }
@@ -505,6 +501,9 @@ open class SafGames(
     private fun trimZipCacheLocked() {
         val root = File(appContext.cacheDir, "zip-games")
         root.listFiles()?.filter { it.isDirectory && it.name.endsWith(".tmp") }?.forEach { it.deleteRecursively() }
+        File(appContext.cacheDir, "zip-input").listFiles()?.filter {
+            it.isFile && System.currentTimeMillis() - it.lastModified() > 24L * 60 * 60 * 1000
+        }?.forEach { it.delete() }
         val entries = root.listFiles()?.filter { it.isDirectory }.orEmpty()
         var total = entries.sumOf { dir ->
             runCatching {
