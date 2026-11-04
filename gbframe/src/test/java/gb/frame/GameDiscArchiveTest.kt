@@ -28,12 +28,19 @@ class GameDiscArchiveTest {
 
     @Test fun extractsSevenZipImage() = withTempDir { dir ->
         val archive = File(dir, "game.7z")
-        writeSevenZip(archive, "disc/game.iso" to "image-data")
+        val image = "image-data"
+        writeSevenZip(archive, "disc/game.iso" to image)
+        val progress = mutableListOf<Pair<Long, Long?>>()
 
-        val result = extract(archive, "7z", dir)
+        val result = GameDiscArchive.extract(archive, "7z", File(dir, "out"), setOf("iso"), 1024) { done, total ->
+            progress += done to total
+        }
 
         assertEquals("disc${File.separator}game.iso", result.primaryPath)
         assertEquals("image-data", File(File(dir, "out"), result.primaryPath).readText())
+        assertEquals(0L, progress.first().first)
+        assertEquals(image.length.toLong(), progress.last().first)
+        assertEquals(image.length.toLong(), progress.last().second)
     }
 
     @Test fun reportsByteProgressForArchiveExtraction() = withTempDir { dir ->
