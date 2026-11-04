@@ -13,7 +13,7 @@ of repeating the same investigation. Add a line whenever an app teaches somethin
 
 ## Lessons by project
 
-- **GBFrame / ZIP game loading:** expose each archive as one library item using the ZIP filename as its game identity. Extract supported disc files to the private cache before opening the core, retain cue/gdi companion tracks, reject archives with zero or multiple supported disc images, cap expanded size and entry count, and evict least-recently-used unpinned extractions. Never decompress disc data on the emulation thread; the core receives ordinary file paths and ZIP loading adds storage/launch cost, not frame-time work.
+- **GBFrame / ZIP game loading:** expose each archive as one library item using the ZIP filename as its game identity. Extract supported disc files to the private cache before opening the core, retain cue/gdi companion tracks, reject archives with zero or multiple supported disc images, cap expanded size and entry count, and evict least-recently-used unpinned extractions. Never decompress disc data on the emulation thread; the core receives ordinary file paths and ZIP loading adds storage/launch cost, not frame-time work. On RG Rotate, `Chase H.Q. Plus S.C.I. (Japan).zip` scanned through SAF, extracted a 18,451,830-byte CHD, and loaded successfully in Ymir through the GBFrame intent flow. A second launch reused the extraction cache.
 
 - **GBSat / Ymir (Sega Saturn):** renderer changes must be evaluated separately from CPU bottlenecks. On the RK3568,
   Vulkan presentation overhead and Saturn CPU limits are distinct; renderer experiments did not justify changing the
