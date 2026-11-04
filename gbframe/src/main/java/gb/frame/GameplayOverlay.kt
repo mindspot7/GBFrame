@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -48,7 +50,9 @@ fun BoxScope.GameplayOverlayChrome(
     skipping: Boolean = false,
     message: String? = null,
 ) {
-    Row(Modifier.align(Alignment.TopStart).gameOverlayInsets().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    // The menu and fast-forward buttons start at the left edge of the full screen, beside the camera cutout
+    // (only the top inset is kept, for a cutout at the top of a portrait screen)
+    Row(Modifier.align(Alignment.TopStart).windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Top)).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
         FilledTonalIconButton(
             onClick = onMenu,
             colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color.Black.copy(alpha = .45f), contentColor = Color.White),
