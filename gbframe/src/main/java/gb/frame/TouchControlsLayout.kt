@@ -16,6 +16,7 @@ data class TouchControlsLayoutMetrics(
     val scale: Float,
     val edgePadding: Dp,
     val compact: Boolean,
+    val nearSquare: Boolean,
 )
 
 /**
@@ -32,11 +33,13 @@ fun TouchControlsOverlay(
     BoxWithConstraints(modifier) {
         val scale = minOf(1f, maxWidth / referenceWidth, maxHeight / referenceHeight).coerceAtLeast(0.35f)
         val compact = maxWidth < 600.dp || maxHeight < 680.dp
+        val nearSquare = maxWidth.value > 0f && maxHeight.value > 0f &&
+            maxWidth.value / maxHeight.value in 0.9f..1.1f
         val edgePadding = when {
             maxWidth < 400.dp || maxHeight < 400.dp -> 4.dp
             compact -> 8.dp
             else -> 16.dp
         }
-        content(TouchControlsLayoutMetrics(maxWidth, maxHeight, scale, edgePadding, compact))
+        content(TouchControlsLayoutMetrics(maxWidth, maxHeight, scale, edgePadding, compact, nearSquare))
     }
 }
