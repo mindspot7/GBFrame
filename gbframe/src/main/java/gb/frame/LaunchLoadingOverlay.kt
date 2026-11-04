@@ -14,10 +14,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,8 +28,14 @@ import androidx.compose.ui.zIndex
 /** Blocking, theme-aware progress shown while an asynchronous core opens or copies a game. */
 @Composable
 fun LaunchLoadingOverlay(
-    message: String = "Preparing the game. A cached copy is created only when direct access is unavailable on this device.",
+    message: String = "The first opening of a large archive can take a few minutes. The screen will stay on while it loads.",
 ) {
+    val view = LocalView.current
+    DisposableEffect(view) {
+        val wasKeepingScreenOn = view.keepScreenOn
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = wasKeepingScreenOn }
+    }
     val content = MaterialTheme.colorScheme.onSurface
     Box(
         Modifier.fillMaxSize().zIndex(100f)
