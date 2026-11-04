@@ -49,15 +49,16 @@ fun BoxScope.GameplayOverlayChrome(
     perf: @Composable (Modifier) -> Unit,
     skipping: Boolean = false,
     message: String? = null,
+    controlsProvideMenuAndFastForward: Boolean = false,
 ) {
     // The menu and fast-forward buttons start at the left edge of the full screen, beside the camera cutout
     // (only the top inset is kept, for a cutout at the top of a portrait screen)
     Row(Modifier.align(Alignment.TopStart).windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Top)).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        FilledTonalIconButton(
+        if (!controlsProvideMenuAndFastForward) FilledTonalIconButton(
             onClick = onMenu,
             colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color.Black.copy(alpha = .45f), contentColor = Color.White),
         ) { Icon(Icons.Default.Menu, "Menu") }
-        if (showFastForwardButton) {
+        if (showFastForwardButton && !controlsProvideMenuAndFastForward) {
             Spacer(Modifier.width(8.dp))
             FilledTonalIconButton(
                 onClick = onFastForward,
