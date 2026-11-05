@@ -255,10 +255,10 @@ fun SaturnControllerV12(
         // stationary D-pad left underneath it.
         Image(
             painter = painterResource(R.drawable.saturn_dpad), contentDescription = null,
-            Modifier.offset(x = sx * 136f, y = sy * 476f)
-                .size(sx * 319f, sy * 331f)
+            Modifier.offset(x = sx * 139.8f, y = sy * 476f)
+                .size(sx * 311.4f, sy * 331f)
                 // The source sprite is rectangular and has the controller panel in its corners.
-                // Clip to the D-pad's oval bezel so those corners stay transparent over gameplay.
+                // Clip to the D-pad's oval bezel so its background corners do not cover gameplay.
                 .clip(CircleShape)
                 .graphicsLayer {
                     translationX = padX
