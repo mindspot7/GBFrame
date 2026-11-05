@@ -53,7 +53,7 @@ private const val DPAD_CENTER_Y = 653.5f
 /** Uniform fit sized to the visible controller body, using only the transparent side margins as bleed. */
 fun saturnControllerV12PortraitArtworkSize(availableWidth: Dp, availableHeight: Dp): DpSize {
     val scale = minOf(availableWidth / BODY_W, availableHeight / DESIGN_H)
-    return DpSize(DESIGN_W * scale, DESIGN_H * scale)
+    return DpSize(scale * DESIGN_W, scale * DESIGN_H)
 }
 
 /** One event on press and one on release; implement emulator key-down/key-up in the host app. */
