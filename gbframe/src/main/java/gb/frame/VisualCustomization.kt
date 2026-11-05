@@ -75,7 +75,10 @@ object VisualCustomization {
 
     /** Requests the shared purchase dialog. It is rendered by [VisualCustomizationPurchaseHost]. */
     fun requestUnlock() {
-        if (!unlocked.value) dialogVisible.value = true
+        if (!unlocked.value) {
+            dialogVisible.value = true
+            refreshProduct()
+        }
     }
 
     fun dismissDialog() {
@@ -98,6 +101,8 @@ object VisualCustomization {
 
     internal fun refresh() = manager?.refresh()
 
+    internal fun refreshProduct() = manager?.refreshProduct()
+
     internal fun buy(activity: Activity?) {
         val current = manager
         if (activity == null || current == null) {
@@ -115,6 +120,7 @@ object VisualCustomization {
     private class Manager(private val context: Context, private val productId: String) : PurchasesUpdatedListener {
         private val preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         private var product: ProductDetails? = null
+        private var selectedOffer: ProductDetails.OneTimePurchaseOfferDetails? = null
         private var connecting = false
         private var setupDone = false
         private var restoreRequested = false
@@ -170,11 +176,23 @@ object VisualCustomization {
                 return
             }
             if (!unlocked.value) status.value = Status.Checking
-            product = null
-            queryProduct()
+            refreshProduct()
             val showRestoreResult = restoreRequested
             restoreRequested = false
             queryOwnedPurchases(showRestoreResult)
+        }
+
+        fun refreshProduct() {
+            if (!setupDone) {
+                connect()
+                return
+            }
+            if (!unlocked.value) status.value = Status.Checking
+            product = null
+            selectedOffer = null
+            price.value = null
+            message.value = null
+            queryProduct()
         }
 
         fun restore() {
@@ -200,15 +218,29 @@ object VisualCustomization {
                     return@queryProductDetailsAsync
                 }
                 product = detailsResult.productDetailsList.firstOrNull { it.productId == productId }
-                price.value = product?.oneTimePurchaseOfferDetailsList?.firstOrNull()?.formattedPrice
+                selectedOffer = product?.let(::selectOffer)
+                price.value = selectedOffer?.formattedPrice
                 if (product == null && !unlocked.value) {
                     status.value = Status.Unavailable
                     message.value = "This app's one-time product is not available in Google Play yet."
+                } else if (selectedOffer == null && !unlocked.value) {
+                    status.value = Status.Unavailable
+                    message.value = "No eligible purchase offer is available for this Google Play account."
                 } else if (!unlocked.value) {
                     status.value = Status.Ready
                     message.value = null
                 }
             }
+        }
+
+        /** Prefer the lowest-priced eligible discounted buy offer, then the lowest-priced buy offer. */
+        private fun selectOffer(details: ProductDetails): ProductDetails.OneTimePurchaseOfferDetails? {
+            val eligibleBuyOffers = details.oneTimePurchaseOfferDetailsList.orEmpty()
+                .filter { it.rentalDetails == null && it.offerToken.isNotBlank() }
+            val discountedOffers = eligibleBuyOffers.filter {
+                it.discountDisplayInfo != null || (it.fullPriceMicros ?: it.priceAmountMicros) > it.priceAmountMicros
+            }
+            return (discountedOffers.ifEmpty { eligibleBuyOffers }).minByOrNull { it.priceAmountMicros }
         }
 
         private fun queryOwnedPurchases(showRestoreResult: Boolean) {
@@ -230,7 +262,7 @@ object VisualCustomization {
                     verifyLicense(ownedPurchase, operation, showRestoreResult)
                 } else {
                     setOwned(false)
-                    if (product != null) status.value = Status.Ready else status.value = Status.Unavailable
+                    if (selectedOffer != null) status.value = Status.Ready else status.value = Status.Unavailable
                     if (showRestoreResult) message.value = "No Gold purchase was found for this Google Play account."
                 }
             }
@@ -295,7 +327,7 @@ object VisualCustomization {
                                 }
                             }
                             GoldLicenseApi.Result.Unavailable -> {
-                                if (!unlocked.value) status.value = if (product != null) Status.Ready else Status.Error
+                                if (!unlocked.value) status.value = if (selectedOffer != null) Status.Ready else Status.Error
                                 message.value = if (unlocked.value) {
                                     "The license server is unavailable. Previously unlocked themes remain available."
                                 } else {
@@ -324,13 +356,13 @@ object VisualCustomization {
 
         private fun setOwned(value: Boolean) {
             unlocked.value = value
-            status.value = if (value) Status.Owned else if (product != null) Status.Ready else Status.Unavailable
+            status.value = if (value) Status.Owned else if (selectedOffer != null) Status.Ready else Status.Unavailable
             preferences.edit().putBoolean(OWNED, value).apply()
         }
 
         fun buy(activity: Activity) {
             val details = product
-            val offer = details?.oneTimePurchaseOfferDetailsList?.firstOrNull()
+            val offer = selectedOffer
             val offerToken = offer?.offerToken
             if (!setupDone || details == null || offerToken.isNullOrBlank()) {
                 message.value = "The purchase is not available right now. Try again later."
@@ -423,6 +455,14 @@ fun VisualCustomizationPurchaseHost(appName: String, productId: String) {
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
+                        price?.let {
+                            KitText(
+                                it,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center,
                             )
                         }
                         if (status == VisualCustomization.Status.Checking) {

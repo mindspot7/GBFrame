@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,7 +72,7 @@ fun SettingsGroup(title: String?, icon: ImageVector?, content: @Composable Colum
     Column {
         if (title != null) Row(Modifier.padding(start = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) { Icon(icon, null, tint = p.highlight, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
-            KitText(title.uppercase(), style = MaterialTheme.typography.labelLarge, color = p.highlight, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            KitText(title, style = MaterialTheme.typography.labelLarge, color = p.highlight, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, uppercase = true)
         }
         Surface(shape = RoundedCornerShape(20.dp), color = p.card, border = p.panelBorder, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(vertical = 4.dp), content = content)
@@ -184,7 +185,7 @@ fun ChoiceRow(title: String, sub: String?, options: List<String>, selected: Int,
                         activeBorderColor = p.highlight.copy(alpha = .8f),
                         inactiveBorderColor = if (focused) p.highlight else p.border,
                     ),
-                ) { KitText(label, maxLines = 1) }
+                ) { KitText(label, maxLines = 1, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
             }
         }
     }

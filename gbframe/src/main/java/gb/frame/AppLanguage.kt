@@ -19,16 +19,25 @@ object AppLanguage {
     private const val PREFS = "gbframe_preferences"
     private const val KEY_LANGUAGE = "app_language"
 
-    fun currentTag(context: Context): String =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_LANGUAGE, ENGLISH)
-            ?.takeIf { it == ENGLISH || it == PORTUGUESE_BRAZIL || it == SPANISH_LATIN_AMERICA }
-            ?: ENGLISH
+    fun currentTag(context: Context): String {
+        val preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val savedTag = preferences.getString(KEY_LANGUAGE, null)
+        if (savedTag == ENGLISH || savedTag == PORTUGUESE_BRAZIL || savedTag == SPANISH_LATIN_AMERICA) {
+            return savedTag
+        }
+
+        // Capture the device language once. After this first read, only an explicit choice in Extras can change it.
+        val detectedTag = deviceLanguageTag()
+        preferences.edit().putString(KEY_LANGUAGE, detectedTag).apply()
+        return detectedTag
+    }
 
     /** Wizard default follows the device locale; an explicit language choice still takes precedence. */
     fun wizardTag(context: Context): String {
-        val preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (preferences.contains(KEY_LANGUAGE)) return currentTag(context)
+        return currentTag(context)
+    }
+
+    private fun deviceLanguageTag(): String {
         val deviceTag = Resources.getSystem().configuration.locales[0]?.toLanguageTag().orEmpty()
         return when {
             deviceTag.startsWith("pt", ignoreCase = true) -> PORTUGUESE_BRAZIL

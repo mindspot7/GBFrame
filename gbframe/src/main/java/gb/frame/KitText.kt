@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text as MaterialText
+import java.util.Locale
 
 private val portugueseKitText = mapOf(
     "Achievements" to "Conquistas",
@@ -190,6 +191,7 @@ private val portugueseKitText = mapOf(
     "An update is available, but Google Play cannot apply it right now." to "Há uma atualização disponível, mas o Google Play não pode aplicá-la agora.",
     "Could not load the purchase from Google Play." to "Não foi possível carregar a compra do Google Play.",
     "This app's one-time product is not available in Google Play yet." to "O produto de compra única deste app ainda não está disponível no Google Play.",
+    "No eligible purchase offer is available for this Google Play account." to "Nenhuma oferta de compra elegível está disponível para esta conta do Google Play.",
     "Could not check Google Play purchases. Try again later." to "Não foi possível verificar as compras do Google Play. Tente novamente mais tarde.",
     "No Gold purchase was found for this Google Play account." to "Nenhuma compra PRO foi encontrada nesta conta do Google Play.",
     "Google Play could not complete the purchase. Try again later." to "O Google Play não conseguiu concluir a compra. Tente novamente mais tarde.",
@@ -414,6 +416,7 @@ private val spanishKitText = mapOf(
     "An update is available, but Google Play cannot apply it right now." to "Hay una actualización disponible, pero Google Play no puede aplicarla ahora.",
     "Could not load the purchase from Google Play." to "No se pudo cargar la compra desde Google Play.",
     "This app's one-time product is not available in Google Play yet." to "El producto de pago único de esta app aún no está disponible en Google Play.",
+    "No eligible purchase offer is available for this Google Play account." to "No hay ninguna oferta de compra válida disponible para esta cuenta de Google Play.",
     "Could not check Google Play purchases. Try again later." to "No se pudieron comprobar las compras de Google Play. Inténtalo de nuevo más tarde.",
     "No Gold purchase was found for this Google Play account." to "No se encontró ninguna compra PRO en esta cuenta de Google Play.",
     "Google Play could not complete the purchase. Try again later." to "Google Play no pudo completar la compra. Inténtalo de nuevo más tarde.",
@@ -669,9 +672,11 @@ fun KitText(
     minLines: Int = 1,
     onTextLayout: (TextLayoutResult) -> Unit = {},
     style: TextStyle = LocalTextStyle.current,
+    uppercase: Boolean = false,
 ) {
+    val localizedText = localizedKitText(text)
     MaterialText(
-        text = localizedKitText(text), modifier = modifier, color = color,
+        text = if (uppercase) localizedText.uppercase(Locale.ROOT) else localizedText, modifier = modifier, color = color,
         fontSize = fontSize, fontStyle = fontStyle, fontWeight = fontWeight,
         fontFamily = fontFamily, letterSpacing = letterSpacing, textDecoration = textDecoration,
         textAlign = textAlign, lineHeight = lineHeight, overflow = overflow, softWrap = softWrap,
