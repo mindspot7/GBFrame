@@ -29,6 +29,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -40,6 +42,19 @@ import kotlin.math.roundToInt
 /** Coordinates and assets match the user-approved web prototype V12 (1112 x 1415). */
 private const val DESIGN_W = 1112f
 private const val DESIGN_H = 1415f
+private const val BODY_W = 1040f // Alpha-visible controller width in saturn_base.png (x=36..1075).
+private const val DPAD_X = 159f
+private const val DPAD_Y = 503.5f
+private const val DPAD_W = 282f
+private const val DPAD_H = 300f
+private const val DPAD_CENTER_X = 300f
+private const val DPAD_CENTER_Y = 653.5f
+
+/** Uniform fit sized to the visible controller body, using only the transparent side margins as bleed. */
+fun saturnControllerV12PortraitArtworkSize(availableWidth: Dp, availableHeight: Dp): DpSize {
+    val scale = minOf(availableWidth / BODY_W, availableHeight / DESIGN_H)
+    return DpSize(DESIGN_W * scale, DESIGN_H * scale)
+}
 
 /** One event on press and one on release; implement emulator key-down/key-up in the host app. */
 enum class SaturnButton { L, R, MENU, SAVE, LOAD, X, Y, Z, A, B, C, START, FILTERS }
@@ -80,20 +95,15 @@ private fun hitTest(p: Offset): Press? {
     return controls.asReversed().firstOrNull { it.contains(p) }?.let { Press(InputTarget.BUTTON, button = it.button) }
 }
 
-/** Circular hitbox shifted +12 design px from the visual sprite, center at 58% of its height. */
+/** Circular hitbox centered on the replacement disk and covering the original bezel's full touch area. */
 private fun insideDpad(p: Offset): Boolean {
-    val nx = (p.x - (136f + 319f / 2f)) / (319f / 2f)
-    val ny = (p.y - (488f + 331f / 2f)) / (331f / 2f)
+    val nx = (p.x - DPAD_CENTER_X) / (319f / 2f)
+    val ny = (p.y - DPAD_CENTER_Y) / (331f / 2f)
     return nx * nx + ny * ny <= 1f
 }
 private fun dpadDirection(p: Offset): SaturnDirection? {
-    val x = p.x - 136f
-    val y = p.y - 488f
-    val w = 319f
-    val h = 331f
-    if (x !in 0f..w || y !in 0f..h) return null
-    val dx = (x - w / 2f) / (w / 2f)
-    val dy = (y - h * .58f) / (h / 2f)
+    val dx = (p.x - DPAD_CENTER_X) / (319f / 2f)
+    val dy = (p.y - DPAD_CENTER_Y) / (331f / 2f)
     val radius = hypot(dx, dy)
     if (radius > 1.02f || radius < .20f) return null
     val angle = (atan2(dy, dx) + 2 * PI).rem(2 * PI)
@@ -255,8 +265,8 @@ fun SaturnControllerV12(
         // stationary D-pad left underneath it.
         Image(
             painter = painterResource(R.drawable.saturn_dpad), contentDescription = null,
-            Modifier.offset(x = sx * 139.8f, y = sy * 476f)
-                .size(sx * 311.4f, sy * 331f)
+            Modifier.offset(x = sx * DPAD_X, y = sy * DPAD_Y)
+                .size(sx * DPAD_W, sy * DPAD_H)
                 // The source sprite is rectangular and has the controller panel in its corners.
                 // Clip to the D-pad's oval bezel so its background corners do not cover gameplay.
                 .clip(CircleShape)
