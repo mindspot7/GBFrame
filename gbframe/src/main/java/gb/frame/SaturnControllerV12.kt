@@ -43,10 +43,6 @@ import kotlin.math.roundToInt
 private const val DESIGN_W = 1112f
 private const val DESIGN_H = 1415f
 private const val BODY_W = 1040f // Alpha-visible controller width in saturn_base.png (x=36..1075).
-private const val DPAD_X = 159f
-private const val DPAD_Y = 503.5f
-private const val DPAD_W = 282f
-private const val DPAD_H = 300f
 private const val DPAD_CENTER_X = 300f
 private const val DPAD_CENTER_Y = 653.5f
 
@@ -95,7 +91,7 @@ private fun hitTest(p: Offset): Press? {
     return controls.asReversed().firstOrNull { it.contains(p) }?.let { Press(InputTarget.BUTTON, button = it.button) }
 }
 
-/** Circular hitbox centered on the replacement disk and covering the original bezel's full touch area. */
+/** Keeps directional touch input in the empty circular recess after removing the D-pad artwork. */
 private fun insideDpad(p: Offset): Boolean {
     val nx = (p.x - DPAD_CENTER_X) / (319f / 2f)
     val ny = (p.y - DPAD_CENTER_Y) / (331f / 2f)
@@ -113,17 +109,6 @@ private fun dpadDirection(p: Offset): SaturnDirection? {
         SaturnDirection.DOWN_LEFT, SaturnDirection.LEFT, SaturnDirection.UP_LEFT,
         SaturnDirection.UP, SaturnDirection.UP_RIGHT
     )[sector]
-}
-
-private fun SaturnDirection.vector(): Pair<Int, Int> = when (this) {
-    SaturnDirection.UP -> 0 to -1
-    SaturnDirection.UP_RIGHT -> 1 to -1
-    SaturnDirection.RIGHT -> 1 to 0
-    SaturnDirection.DOWN_RIGHT -> 1 to 1
-    SaturnDirection.DOWN -> 0 to 1
-    SaturnDirection.DOWN_LEFT -> -1 to 1
-    SaturnDirection.LEFT -> -1 to 0
-    SaturnDirection.UP_LEFT -> -1 to -1
 }
 
 /**
@@ -221,7 +206,6 @@ fun SaturnControllerV12(
     ) {
         val sx = maxWidth / DESIGN_W
         val sy = maxHeight / DESIGN_H
-        val widthPx = constraints.maxWidth.toFloat()
         val heightPx = constraints.maxHeight.toFloat()
 
         Image(
@@ -253,33 +237,6 @@ fun SaturnControllerV12(
                 modifier = m, contentScale = ContentScale.FillBounds
             )
         }
-
-        val dpVec = direction?.vector()
-        val dx = dpVec?.first ?: 0
-        val dy = dpVec?.second ?: 0
-        val dpadPressed by animateFloatAsState(if (direction == null) 0f else 1f, tween(85), label = "dpad press")
-        val padX by animateFloatAsState(if (direction != null) dx * 319f * .0115f * widthPx / DESIGN_W else 0f, tween(85), label = "dpad x")
-        val padY by animateFloatAsState(if (direction != null) (1.5f + dy * .75f) / 100f * 331f * heightPx / DESIGN_H else 0f, tween(85), label = "dpad y")
-        // The base artwork has a transparent cutout here. Draw the original D-pad sprite as a
-        // separate layer so its physical artwork moves with the press animation, with no duplicate
-        // stationary D-pad left underneath it.
-        Image(
-            painter = painterResource(R.drawable.saturn_dpad), contentDescription = null,
-            Modifier.offset(x = sx * DPAD_X, y = sy * DPAD_Y)
-                .size(sx * DPAD_W, sy * DPAD_H)
-                // The source sprite is rectangular and has the controller panel in its corners.
-                // Clip to the D-pad's oval bezel so its background corners do not cover gameplay.
-                .clip(CircleShape)
-                .graphicsLayer {
-                    translationX = padX
-                    translationY = padY
-                    rotationX = -5f * dy * dpadPressed
-                    rotationY = 5f * dx * dpadPressed
-                    cameraDistance = 12f * density
-                },
-            // Keep the supplied 143x152 crop proportional inside the design hit region.
-            contentScale = ContentScale.Fit
-        )
 
         // The base image already includes BOTH empty tracks. Only move one knob per toggle.
         val fpsTravel by animateFloatAsState(if (fpsEnabled) 94.08f else 0f, tween(175), label = "fps toggle")
