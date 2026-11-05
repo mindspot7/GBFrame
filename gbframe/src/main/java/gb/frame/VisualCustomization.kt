@@ -236,7 +236,7 @@ object VisualCustomization {
         /** Prefer the lowest-priced eligible discounted buy offer, then the lowest-priced buy offer. */
         private fun selectOffer(details: ProductDetails): ProductDetails.OneTimePurchaseOfferDetails? {
             val eligibleBuyOffers = details.oneTimePurchaseOfferDetailsList.orEmpty()
-                .filter { it.rentalDetails == null && it.offerToken.isNotBlank() }
+                .filter { it.rentalDetails == null && !it.offerToken.isNullOrBlank() }
             val discountedOffers = eligibleBuyOffers.filter {
                 it.discountDisplayInfo != null || (it.fullPriceMicros ?: it.priceAmountMicros) > it.priceAmountMicros
             }
