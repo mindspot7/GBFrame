@@ -267,7 +267,8 @@ fun SaturnControllerV12(
                     rotationY = 5f * dx * dpadPressed
                     cameraDistance = 12f * density
                 },
-            contentScale = ContentScale.FillBounds
+            // Keep the supplied 143x152 crop proportional inside the design hit region.
+            contentScale = ContentScale.Fit
         )
 
         // The base image already includes BOTH empty tracks. Only move one knob per toggle.
