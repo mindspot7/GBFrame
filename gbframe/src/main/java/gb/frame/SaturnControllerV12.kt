@@ -2,7 +2,6 @@ package gb.frame
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Box
@@ -21,7 +20,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
@@ -252,9 +250,11 @@ fun SaturnControllerV12(
         val dpadPressed by animateFloatAsState(if (direction == null) 0f else 1f, tween(85), label = "dpad press")
         val padX by animateFloatAsState(if (direction != null) dx * 319f * .0115f * widthPx / DESIGN_W else 0f, tween(85), label = "dpad x")
         val padY by animateFloatAsState(if (direction != null) (1.5f + dy * .75f) / 100f * 331f * heightPx / DESIGN_H else 0f, tween(85), label = "dpad y")
-        // The base artwork already contains the D-pad. Animate its directional depression as a moving
-        // shadow/highlight layer instead of drawing a second copy over the baked control.
-        Canvas(
+        // The base artwork has a transparent cutout here. Draw the original D-pad sprite as a
+        // separate layer so its physical artwork moves with the press animation, with no duplicate
+        // stationary D-pad left underneath it.
+        Image(
+            painter = painterResource(R.drawable.saturn_dpad), contentDescription = null,
             Modifier.offset(x = sx * 136f, y = sy * 476f)
                 .size(sx * 319f, sy * 331f)
                 .graphicsLayer {
@@ -263,27 +263,9 @@ fun SaturnControllerV12(
                     rotationX = -5f * dy * dpadPressed
                     rotationY = 5f * dx * dpadPressed
                     cameraDistance = 12f * density
-                }
-        ) {
-            if (dpadPressed > .001f) {
-                val min = size.minDimension
-                val center = Offset(size.width * .5f, size.height * .58f)
-                val pivot = Offset(dx * min * .025f * dpadPressed, dy * min * .025f * dpadPressed)
-                drawCircle(Color.Black.copy(alpha = .22f * dpadPressed), min * .40f, center + pivot)
-                drawCircle(
-                    Color.White.copy(alpha = .16f * dpadPressed), min * .37f, center - pivot,
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(min * .016f),
-                )
-                if (dx != 0 || dy != 0) {
-                    val start = center + Offset(dx * min * .10f, dy * min * .10f)
-                    val end = center + Offset(dx * min * .30f, dy * min * .30f)
-                    drawLine(Color.Black.copy(alpha = .22f * dpadPressed), start, end, min * .14f,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                    drawLine(Color.White.copy(alpha = .14f * dpadPressed), start - Offset(0f, min * .012f), end - Offset(0f, min * .012f), min * .018f,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                }
-            }
-        }
+                },
+            contentScale = ContentScale.FillBounds
+        )
 
         // The base image already includes BOTH empty tracks. Only move one knob per toggle.
         val fpsTravel by animateFloatAsState(if (fpsEnabled) 94.08f else 0f, tween(175), label = "fps toggle")
