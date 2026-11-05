@@ -2,11 +2,9 @@ package gb.frame
 
 import android.app.Activity
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -80,7 +78,7 @@ sealed interface UpdateResult {
 object AppUpdates {
     const val PLAY_INSTALLER = "com.android.vending"
     const val CHANNEL_METADATA = "gb.frame.updateChannel"
-    private const val ACTION_INSTALL_RESULT = "gb.frame.UPDATE_INSTALL_RESULT"
+    internal const val ACTION_INSTALL_RESULT = "gb.frame.UPDATE_INSTALL_RESULT"
 
     /** Where this installation came from. See the class rules above. */
     fun channelOf(context: Context): UpdateChannel {
@@ -302,21 +300,13 @@ object AppUpdates {
             apk.inputStream().use { input -> session.openWrite("update.apk", 0, apk.length()).use { out ->
                 input.copyTo(out); session.fsync(out)
             } }
-            val receiver = object : BroadcastReceiver() {
-                override fun onReceive(c: Context, i: Intent) {
-                    if (i.getIntExtra(PackageInstaller.EXTRA_STATUS, -1) == PackageInstaller.STATUS_PENDING_USER_ACTION) {
-                        @Suppress("DEPRECATION")
-                        val confirm = i.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
-                        confirm?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        runCatching { c.startActivity(confirm) }
-                    } else runCatching { c.applicationContext.unregisterReceiver(this) }
-                }
-            }
-            val filter = IntentFilter(ACTION_INSTALL_RESULT)
-            if (Build.VERSION.SDK_INT >= 33) activity.applicationContext.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            else @Suppress("UnspecifiedRegisterReceiverFlag") activity.applicationContext.registerReceiver(receiver, filter)
+            // An explicit, non-exported receiver is used on every Android version. PackageInstaller fills in
+            // status/session extras, so this PendingIntent must be mutable; its explicit component keeps the
+            // mutable callback private to this app.
+            val callback = Intent(activity, PackageInstallResultReceiver::class.java)
+                .setAction("${activity.packageName}.$ACTION_INSTALL_RESULT")
             val pending = PendingIntent.getBroadcast(
-                activity, id, Intent(ACTION_INSTALL_RESULT).setPackage(activity.packageName),
+                activity, id, callback,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )
             session.commit(pending.intentSender)

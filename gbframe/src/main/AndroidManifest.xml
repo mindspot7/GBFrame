@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries>
+        <intent>
+            <action android:name="android.content.pm.action.CONFIRM_INSTALL" />
+            <action android:name="android.content.pm.action.CONFIRM_PERMISSIONS" />
+        </intent>
+    </queries>
     <!-- Apps resolve both placeholders (see docs/APP_UPDATES_STANDARD.md): the GitHub build requests the install
          permission, the Play build swaps it for INTERNET because Play restricts REQUEST_INSTALL_PACKAGES. -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -15,5 +21,9 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name="gb.frame.PackageInstallResultReceiver"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 </manifest>
