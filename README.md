@@ -14,6 +14,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `PerfOverlay.kt` | Monitoring overlay (FPS, speed, CPU/GPU, renderer, resolution, frame time): FPS and speed green from 95% of full speed, yellow from 80%, red below (`speedColor`); GPU usage from the app's own GPU time (`gpuLoad`: timer/timestamp queries), else the driver's sysfs load |
 | `Controller.kt` | `rememberHasGamepad()` |
 | `Controls.kt` | Shared controls settings, touch haptics, stylized touch buttons and a multi-touch-aware D-pad (`TouchControlButton`, `TouchDPad`) |
+| `SaturnControllerV12.kt` | Shared portrait Saturn touch controller skin, with per-button sprites, 8-way D-pad, FPS/FAST toggles and host callbacks |
 | `Wizard.kt` | First-run `SetupWizard` (steps with gradient badges), `WizardStatus`, `PresetPicker` |
 | `Covers.kt` | Box art: custom image → cache → libretro-thumbnails download with fuzzy title matching; normalize to the system's majority aspect ratio (`Covers.init(..., frameAspectRatio = ...)`) |
 | `VisualCustomization.kt` | Shared one-time Google Play Gold entitlement, purchase verification and restore flow for optional library themes; apps provide their own product ID and the GBFrame purchase dialog |
