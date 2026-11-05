@@ -43,10 +43,10 @@ import kotlin.math.roundToInt
 private const val DESIGN_W = 1112f
 private const val DESIGN_H = 1415f
 private const val BODY_W = 1040f // Alpha-visible controller width in saturn_base.png (x=36..1075).
-private const val DPAD_X = 159f
-private const val DPAD_Y = 503.5f
-private const val DPAD_W = 282f
-private const val DPAD_H = 300f
+private const val DPAD_X = 93f
+private const val DPAD_Y = 446.5f
+private const val DPAD_W = 414f
+private const val DPAD_H = 414f
 private const val DPAD_CENTER_X = 300f
 private const val DPAD_CENTER_Y = 653.5f
 
@@ -95,7 +95,7 @@ private fun hitTest(p: Offset): Press? {
     return controls.asReversed().firstOrNull { it.contains(p) }?.let { Press(InputTarget.BUTTON, button = it.button) }
 }
 
-/** Keeps directional touch input in the empty circular recess after removing the D-pad artwork. */
+/** Circular hit area matches the directional disk, inside the larger visible bezel. */
 private fun insideDpad(p: Offset): Boolean {
     val nx = (p.x - DPAD_CENTER_X) / (319f / 2f)
     val ny = (p.y - DPAD_CENTER_Y) / (331f / 2f)
@@ -260,6 +260,7 @@ fun SaturnControllerV12(
         val dpadPressed by animateFloatAsState(if (direction == null) 0f else 1f, tween(85), label = "dpad press")
         val padX by animateFloatAsState(if (direction != null) dx * 319f * .0115f * widthPx / DESIGN_W else 0f, tween(85), label = "dpad x")
         val padY by animateFloatAsState(if (direction != null) (1.5f + dy * .75f) / 100f * 331f * heightPx / DESIGN_H else 0f, tween(85), label = "dpad y")
+        // Draw the complete supplied D-pad over the cleaned panel; no fixed D-pad remains underneath.
         Image(
             painter = painterResource(R.drawable.saturn_dpad), contentDescription = null,
             Modifier.offset(x = sx * DPAD_X, y = sy * DPAD_Y)
