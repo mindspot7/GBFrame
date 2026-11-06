@@ -65,31 +65,38 @@ enum class SaturnDirection { UP, UP_RIGHT, RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, L
 private data class ControlRect(
     val button: SaturnButton, val x: Float, val y: Float, val w: Float, val h: Float,
     val resId: Int,
-    /** Hit-area origin: the sprite's size, centered on its visible cap (measured from the PNG), not on the sprite box. */
-    val hitX: Float, val hitY: Float,
+    /** Hit area in design px; it follows the visible cap (and the printed label, for the small top buttons). */
+    val hitX: Float, val hitY: Float, val hitW: Float, val hitH: Float,
     /** Visible cap inside the sprite (sprite px): the press mask is cut around it, not around the sprite box. */
     val cap: Cap?,
 ) {
-    fun contains(p: Offset) = p.x >= hitX && p.x <= hitX + w && p.y >= hitY && p.y <= hitY + h
+    fun contains(p: Offset) = p.x >= hitX && p.x <= hitX + hitW && p.y >= hitY && p.y <= hitY + hitH
 }
 
-// Each sprite carries its well and shadow on the upper-left, so the visible button sits down-right of the sprite's
-// center (up to 17 design px). Hit areas follow the visible cap; the sprites themselves are drawn at x/y as before.
+// Sprites are crops of saturn_base.png at x/y (the top band follows the owner's L/FAST/FPS/R + LOAD/SAVE art; MENU and
+// FILTERS share the bottom row). Face-button sprites carry their well on the upper-left, so their hit areas are
+// centered on the visible cap instead of the sprite box. L/R sprites have an alpha cut-out of the shoulder cap.
 private val controls = listOf(
-    ControlRect(SaturnButton.L, 94f, 88f, 232f, 163f, R.drawable.saturn_l, 96f, 86.5f, null),
-    ControlRect(SaturnButton.R, 770f, 88f, 244f, 163f, R.drawable.saturn_r, 774f, 87.5f, null),
-    ControlRect(SaturnButton.MENU, 463f, 127f, 165f, 77f, R.drawable.saturn_menu, 473.5f, 126f, Cap(22f, 14f, 142f, 47f)),
-    ControlRect(SaturnButton.SAVE, 253f, 250f, 92f, 88f, R.drawable.saturn_save, 256.5f, 254.5f, Cap(20f, 22f, 59f, 53f)),
-    ControlRect(SaturnButton.LOAD, 745f, 250f, 92f, 88f, R.drawable.saturn_load, 762f, 254.5f, Cap(34f, 22f, 58f, 53f)),
-    ControlRect(SaturnButton.X, 559f, 538f, 133f, 130f, R.drawable.saturn_x, 572.5f, 545f, Cap(30f, 24f, 100f, 96f)),
-    ControlRect(SaturnButton.Y, 683f, 473f, 129f, 125f, R.drawable.saturn_y, 699.5f, 475f, Cap(33f, 18f, 96f, 93f)),
-    ControlRect(SaturnButton.Z, 818f, 432f, 134f, 125f, R.drawable.saturn_z, 835.5f, 439f, Cap(35f, 23f, 99f, 93f)),
-    ControlRect(SaturnButton.A, 575f, 679f, 147f, 146f, R.drawable.saturn_a, 591.5f, 692f, Cap(33f, 29f, 114f, 114f)),
-    ControlRect(SaturnButton.B, 713f, 605f, 147f, 144f, R.drawable.saturn_b, 732f, 622.5f, Cap(38f, 36f, 109f, 107f)),
-    ControlRect(SaturnButton.C, 864f, 572f, 150f, 147f, R.drawable.saturn_c, 881f, 582f, Cap(34f, 24f, 116f, 119f)),
-    ControlRect(SaturnButton.START, 455f, 919f, 178f, 85f, R.drawable.saturn_start, 467f, 937f, Cap(27f, 36f, 148f, 49f)),
-    ControlRect(SaturnButton.FILTERS, 449f, 1080f, 193f, 90f, R.drawable.saturn_filters, 459f, 1101f, Cap(27f, 42f, 159f, 48f))
+    ControlRect(SaturnButton.L, 57f, 64f, 205f, 127f, R.drawable.saturn_l, 50f, 55f, 220f, 145f, null),
+    ControlRect(SaturnButton.R, 851f, 64f, 205f, 127f, R.drawable.saturn_r, 842f, 55f, 220f, 145f, null),
+    ControlRect(SaturnButton.MENU, 201f, 1109f, 165f, 77f, R.drawable.saturn_menu, 211.5f, 1108f, 165f, 77f, Cap(22f, 14f, 142f, 47f)),
+    ControlRect(SaturnButton.SAVE, 643f, 184f, 60f, 60f, R.drawable.saturn_save, 640f, 180f, 150f, 70f, Cap(12.3f, 12.8f, 35f, 35f)),
+    ControlRect(SaturnButton.LOAD, 409f, 184f, 60f, 60f, R.drawable.saturn_load, 322f, 180f, 150f, 70f, Cap(12.6f, 12.8f, 35f, 35f)),
+    ControlRect(SaturnButton.X, 559f, 538f, 133f, 130f, R.drawable.saturn_x, 572.5f, 545f, 133f, 130f, Cap(30f, 24f, 100f, 96f)),
+    ControlRect(SaturnButton.Y, 683f, 473f, 129f, 125f, R.drawable.saturn_y, 699.5f, 475f, 129f, 125f, Cap(33f, 18f, 96f, 93f)),
+    ControlRect(SaturnButton.Z, 818f, 432f, 134f, 125f, R.drawable.saturn_z, 835.5f, 439f, 134f, 125f, Cap(35f, 23f, 99f, 93f)),
+    ControlRect(SaturnButton.A, 575f, 679f, 147f, 146f, R.drawable.saturn_a, 591.5f, 692f, 147f, 146f, Cap(33f, 29f, 114f, 114f)),
+    ControlRect(SaturnButton.B, 713f, 605f, 147f, 144f, R.drawable.saturn_b, 732f, 622.5f, 147f, 144f, Cap(38f, 36f, 109f, 107f)),
+    ControlRect(SaturnButton.C, 864f, 572f, 150f, 147f, R.drawable.saturn_c, 881f, 582f, 150f, 147f, Cap(34f, 24f, 116f, 119f)),
+    ControlRect(SaturnButton.START, 455f, 919f, 178f, 85f, R.drawable.saturn_start, 467f, 937f, 178f, 85f, Cap(27f, 36f, 148f, 49f)),
+    ControlRect(SaturnButton.FILTERS, 711f, 1080f, 193f, 90f, R.drawable.saturn_filters, 721f, 1101f, 193f, 90f, Cap(27f, 42f, 159f, 48f))
 )
+
+/** Slide switches of the top band: the knob sprite slides inside the empty printed track (knob right = on). */
+private class SlideSwitch(val offX: Float, val y: Float, val w: Float, val h: Float, val hit: Rect)
+private const val SWITCH_TRAVEL = 11.1f
+private val fastSwitch = SlideSwitch(397f, 124f, 75f, 33f, Rect(300f, 108f, 492f, 172f))
+private val fpsSwitch = SlideSwitch(641f - SWITCH_TRAVEL, 124f, 75f, 33f, Rect(622f, 108f, 800f, 172f))
 
 private data class Cap(val x: Float, val y: Float, val w: Float, val h: Float)
 
@@ -118,9 +125,9 @@ private enum class InputTarget { BUTTON, DPAD, FPS, FAST }
 private data class Press(val target: InputTarget, val button: SaturnButton? = null, val direction: SaturnDirection? = null)
 
 private fun hitTest(p: Offset): Press? {
-    // FPS/FAST interactive hit areas in the original V12 (centerX - 50, y=1104, 200x100).
-    if (p.y in 1104f..1204f && p.x in 194f..394f) return Press(InputTarget.FPS)
-    if (p.y in 1104f..1204f && p.x in 725f..925f) return Press(InputTarget.FAST)
+    // FAST/FPS switches: the track and its printed label.
+    if (fpsSwitch.hit.contains(p)) return Press(InputTarget.FPS)
+    if (fastSwitch.hit.contains(p)) return Press(InputTarget.FAST)
     if (insideDpad(p)) return Press(InputTarget.DPAD, direction = dpadDirection(p))
     // Buttons are evaluated from the foreground back to avoid overlap errors.
     return controls.asReversed().firstOrNull { it.contains(p) }?.let { Press(InputTarget.BUTTON, button = it.button) }
@@ -313,18 +320,18 @@ fun SaturnControllerV12(
             contentScale = ContentScale.Fit
         )
 
-        // The base image already includes BOTH empty tracks. Only move one knob per toggle.
-        val fpsTravel by animateFloatAsState(if (fpsEnabled) 94.08f else 0f, tween(175), label = "fps toggle")
-        val fastTravel by animateFloatAsState(if (fastEnabled) 94.08f else 0f, tween(175), label = "fast toggle")
-        Image(
-            painter = painterResource(R.drawable.saturn_knob_fps), contentDescription = null,
-            modifier = Modifier.offset(x = sx * (202f + fpsTravel), y = sy * 1111f)
-                .size(sx * 84f, sy * 84f), contentScale = ContentScale.FillBounds
-        )
-        Image(
-            painter = painterResource(R.drawable.saturn_knob_fast), contentDescription = null,
-            modifier = Modifier.offset(x = sx * (733f + fastTravel), y = sy * 1111f)
-                .size(sx * 84f, sy * 84f), contentScale = ContentScale.FillBounds
-        )
+        // The base image has both tracks empty; each knob slides inside its own.
+        val fpsTravel by animateFloatAsState(if (fpsEnabled) SWITCH_TRAVEL else 0f, tween(140), label = "fps toggle")
+        val fastTravel by animateFloatAsState(if (fastEnabled) SWITCH_TRAVEL else 0f, tween(140), label = "fast toggle")
+        for ((switch, travel, res) in listOf(
+            Triple(fpsSwitch, fpsTravel, R.drawable.saturn_knob_fps),
+            Triple(fastSwitch, fastTravel, R.drawable.saturn_knob_fast),
+        )) {
+            Image(
+                painter = painterResource(res), contentDescription = null,
+                modifier = Modifier.offset(x = sx * (switch.offX + travel), y = sy * switch.y)
+                    .size(sx * switch.w, sy * switch.h), contentScale = ContentScale.FillBounds
+            )
+        }
     }
 }
