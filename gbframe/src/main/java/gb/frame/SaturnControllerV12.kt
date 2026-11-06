@@ -52,6 +52,10 @@ private const val DPAD_H = 414f
 private const val DPAD_CENTER_X = 300f
 private const val DPAD_CENTER_Y = 653.5f
 
+/** Transparent rows of saturn_base.png above and below the controller body, as fractions of its height. */
+const val SATURN_V12_MARGIN_TOP = 36f / 1415f
+const val SATURN_V12_MARGIN_BOTTOM = 45f / 1415f
+
 /** Uniform fit sized to the visible controller body, using only the transparent side margins as bleed. */
 fun saturnControllerV12PortraitArtworkSize(availableWidth: Dp, availableHeight: Dp): DpSize {
     val scale = minOf(availableWidth / BODY_W, availableHeight / DESIGN_H)

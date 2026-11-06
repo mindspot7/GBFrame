@@ -198,6 +198,15 @@ of these repositories.
 - The game picture is aligned to the top of the screen: when the screen is narrower than the picture (square, 5:4, a
   16:9 mode on 4:3) all the black bars go below it; side bars stay centered.
 - Touch controls are hidden automatically while a physical controller is connected (handhelds' built-in controls count).
+- **Portrait gameplay (phones):** the game screen uses the whole window, with no status/navigation bar padding (the game
+  runs immersive). The picture sits at the top; the printed controller goes below it through `PortraitControllerLayout`:
+  the controller's body (not its image box: pass the artwork's transparent margins) ends at the navigation bar's edge,
+  counted even while the bar is hidden, and the console logo sits between the picture and the controller with a 10dp
+  gap on each side. The controller fills the width; it gives up at most a thin band (26dp) for the logo.
+- **Printed controller artwork:** buttons press "mechanically": the cut-out cap of the art moves (sprite or artwork
+  crop), never a digital glow. Hit areas follow the visible cap, not the sprite box; masks are cut around the cap and
+  its rim. Slide switches move the printed knob inside its empty track (`MechanicalArtworkSlideToggle`, round or pill
+  knobs). Portrait and landscape artworks share one body tone, labels and button models.
 
 ## Performance lessons (from GBSat on the T618)
 
