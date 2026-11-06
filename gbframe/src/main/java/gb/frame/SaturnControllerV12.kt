@@ -62,25 +62,29 @@ enum class SaturnDirection { UP, UP_RIGHT, RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, L
 
 private data class ControlRect(
     val button: SaturnButton, val x: Float, val y: Float, val w: Float, val h: Float,
-    val resId: Int
+    val resId: Int,
+    /** Hit-area origin: the sprite's size, centered on its visible cap (measured from the PNG), not on the sprite box. */
+    val hitX: Float, val hitY: Float,
 ) {
-    fun contains(p: Offset) = p.x >= x && p.x <= x + w && p.y >= y && p.y <= y + h
+    fun contains(p: Offset) = p.x >= hitX && p.x <= hitX + w && p.y >= hitY && p.y <= hitY + h
 }
 
+// Each sprite carries its well and shadow on the upper-left, so the visible button sits down-right of the sprite's
+// center (up to 17 design px). Hit areas follow the visible cap; the sprites themselves are drawn at x/y as before.
 private val controls = listOf(
-    ControlRect(SaturnButton.L, 94f, 88f, 232f, 163f, R.drawable.saturn_l),
-    ControlRect(SaturnButton.R, 770f, 88f, 244f, 163f, R.drawable.saturn_r),
-    ControlRect(SaturnButton.MENU, 463f, 127f, 165f, 77f, R.drawable.saturn_menu),
-    ControlRect(SaturnButton.SAVE, 253f, 250f, 92f, 88f, R.drawable.saturn_save),
-    ControlRect(SaturnButton.LOAD, 745f, 250f, 92f, 88f, R.drawable.saturn_load),
-    ControlRect(SaturnButton.X, 559f, 538f, 133f, 130f, R.drawable.saturn_x),
-    ControlRect(SaturnButton.Y, 683f, 473f, 129f, 125f, R.drawable.saturn_y),
-    ControlRect(SaturnButton.Z, 818f, 432f, 134f, 125f, R.drawable.saturn_z),
-    ControlRect(SaturnButton.A, 575f, 679f, 147f, 146f, R.drawable.saturn_a),
-    ControlRect(SaturnButton.B, 713f, 605f, 147f, 144f, R.drawable.saturn_b),
-    ControlRect(SaturnButton.C, 864f, 572f, 150f, 147f, R.drawable.saturn_c),
-    ControlRect(SaturnButton.START, 455f, 919f, 178f, 85f, R.drawable.saturn_start),
-    ControlRect(SaturnButton.FILTERS, 449f, 1080f, 193f, 90f, R.drawable.saturn_filters)
+    ControlRect(SaturnButton.L, 94f, 88f, 232f, 163f, R.drawable.saturn_l, 96f, 86.5f),
+    ControlRect(SaturnButton.R, 770f, 88f, 244f, 163f, R.drawable.saturn_r, 774f, 87.5f),
+    ControlRect(SaturnButton.MENU, 463f, 127f, 165f, 77f, R.drawable.saturn_menu, 473.5f, 126f),
+    ControlRect(SaturnButton.SAVE, 253f, 250f, 92f, 88f, R.drawable.saturn_save, 256.5f, 254.5f),
+    ControlRect(SaturnButton.LOAD, 745f, 250f, 92f, 88f, R.drawable.saturn_load, 762f, 254.5f),
+    ControlRect(SaturnButton.X, 559f, 538f, 133f, 130f, R.drawable.saturn_x, 572.5f, 545f),
+    ControlRect(SaturnButton.Y, 683f, 473f, 129f, 125f, R.drawable.saturn_y, 699.5f, 475f),
+    ControlRect(SaturnButton.Z, 818f, 432f, 134f, 125f, R.drawable.saturn_z, 835.5f, 439f),
+    ControlRect(SaturnButton.A, 575f, 679f, 147f, 146f, R.drawable.saturn_a, 591.5f, 692f),
+    ControlRect(SaturnButton.B, 713f, 605f, 147f, 144f, R.drawable.saturn_b, 732f, 622.5f),
+    ControlRect(SaturnButton.C, 864f, 572f, 150f, 147f, R.drawable.saturn_c, 881f, 582f),
+    ControlRect(SaturnButton.START, 455f, 919f, 178f, 85f, R.drawable.saturn_start, 467f, 937f),
+    ControlRect(SaturnButton.FILTERS, 449f, 1080f, 193f, 90f, R.drawable.saturn_filters, 459f, 1101f)
 )
 
 private enum class InputTarget { BUTTON, DPAD, FPS, FAST }
