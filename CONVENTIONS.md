@@ -106,6 +106,9 @@ of these repositories.
 - Debug and release use the same permanent key. Gradle finds it from `<APP>_KEYSTORE_FILE`/`<APP>_KEYSTORE_PASSWORD`
   (CI) or, for local builds, from `<app>.keystore.file` and `<app>.keystore.passwordFile` in the git-ignored
   `local.properties`, so a plain local build is already release-signed.
+- Two variants on the owner's device: **release** (`app.<x>.emulator`) and **debug** (`app.<x>.emulator.dev`, label
+  "<App> Dev"), both signed with the permanent key. While testing and implementing, change and build only debug, and
+  install it via adb on the connected device for the owner to validate; build release only when the owner asks.
 - Without the permanent key (forks, a PC without it) the build must switch to `applicationIdSuffix = ".dev"` and the
   label "<App> Dev" (manifest `${appLabel}` placeholder) and use the debug key. An APK signed with any other key must
   never carry the official application ID: on a device it blocks every later update until the app is uninstalled.
