@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -20,6 +18,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
@@ -65,6 +67,8 @@ private data class ControlRect(
     val resId: Int,
     /** Hit-area origin: the sprite's size, centered on its visible cap (measured from the PNG), not on the sprite box. */
     val hitX: Float, val hitY: Float,
+    /** Visible cap inside the sprite (sprite px): the press mask is cut around it, not around the sprite box. */
+    val cap: Cap?,
 ) {
     fun contains(p: Offset) = p.x >= hitX && p.x <= hitX + w && p.y >= hitY && p.y <= hitY + h
 }
@@ -72,20 +76,43 @@ private data class ControlRect(
 // Each sprite carries its well and shadow on the upper-left, so the visible button sits down-right of the sprite's
 // center (up to 17 design px). Hit areas follow the visible cap; the sprites themselves are drawn at x/y as before.
 private val controls = listOf(
-    ControlRect(SaturnButton.L, 94f, 88f, 232f, 163f, R.drawable.saturn_l, 96f, 86.5f),
-    ControlRect(SaturnButton.R, 770f, 88f, 244f, 163f, R.drawable.saturn_r, 774f, 87.5f),
-    ControlRect(SaturnButton.MENU, 463f, 127f, 165f, 77f, R.drawable.saturn_menu, 473.5f, 126f),
-    ControlRect(SaturnButton.SAVE, 253f, 250f, 92f, 88f, R.drawable.saturn_save, 256.5f, 254.5f),
-    ControlRect(SaturnButton.LOAD, 745f, 250f, 92f, 88f, R.drawable.saturn_load, 762f, 254.5f),
-    ControlRect(SaturnButton.X, 559f, 538f, 133f, 130f, R.drawable.saturn_x, 572.5f, 545f),
-    ControlRect(SaturnButton.Y, 683f, 473f, 129f, 125f, R.drawable.saturn_y, 699.5f, 475f),
-    ControlRect(SaturnButton.Z, 818f, 432f, 134f, 125f, R.drawable.saturn_z, 835.5f, 439f),
-    ControlRect(SaturnButton.A, 575f, 679f, 147f, 146f, R.drawable.saturn_a, 591.5f, 692f),
-    ControlRect(SaturnButton.B, 713f, 605f, 147f, 144f, R.drawable.saturn_b, 732f, 622.5f),
-    ControlRect(SaturnButton.C, 864f, 572f, 150f, 147f, R.drawable.saturn_c, 881f, 582f),
-    ControlRect(SaturnButton.START, 455f, 919f, 178f, 85f, R.drawable.saturn_start, 467f, 937f),
-    ControlRect(SaturnButton.FILTERS, 449f, 1080f, 193f, 90f, R.drawable.saturn_filters, 459f, 1101f)
+    ControlRect(SaturnButton.L, 94f, 88f, 232f, 163f, R.drawable.saturn_l, 96f, 86.5f, null),
+    ControlRect(SaturnButton.R, 770f, 88f, 244f, 163f, R.drawable.saturn_r, 774f, 87.5f, null),
+    ControlRect(SaturnButton.MENU, 463f, 127f, 165f, 77f, R.drawable.saturn_menu, 473.5f, 126f, Cap(22f, 14f, 142f, 47f)),
+    ControlRect(SaturnButton.SAVE, 253f, 250f, 92f, 88f, R.drawable.saturn_save, 256.5f, 254.5f, Cap(20f, 22f, 59f, 53f)),
+    ControlRect(SaturnButton.LOAD, 745f, 250f, 92f, 88f, R.drawable.saturn_load, 762f, 254.5f, Cap(34f, 22f, 58f, 53f)),
+    ControlRect(SaturnButton.X, 559f, 538f, 133f, 130f, R.drawable.saturn_x, 572.5f, 545f, Cap(30f, 24f, 100f, 96f)),
+    ControlRect(SaturnButton.Y, 683f, 473f, 129f, 125f, R.drawable.saturn_y, 699.5f, 475f, Cap(33f, 18f, 96f, 93f)),
+    ControlRect(SaturnButton.Z, 818f, 432f, 134f, 125f, R.drawable.saturn_z, 835.5f, 439f, Cap(35f, 23f, 99f, 93f)),
+    ControlRect(SaturnButton.A, 575f, 679f, 147f, 146f, R.drawable.saturn_a, 591.5f, 692f, Cap(33f, 29f, 114f, 114f)),
+    ControlRect(SaturnButton.B, 713f, 605f, 147f, 144f, R.drawable.saturn_b, 732f, 622.5f, Cap(38f, 36f, 109f, 107f)),
+    ControlRect(SaturnButton.C, 864f, 572f, 150f, 147f, R.drawable.saturn_c, 881f, 582f, Cap(34f, 24f, 116f, 119f)),
+    ControlRect(SaturnButton.START, 455f, 919f, 178f, 85f, R.drawable.saturn_start, 467f, 937f, Cap(27f, 36f, 148f, 49f)),
+    ControlRect(SaturnButton.FILTERS, 449f, 1080f, 193f, 90f, R.drawable.saturn_filters, 459f, 1101f, Cap(27f, 42f, 159f, 48f))
 )
+
+private data class Cap(val x: Float, val y: Float, val w: Float, val h: Float)
+
+/** Rim of the button's dark border kept around the cap, in sprite px. */
+private const val CAP_RIM = 7f
+
+/**
+ * Mask around the visible cap plus its rim. The sprites are square crops of the base art with the well on the
+ * upper-left, so a circle on the sprite box showed an offset disc of the sprite's background behind each button.
+ */
+private fun capMask(c: ControlRect, cap: Cap, round: Boolean) = GenericShape { size, _ ->
+    val kx = size.width / c.w
+    val ky = size.height / c.h
+    if (round) {
+        val r = maxOf(cap.w, cap.h) / 2f + CAP_RIM
+        val cx = cap.x + cap.w / 2f
+        val cy = cap.y + cap.h / 2f
+        addOval(Rect((cx - r) * kx, (cy - r) * ky, (cx + r) * kx, (cy + r) * ky))
+    } else {
+        val rect = Rect((cap.x - CAP_RIM) * kx, (cap.y - CAP_RIM) * ky, (cap.x + cap.w + CAP_RIM) * kx, (cap.y + cap.h + CAP_RIM) * ky)
+        addRoundRect(RoundRect(rect, CornerRadius(rect.height / 2f)))
+    }
+}
 
 private enum class InputTarget { BUTTON, DPAD, FPS, FAST }
 private data class Press(val target: InputTarget, val button: SaturnButton? = null, val direction: SaturnDirection? = null)
@@ -245,9 +272,8 @@ fun SaturnControllerV12(
             val targetY = if (pressed) c.h * depth * (heightPx / DESIGN_H) else 0f
             val ty by animateFloatAsState(targetY, tween(105), label = "${c.button} depression")
             val mask = when {
-                isFace || isRound -> CircleShape
-                isPill -> RoundedCornerShape(percent = 50)
-                else -> null // L/R sprites have intrinsic transparency: never rectangularly clip them.
+                c.cap == null -> null // L/R sprites have intrinsic transparency: never rectangularly clip them.
+                else -> capMask(c, c.cap, round = isFace || isRound)
             }
             val m = Modifier
                 .offset(x = sx * c.x, y = sy * c.y)
