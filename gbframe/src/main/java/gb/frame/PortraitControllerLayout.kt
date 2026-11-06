@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
  * - An optional [logo] sits between the game and the controller, [gap] away from both. It takes the height left over,
  *   up to [maxLogoHeight]; the controller gives up at most [minLogoHeight] for it.
  *
- * [artworkSize] fits the artwork into a width and height (for example [saturnControllerV12PortraitArtworkSize]);
+ * [artworkSize] fits the artwork into a width and height (for example GBSat's saturnControllerV12PortraitArtworkSize);
  * [controller] draws it with the modifier it receives.
  */
 @OptIn(ExperimentalLayoutApi::class)
