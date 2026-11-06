@@ -262,7 +262,7 @@ fun SaturnControllerV12(
         val padY by animateFloatAsState(if (direction != null) (1.5f + dy * .75f) / 100f * 331f * heightPx / DESIGN_H else 0f, tween(85), label = "dpad y")
         // Draw the complete supplied D-pad over the cleaned panel; no fixed D-pad remains underneath.
         Image(
-            painter = painterResource(R.drawable.saturn_dpad), contentDescription = null,
+            painter = painterResource(R.drawable.gb_saturn_v12_dpad), contentDescription = null,
             Modifier.offset(x = sx * DPAD_X, y = sy * DPAD_Y)
                 .size(sx * DPAD_W, sy * DPAD_H)
                 .graphicsLayer {
