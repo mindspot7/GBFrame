@@ -1,6 +1,7 @@
 package gb.frame
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.IntSize
@@ -112,6 +114,84 @@ fun MechanicalArtworkDPad(
                 dstSize = IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1)))
             drawCircle(Color.Black.copy(alpha = .07f * progress))
         }
+    }
+}
+
+/** Mechanical slider for printed toggles: the thumb travels between detents and depresses while touched. */
+@Composable
+fun MechanicalArtworkSlideToggle(
+    isOn: Boolean,
+    isPressed: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val position by animateFloatAsState(
+        if (isOn) 1f else 0f,
+        spring(dampingRatio = .72f, stiffness = 480f),
+        label = "mechanical toggle detent",
+    )
+    val press by animateFloatAsState(
+        if (isPressed) 1f else 0f,
+        spring(dampingRatio = .68f, stiffness = 620f),
+        label = "mechanical toggle press",
+    )
+    Canvas(modifier) {
+        val trackLeft = size.width * .045f
+        val trackTop = size.height * .16f
+        val trackWidth = size.width * .91f
+        val trackHeight = size.height * .72f
+        val trackRadius = androidx.compose.ui.geometry.CornerRadius(trackHeight * .5f)
+        val trackTopLeft = Offset(trackLeft, trackTop)
+        val trackSize = androidx.compose.ui.geometry.Size(trackWidth, trackHeight)
+
+        // Cover the static switch baked into the panel so the thumb has a single, live position.
+        drawRoundRect(
+            Color(0xFF050607),
+            trackTopLeft + Offset(0f, trackHeight * .06f),
+            trackSize,
+            trackRadius,
+        )
+        drawRoundRect(
+            Brush.verticalGradient(listOf(Color(0xFF292A2E), Color(0xFF111214), Color(0xFF070809))),
+            trackTopLeft,
+            trackSize,
+            trackRadius,
+        )
+        drawRoundRect(
+            Color.White.copy(alpha = .18f),
+            trackTopLeft,
+            trackSize,
+            trackRadius,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(1.15.dp.toPx()),
+        )
+
+        val knobRadius = trackHeight * .34f * (1f - .035f * press)
+        val knobTravel = trackWidth - knobRadius * 2f
+        val knobCenter = Offset(
+            trackLeft + knobRadius + knobTravel * position,
+            trackTop + trackHeight * .5f + trackHeight * .055f * press,
+        )
+        drawCircle(
+            Color.Black.copy(alpha = .82f - .22f * press),
+            knobRadius,
+            knobCenter + Offset(0f, trackHeight * .085f * (1f - press * .55f)),
+        )
+        drawCircle(
+            Brush.verticalGradient(
+                if (press > .01f) listOf(Color(0xFF9A9CA1), Color(0xFF686A70), Color(0xFF42444A))
+                else listOf(Color(0xFFD0D1D4), Color(0xFF999BA0), Color(0xFF62646A)),
+                startY = trackTop,
+                endY = trackTop + trackHeight,
+            ),
+            knobRadius,
+            knobCenter,
+        )
+        drawCircle(
+            Color.White.copy(alpha = .38f * (1f - press * .45f)),
+            knobRadius * .82f,
+            knobCenter - Offset(0f, knobRadius * .06f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()),
+        )
+        drawCircle(Color.Black.copy(alpha = .07f * press), knobRadius * .78f, knobCenter)
     }
 }
 
