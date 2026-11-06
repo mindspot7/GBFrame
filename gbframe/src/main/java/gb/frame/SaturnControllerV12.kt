@@ -156,10 +156,12 @@ fun SaturnControllerV12(
     BoxWithConstraints(
         modifier = modifier.aspectRatio(DESIGN_W / DESIGN_H)
             .pointerInput(hapticsEnabled) {
-                val scaleX = size.width / DESIGN_W
-                val scaleY = size.height / DESIGN_H
                 // Pointer-id ownership ensures simultaneous buttons, diagonals and L/R work.
                 awaitEachGesture {
+                    // Read the size on every gesture: the pointer coroutine outlives resizes (system bars hiding after
+                    // the game opens grow the artwork), and a scale captured once left every hit area offset from the art.
+                    val scaleX = size.width / DESIGN_W
+                    val scaleY = size.height / DESIGN_H
                     val held = mutableMapOf<PointerId, Press>()
                     fun reconcile() {
                         val newButtons = held.values.mapNotNull { it.button }.toSet()
