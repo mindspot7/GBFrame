@@ -77,6 +77,8 @@ fun MechanicalArtworkPress(
     }
 }
 
+private val OvalShape = androidx.compose.foundation.shape.GenericShape { size, _ -> addOval(Rect(0f, 0f, size.width, size.height)) }
+
 /** Directional disk feedback for printed Saturn artwork; the bezel stays stationary while the disk tilts on its pivot. */
 @Composable
 fun MechanicalArtworkDPad(
@@ -101,10 +103,14 @@ fun MechanicalArtworkDPad(
     Box(modifier) {
         Canvas(Modifier.fillMaxSize()) {
             if (progress > .001f) {
-                // This dark socket covers the still artwork beneath the displaced disk.
-                drawCircle(Color.Black.copy(alpha = .46f * progress), size.minDimension * .40f, Offset(size.width * .5f, size.height * .5f))
-                drawCircle(Color.White.copy(alpha = .10f * progress), size.minDimension * .36f,
-                    Offset(size.width * .5f, size.height * .5f), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
+                // This dark socket covers the still artwork beneath the displaced disk (oval: the box follows the
+                // art's own x/y scale, which differ on stretched panels).
+                val c = Offset(size.width * .5f, size.height * .5f)
+                drawOval(Color.Black.copy(alpha = .46f * progress), c - Offset(size.width * .40f, size.height * .40f),
+                    androidx.compose.ui.geometry.Size(size.width * .80f, size.height * .80f))
+                drawOval(Color.White.copy(alpha = .10f * progress), c - Offset(size.width * .36f, size.height * .36f),
+                    androidx.compose.ui.geometry.Size(size.width * .72f, size.height * .72f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
             }
         }
         Canvas(Modifier.fillMaxSize().graphicsLayer {
@@ -113,12 +119,12 @@ fun MechanicalArtworkDPad(
             rotationX = -5f * dy * progress
             rotationY = 5f * dx * progress
             cameraDistance = 12f * density
-        }.clip(CircleShape)) {
+        }.clip(OvalShape)) {
             if (progress <= .001f) return@Canvas
             drawImage(artwork, srcOffset = androidx.compose.ui.unit.IntOffset(sourceLeft, sourceTop),
                 srcSize = IntSize(sourceSize, sourceSize),
                 dstSize = IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1)))
-            drawCircle(Color.Black.copy(alpha = .07f * progress))
+            drawOval(Color.Black.copy(alpha = .07f * progress))
         }
     }
 }
