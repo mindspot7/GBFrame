@@ -129,7 +129,15 @@ data class MechanicalArtworkToggleSpec(
     val thumbOffCenter: Offset,
     val thumbOnCenter: Offset,
     val blankSampleCenter: Offset,
+    /** Half height of the thumb (its radius for a round thumb). */
     val thumbRadius: Float,
+    /** Half width of a pill-shaped thumb; equal to [thumbRadius] for a round one. */
+    val thumbHalfWidth: Float = thumbRadius,
+    /**
+     * For a pill thumb that nearly fills its track there is no empty spot as large as the thumb: the off position is
+     * then covered by stretching a thin column of the empty track at this x (source px) over the thumb's footprint.
+     */
+    val blankStripX: Float = Float.NaN,
 )
 
 /**
@@ -182,31 +190,42 @@ fun MechanicalArtworkSlideToggle(
             )
 
             val off = map(spec.thumbOffCenter)
-            val sample = spec.blankSampleCenter
-            val radius = spec.thumbRadius
-            val sampleLeft = (sample.x - radius).toInt().coerceIn(0, artwork.width - 1)
-            val sampleTop = (sample.y - radius).toInt().coerceIn(0, artwork.height - 1)
-            val sampleSize = (radius * 2f).toInt().coerceIn(1, minOf(artwork.width - sampleLeft, artwork.height - sampleTop))
-            val offRadiusX = radius * scaleX
-            val offRadiusY = radius * scaleY
-            val patch = Path().apply {
-                addOval(Rect(off.x - offRadiusX, off.y - offRadiusY, off.x + offRadiusX, off.y + offRadiusY))
+            val halfH = spec.thumbRadius
+            val halfW = spec.thumbHalfWidth
+            val pill = halfW != halfH
+            fun thumbPath(c: Offset, rx: Float, ry: Float) = Path().apply {
+                val r = Rect(c.x - rx, c.y - ry, c.x + rx, c.y + ry)
+                if (pill) addRoundRect(RoundRect(r, CornerRadius(ry * .84f))) else addOval(r)
             }
-            clipPath(patch) {
-                drawImage(
-                    image = artwork,
-                    srcOffset = androidx.compose.ui.unit.IntOffset(sampleLeft, sampleTop),
-                    srcSize = IntSize(sampleSize, sampleSize),
-                    dstOffset = androidx.compose.ui.unit.IntOffset(
-                        (off.x - offRadiusX).toInt(),
-                        (off.y - offRadiusY).toInt(),
-                    ),
-                    dstSize = IntSize(
-                        (offRadiusX * 2f).toInt().coerceAtLeast(1),
-                        (offRadiusY * 2f).toInt().coerceAtLeast(1),
-                    ),
-                    filterQuality = FilterQuality.Medium,
-                )
+            val offRadiusX = halfW * scaleX
+            val offRadiusY = halfH * scaleY
+            clipPath(thumbPath(off, offRadiusX, offRadiusY)) {
+                if (spec.blankStripX.isFinite()) {
+                    val top = (spec.thumbOffCenter.y - halfH).toInt().coerceIn(0, artwork.height - 1)
+                    drawImage(
+                        image = artwork,
+                        srcOffset = androidx.compose.ui.unit.IntOffset(spec.blankStripX.toInt().coerceIn(0, artwork.width - 3), top),
+                        srcSize = IntSize(3, (halfH * 2f).toInt().coerceIn(1, artwork.height - top)),
+                        dstOffset = androidx.compose.ui.unit.IntOffset((off.x - offRadiusX).toInt(), (off.y - offRadiusY).toInt()),
+                        dstSize = IntSize((offRadiusX * 2f).toInt().coerceAtLeast(1), (offRadiusY * 2f).toInt().coerceAtLeast(1)),
+                        filterQuality = FilterQuality.Medium,
+                    )
+                } else {
+                    val sample = spec.blankSampleCenter
+                    val sampleLeft = (sample.x - halfW).toInt().coerceIn(0, artwork.width - 1)
+                    val sampleTop = (sample.y - halfH).toInt().coerceIn(0, artwork.height - 1)
+                    drawImage(
+                        image = artwork,
+                        srcOffset = androidx.compose.ui.unit.IntOffset(sampleLeft, sampleTop),
+                        srcSize = IntSize(
+                            (halfW * 2f).toInt().coerceIn(1, artwork.width - sampleLeft),
+                            (halfH * 2f).toInt().coerceIn(1, artwork.height - sampleTop),
+                        ),
+                        dstOffset = androidx.compose.ui.unit.IntOffset((off.x - offRadiusX).toInt(), (off.y - offRadiusY).toInt()),
+                        dstSize = IntSize((offRadiusX * 2f).toInt().coerceAtLeast(1), (offRadiusY * 2f).toInt().coerceAtLeast(1)),
+                        filterQuality = FilterQuality.Medium,
+                    )
+                }
             }
 
             val clampedPosition = position.coerceIn(0f, 1f)
@@ -214,34 +233,23 @@ fun MechanicalArtworkSlideToggle(
                 (spec.thumbOnCenter.x - spec.thumbOffCenter.x) * clampedPosition
             val center = map(Offset(centerX, spec.thumbOffCenter.y)) + Offset(0f, 2.dp.toPx() * press)
             val pressedScale = 1f - .025f * press
-            val radiusX = radius * scaleX * pressedScale
-            val radiusY = radius * scaleY * pressedScale
-            val thumbClip = Path().apply {
-                addOval(Rect(center.x - radiusX, center.y - radiusY, center.x + radiusX, center.y + radiusY))
-            }
-            val thumbLeft = (spec.thumbOffCenter.x - radius).toInt().coerceIn(0, artwork.width - 1)
-            val thumbTop = (spec.thumbOffCenter.y - radius).toInt().coerceIn(0, artwork.height - 1)
-            val thumbSize = (radius * 2f).toInt().coerceIn(1, minOf(artwork.width - thumbLeft, artwork.height - thumbTop))
-            clipPath(thumbClip) {
+            val radiusX = halfW * scaleX * pressedScale
+            val radiusY = halfH * scaleY * pressedScale
+            val thumbLeft = (spec.thumbOffCenter.x - halfW).toInt().coerceIn(0, artwork.width - 1)
+            val thumbTop = (spec.thumbOffCenter.y - halfH).toInt().coerceIn(0, artwork.height - 1)
+            clipPath(thumbPath(center, radiusX, radiusY)) {
                 drawImage(
                     image = artwork,
                     srcOffset = androidx.compose.ui.unit.IntOffset(thumbLeft, thumbTop),
-                    srcSize = IntSize(thumbSize, thumbSize),
-                    dstOffset = androidx.compose.ui.unit.IntOffset(
-                        (center.x - radiusX).toInt(),
-                        (center.y - radiusY).toInt(),
+                    srcSize = IntSize(
+                        (halfW * 2f).toInt().coerceIn(1, artwork.width - thumbLeft),
+                        (halfH * 2f).toInt().coerceIn(1, artwork.height - thumbTop),
                     ),
-                    dstSize = IntSize(
-                        (radiusX * 2f).toInt().coerceAtLeast(1),
-                        (radiusY * 2f).toInt().coerceAtLeast(1),
-                    ),
+                    dstOffset = androidx.compose.ui.unit.IntOffset((center.x - radiusX).toInt(), (center.y - radiusY).toInt()),
+                    dstSize = IntSize((radiusX * 2f).toInt().coerceAtLeast(1), (radiusY * 2f).toInt().coerceAtLeast(1)),
                     filterQuality = FilterQuality.Medium,
                 )
-                drawOval(
-                    color = Color.Black.copy(alpha = .08f * press),
-                    topLeft = Offset(center.x - radiusX, center.y - radiusY),
-                    size = androidx.compose.ui.geometry.Size(radiusX * 2f, radiusY * 2f),
-                )
+                drawRect(Color.Black.copy(alpha = .08f * press))
             }
         }
     }
