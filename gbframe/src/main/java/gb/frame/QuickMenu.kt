@@ -264,7 +264,7 @@ fun QuickMenuHost(
                 exit = slideOutHorizontally { -it },
             ) {
                 Surface(
-                    color = p.panel,
+                    color = p.panel.copy(alpha = p.panel.alpha * .85f),
                     shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
                     border = BorderStroke(1.dp, p.border),
                     modifier = (if (isPortrait) Modifier.windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Top)).padding(top = 8.dp) else Modifier)
