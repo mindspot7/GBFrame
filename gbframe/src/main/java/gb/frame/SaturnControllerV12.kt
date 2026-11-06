@@ -82,12 +82,12 @@ private val controls = listOf(
     ControlRect(SaturnButton.MENU, 201f, 1109f, 165f, 77f, R.drawable.saturn_menu, 211.5f, 1108f, 165f, 77f, Cap(22f, 14f, 142f, 47f)),
     ControlRect(SaturnButton.SAVE, 253f, 268f, 92f, 88f, R.drawable.saturn_save, 248f, 260f, 110f, 143f, Cap(20f, 22f, 59f, 53f)),
     ControlRect(SaturnButton.LOAD, 745f, 268f, 92f, 88f, R.drawable.saturn_load, 753f, 260f, 110f, 143f, Cap(34f, 22f, 58f, 53f)),
-    ControlRect(SaturnButton.X, 559f, 538f, 133f, 130f, R.drawable.saturn_x, 572.5f, 545f, 133f, 130f, Cap(30f, 24f, 100f, 96f)),
-    ControlRect(SaturnButton.Y, 683f, 473f, 129f, 125f, R.drawable.saturn_y, 699.5f, 475f, 129f, 125f, Cap(33f, 18f, 96f, 93f)),
-    ControlRect(SaturnButton.Z, 818f, 432f, 134f, 125f, R.drawable.saturn_z, 835.5f, 439f, 134f, 125f, Cap(35f, 23f, 99f, 93f)),
-    ControlRect(SaturnButton.A, 575f, 679f, 147f, 146f, R.drawable.saturn_a, 591.5f, 692f, 147f, 146f, Cap(33f, 29f, 114f, 114f)),
-    ControlRect(SaturnButton.B, 713f, 605f, 147f, 144f, R.drawable.saturn_b, 732f, 622.5f, 147f, 144f, Cap(38f, 36f, 109f, 107f)),
-    ControlRect(SaturnButton.C, 864f, 572f, 150f, 147f, R.drawable.saturn_c, 881f, 582f, 150f, 147f, Cap(34f, 24f, 116f, 119f)),
+    ControlRect(SaturnButton.X, 559f, 538f, 136f, 130f, R.drawable.saturn_x, 572.4f, 542.8f, 133f, 130f, Cap(32.9f, 22.8f, 94f, 94f)),
+    ControlRect(SaturnButton.Y, 683f, 473f, 136f, 125f, R.drawable.saturn_y, 700f, 472.5f, 129f, 125f, Cap(36.5f, 16.9f, 90.1f, 90.1f)),
+    ControlRect(SaturnButton.Z, 818f, 432f, 139f, 125f, R.drawable.saturn_z, 835.1f, 436.4f, 134f, 125f, Cap(38.8f, 21.6f, 90.6f, 90.6f)),
+    ControlRect(SaturnButton.A, 575f, 679f, 159f, 155f, R.drawable.saturn_a, 593.1f, 692.9f, 147f, 146f, Cap(33.5f, 28.8f, 116.2f, 116.2f)),
+    ControlRect(SaturnButton.B, 713f, 605f, 160f, 154f, R.drawable.saturn_b, 734.5f, 622.4f, 147f, 144f, Cap(39.8f, 34.2f, 110.3f, 110.3f)),
+    ControlRect(SaturnButton.C, 864f, 572f, 162f, 152f, R.drawable.saturn_c, 882.3f, 581.5f, 150f, 147f, Cap(33.9f, 23.6f, 118.7f, 118.7f)),
     ControlRect(SaturnButton.START, 455f, 1086f, 178f, 85f, R.drawable.saturn_start, 467f, 1104f, 178f, 85f, Cap(27f, 36f, 148f, 49f)),
     ControlRect(SaturnButton.FILTERS, 711f, 1080f, 193f, 90f, R.drawable.saturn_filters, 721f, 1101f, 193f, 90f, Cap(27f, 42f, 159f, 48f))
 )
