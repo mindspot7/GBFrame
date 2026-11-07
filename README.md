@@ -9,7 +9,7 @@ menus and controller behavior in every app, with a different color identity per 
 | --- | --- |
 | `Theme.kt` | `EmuPalette` (accent, highlight, backgrounds, panels…), `EmuPalettes.Violet` (GBSat), `EmuPalette.fromAccent(color)`, `EmuTheme` (Material colors + automatic down-scaling on small screens such as 720×720) |
 | `Settings.kt` | Settings page blocks: `SettingsGroup`, `ToggleRow`, `ActionRow`, `ChoiceRow`, `InfoRow`, `SettingsDivider`, `RowIcon` |
-| `Dialogs.kt` | `ConfirmDialog` (in-window, works with A/B), `ButtonHint` + `PadColors` |
+| `Dialogs.kt` | `ConfirmDialog` (in-window, works with A/B), `PadColors` (help bar glyphs) |
 | `MenuIcons.kt` | Illustrated multicolor menu icons (`MenuIcon`, `MenuIconView`) |
 | `PerfOverlay.kt` | Monitoring overlay (FPS, speed, CPU/GPU, renderer, resolution, frame time): FPS and speed green from 95% of full speed, yellow from 80%, red below (`speedColor`); GPU usage from the app's own GPU time (`gpuLoad`: timer/timestamp queries), else the driver's sysfs load |
 | `Controller.kt` | `rememberHasGamepad()` |
@@ -24,7 +24,7 @@ menus and controller behavior in every app, with a different color identity per 
 | `SaveData.kt` | Game-named save folders (`gameFolderName`), the shared five-slot manual save-state limit (`MANUAL_SAVE_STATE_SLOTS`), Export (saves + save states) / Import |
 | `ResumeEntry.kt` | Save-state entry model (`ResumeEntry`) used by the All in One layout; there is no separate Recent library mode |
 | `QuickMenu.kt` | Shared in-game menu host (`QuickMenuHost`), page/Back stack (`QuickMenuPage`, `QuickMenuScope`), capability-aware action rows and custom focusable rows with focus restoration |
-| `Home.kt` | Home screen: `HomeTopBar` (icon, label, clock, battery) and `HomeLibrary` in three layouts (Showcase, Grid, All in One). The main menu's LIBRARY tiles cycle Theme (Showcase/Grid/All in One) and toggle Fullscreen; there is no separate All games/Recent mode. `HomeThemeSettings` remains as an empty compatibility entry point. `HomeMenuPanel` main menu (library view, settings tiles, quit); `HomeTheme` remembers the selected theme; `CoverCard` box art |
+| `Home.kt` | Home screen: `HomeTopBar` (icon, label, clock, battery) and `HomeLibrary` in three layouts (Showcase, Grid, All in One). The main menu's LIBRARY tiles cycle Theme (Showcase/Grid/All in One) and toggle Fullscreen; there is no separate All games/Recent mode. `HomeMenuPanel` main menu (library view, settings tiles, quit); `HomeTheme` remembers the selected theme; `CoverCard` box art |
 | `LibraryView.kt` | Last opened game restored at startup (`init(prefs)`, `gameOpened(key)`); separate session game/save-state selection (`lastGame`, `lastState`) |
 | `DeviceTier.kt` | Three device classes based on CPU capacity: Low (efficiency cores only), Mid (limited/older fast cores), High (3+ newer fast cores). GPU capability is reported separately and still guides graphics presets. |
 | `GameProfiles.kt` | Recommended settings per game and device class shipped in `assets/game_profiles.json` (user choice > database > global settings) |

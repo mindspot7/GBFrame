@@ -103,7 +103,8 @@ std::vector<ThreadUse> SampleThreads() {
             ticksNow[tid] = ticks;
             if (secs > 0) {
                 auto it = g_prevTicks.find(tid);
-                const unsigned long long before = it != g_prevTicks.end() ? it->second : ticks;
+                // A thread id reused by a new thread can have fewer ticks than the old one: count from zero, not a wrap
+                const unsigned long long before = it != g_prevTicks.end() && it->second <= ticks ? it->second : ticks;
                 out.push_back({tid, name, (double)(ticks - before) / tck / secs * 100.0, core});
             }
         }

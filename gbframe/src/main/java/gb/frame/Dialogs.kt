@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -12,12 +11,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
@@ -68,18 +65,7 @@ fun ConfirmDialog(
 
 private fun lerpPanel(p: EmuPalette) = androidx.compose.ui.graphics.lerp(p.surface, Color.Black, 0.05f)
 
-/** Controller button glyph with a label, Nintendo-style colors (A red, B yellow, X blue, Y green). */
-@Composable
-fun ButtonHint(button: String, color: Color, label: String, modifier: Modifier = Modifier.padding(start = 16.dp)) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(22.dp).clip(CircleShape).background(color), contentAlignment = Alignment.Center) {
-            KitText(button, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-        }
-        Spacer(Modifier.width(6.dp))
-        KitText(label, color = Color.White.copy(alpha = .85f), style = MaterialTheme.typography.labelLarge)
-    }
-}
-
+/** Controller button colors, Nintendo-style (A red, B yellow, X blue, Y green): the library's help bar glyphs. */
 object PadColors {
     val A = Color(0xFFE5483B)
     val B = Color(0xFFF2C230)

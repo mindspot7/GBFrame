@@ -113,6 +113,8 @@ fun PerfOverlay(
     var cpu by remember { mutableStateOf<Float?>(null) }
     var gpu by remember { mutableStateOf<Float?>(null) }
     LaunchedEffect(options.cpu, options.gpu) {
+        // Only the CPU and GPU lines need sampling: with FPS alone, /proc and the GPU counters were read every second
+        if (!options.cpu && !options.gpu) return@LaunchedEffect
         val cores = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
         var lastTicks = cpuTicks(); var lastT = System.nanoTime()
         while (true) {

@@ -191,7 +191,7 @@ of these repositories.
   game selected *now* (`LibraryView.lastGame`), not on the one the screen opened on.
 - The button help bar is shown only when a physical controller is connected and `HomeTheme.buttonHelp` (Extras → Layout → Button help) is on.
 - Programmatic focus (first game, first menu entry, refocus after a tap) only happens with a physical controller (`rememberHasGamepad`); a menu opened by touch also selects its first entry then, after `requestFocusFromTouch()` leaves touch mode.
-- The legacy `HomeThemeSettings(onLayoutChanged)` entry point is intentionally empty for compatibility; layout and fullscreen are controlled from the main menu, not Settings.
+- Layout and fullscreen are controlled from the main menu, not Settings.
 - In game, the menu and fast-forward buttons, the Skip Engine indicator, the performance overlay, achievement
   notifications and toasts come from `GameplayOverlayChrome` (top left / top right / top center), padded only by the
   display cutout (`gameOverlayInsets()`), never by the system bars.

@@ -7,6 +7,10 @@
 # Engine (auto_skip: maximum speed through loads, transitions and save waits; safe disc read speed) and A/B diagnostic
 # switches read from adb-set properties (diag_props.hpp).
 set(GB_NATIVE_DIR "${CMAKE_CURRENT_LIST_DIR}")
+# applicationIdSuffix of the variant being built (Gradle passes -DGB_APP_ID_SUFFIX=.dev for "<App> Dev"): GB_APP_ID must
+# be the installed package, since Android/media/<GB_APP_ID> is the only shared folder the app may write to (perf log,
+# PGO data); a .dev build writing to the release package's folder lost every file.
+set(GB_APP_ID_SUFFIX "" CACHE STRING "applicationIdSuffix of the variant (e.g. .dev)")
 function(gb_native_auto_skip target)
     get_target_property(added ${target} GB_AUTO_SKIP_ADDED)
     if(NOT added)
@@ -28,7 +32,7 @@ function(gb_native_add target)
                                      "${GB_NATIVE_DIR}/pgo.cpp" "${GB_NATIVE_DIR}/perf_probe.cpp")
     gb_native_auto_skip(${target})
     target_include_directories(${target} PRIVATE "${GB_NATIVE_DIR}")
-    target_compile_definitions(${target} PRIVATE GB_APP_ID="${GBN_APP_ID}")
+    target_compile_definitions(${target} PRIVATE GB_APP_ID="${GBN_APP_ID}${GB_APP_ID_SUFFIX}")
     target_link_libraries(${target} PRIVATE android log EGL GLESv3 nativewindow)
 endfunction()
 

@@ -814,6 +814,13 @@ void Shutdown() {
     // The presenter thread is gone: no slot is queued, drawn or shown any more
     S.readySlot = S.shownSlot = S.drawingSlot = -1;
     S.frameReady = false;
+    // A restarted presenter has no window or EGL yet: until it has, Vulkan targets must not be handed out (they were,
+    // since these flags kept the previous thread's values) and a window set while stopping must not leak
+    S.windowReady.store(false, std::memory_order_release);
+    S.hbSupportReady.store(false, std::memory_order_release);
+    if (S.windowPending && S.pendingWindow) ANativeWindow_release(S.pendingWindow);
+    S.pendingWindow = nullptr;
+    S.windowPending = false;
 }
 
 bool ReadShownFrame(const std::function<void(const uint32_t *, uint32_t, uint32_t, uint32_t)> &fn) {

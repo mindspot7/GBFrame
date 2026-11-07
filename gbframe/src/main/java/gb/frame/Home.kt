@@ -868,14 +868,6 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
     }
 }
 
-// ---- Settings ----------------------------------------------------------------------------------------------------------
-
-/** Kept as a compatibility entry point for host apps. Fullscreen is controlled only from the main menu tile. */
-@Composable
-fun HomeThemeSettings(onLayoutChanged: () -> Unit = {}) {
-    // Intentionally empty: the fullscreen option must not be duplicated in Settings → Layout.
-}
-
 // ---- Main menu ---------------------------------------------------------------------------------------------------------
 
 /**
