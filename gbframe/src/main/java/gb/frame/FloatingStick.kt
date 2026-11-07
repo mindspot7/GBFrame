@@ -82,8 +82,8 @@ fun stickDirections(vector: Offset, deadZone: Float = .3f): Set<TouchDirection> 
 
 /**
  * Touch zone for a dynamic directional control. A touch anywhere inside it places the stick there and [content] draws
- * the base at `center` with the knob moved by `knob` (both in this zone's pixels). Idle it draws nothing, except at
- * [restCenter] (when given) until the first touch, so the player sees where the control is before using it. It reports
+ * the base at `center` with the knob moved by `knob` (both in this zone's pixels). Without a touch it draws the
+ * control at [restCenter] (when given, otherwise nothing): it goes back there on every release. It reports
  * the 8-way [onDirections] (haptic tick on each change) and the analog [onVector] (each axis -1..1, (0, 0) on release).
  * [radiusPx] is the stick's travel.
  */
@@ -98,7 +98,6 @@ fun FloatingDPadZone(
     restCenter: Offset? = null,
     content: @Composable BoxScope.(center: Offset, knob: Offset) -> Unit,
 ) {
-    var touched by remember { mutableStateOf(false) }
     val stick = remember(radiusPx, follow) { FloatingStick(radiusPx, follow) }
     var center by remember { mutableStateOf<Offset?>(null) }
     var knob by remember { mutableStateOf(Offset.Zero) }
@@ -127,7 +126,6 @@ fun FloatingDPadZone(
                         when {
                             owner == null && change.pressed && !change.previousPressed -> {
                                 owner = change.id
-                                touched = true
                                 stick.down(change.position)
                                 change.consume()
                                 publish()
@@ -149,6 +147,6 @@ fun FloatingDPadZone(
             }
         },
     ) {
-        (center ?: restCenter?.takeIf { !touched })?.let { content(it, if (center != null) knob else Offset.Zero) }
+        (center ?: restCenter)?.let { content(it, if (center != null) knob else Offset.Zero) }
     }
 }

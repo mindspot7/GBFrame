@@ -316,7 +316,7 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
                 }
                 if (host.supportsDynamicDpad) {
                     SettingsDivider()
-                    ChoiceRow("Directional pad", "Static keeps the D-pad in its place. Dynamic hides it until you touch its side of the controller: it appears under your thumb and follows it.",
+                    ChoiceRow("Directional pad", "Static keeps the D-pad in its place. Dynamic is an arcade stick: it jumps under your thumb when you touch its side of the controller, follows it, and returns to its place when you let go.",
                         listOf("Static", "Dynamic"), if (host.touchDpadMode == TouchDpadMode.DYNAMIC) 1 else 0) {
                         host.touchDpadMode = if (it == 1) TouchDpadMode.DYNAMIC else TouchDpadMode.STATIC
                     }
