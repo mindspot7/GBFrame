@@ -92,7 +92,9 @@ internal object GameDiscArchive {
                     throw DiscArchiveException("Password-protected 7z files are not supported.")
                 }
                 writer.add(entry.name, entry.isDirectory, entry.size) { output ->
-                    if (entry.hasStream()) source.getInputStream(entry).use { it.copyBoundedTo(output) }
+                    // nextEntry() has positioned the decoder; read its current stream directly so
+                    // solid multi-track archives stay on one sequential decoder path.
+                    if (entry.hasStream()) source.copyCurrentEntryBoundedTo(output)
                 }
             }
             return writer.finish()
