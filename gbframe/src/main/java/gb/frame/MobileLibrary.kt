@@ -28,10 +28,21 @@ enum class MobileLibraryPage { Library, Recent, Search }
 class MobileLibraryState {
     var page by mutableStateOf(MobileLibraryPage.Library)
     var searchQuery by mutableStateOf("")
+
+    /** Return to the root tab when Back is pressed; return false when it is already selected. */
+    fun returnToLibrary(): Boolean {
+        if (page == MobileLibraryPage.Library) return false
+        page = MobileLibraryPage.Library
+        return true
+    }
 }
 
 @Composable
 fun rememberMobileLibraryState() = remember { MobileLibraryState() }
+
+/** Shared breakpoint for the phone library layout in every emulator app. */
+fun isMobileLibraryLayout(maxWidth: androidx.compose.ui.unit.Dp, maxHeight: androidx.compose.ui.unit.Dp): Boolean =
+    maxWidth < 600.dp && maxWidth < maxHeight
 
 /** Smartphone navigation shared by emulator libraries. Settings is owned by the host's existing menu. */
 @Composable

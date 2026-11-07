@@ -373,6 +373,7 @@ fun CoverCard(
     reflection: Boolean = true, focusScale: Float = 1.15f,
     selectedByTouch: Boolean = false,
     onClick: () -> Unit, onOptions: () -> Unit, onFocused: (ImageBitmap?) -> Unit = {},
+    onDoubleClick: (() -> Unit)? = null,
 ) {
     val cover = rememberCover(title, version)
     val coverFilter = rememberArtworkEnhancement()
@@ -391,7 +392,7 @@ fun CoverCard(
                 .optionsKey(onOptions)
                 // No focus/press highlight box: the enlarged cover is the selection
                 .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
-                    onClick = onClick, onLongClick = onOptions),
+                    onClick = onClick, onLongClick = onOptions, onDoubleClick = onDoubleClick),
             contentAlignment = Alignment.BottomCenter,
         ) {
             if (cover != null) {
@@ -577,7 +578,8 @@ private fun Shelf(
                         focusIndex = i
                     } else actions.play(g)
                 }, onOptions = { actions.options(g) },
-                onFocused = { cover -> touchSelectedKey = null; LibraryView.lastGame = g.key; selectedIndex = i; onSelected(g, cover); pace.focused(); focusIndex = i })
+                onFocused = { cover -> touchSelectedKey = null; LibraryView.lastGame = g.key; selectedIndex = i; onSelected(g, cover); pace.focused(); focusIndex = i },
+                onDoubleClick = { LibraryView.lastGame = g.key; actions.play(g) })
         }
     }
 }
@@ -816,7 +818,10 @@ private fun GridCard(
                     onClick = {
                         LibraryView.lastGame = g.key
                         if (view.isInTouchMode) onTouchSelected() else actions.play(g)
-                    }, onLongClick = { actions.options(g) }),
+                    }, onLongClick = { actions.options(g) }, onDoubleClick = {
+                        LibraryView.lastGame = g.key
+                        actions.play(g)
+                    }),
             contentAlignment = Alignment.BottomCenter,
         ) {
             if (cover != null) BoxArt3D(cover, Modifier.fillMaxSize(), selected = focused || selectedByTouch)

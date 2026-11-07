@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun Modifier.gameOverlayInsets(): Modifier =
-    windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+    windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
 
 /**
  * What every app draws over the running game, in the same places: the menu button (top left) with the optional
