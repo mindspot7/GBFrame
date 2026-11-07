@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Gamepad
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.TouchApp
@@ -475,6 +477,43 @@ fun TouchControlsQuickMenuItem(
         })
     },
 )
+
+/**
+ * The in-game Controls page of every app: the same touch options as Settings → Controls → Touch (touch controls
+ * visibility, the static or dynamic directional pad when the app supports it, haptic feedback). Changes go through
+ * [host], which saves them, so both places always agree.
+ */
+fun controlsQuickMenuPage(host: ControlsHost) = QuickMenuPage("controls", "Controls") { ControlsQuickMenuRows(host) }
+
+/** The Controls page's rows (see [controlsQuickMenuPage]). */
+@Composable
+fun ControlsQuickMenuRows(host: ControlsHost) {
+    TouchControlsQuickMenuItem(id = "touch-controls", value = host.touchControlsMode) { host.touchControlsMode = it }
+    if (host.supportsDynamicDpad) {
+        QuickMenuItemRow(
+            id = "directional-pad",
+            icon = Icons.Default.Gamepad,
+            label = "Directional pad",
+            value = if (host.touchDpadMode == TouchDpadMode.DYNAMIC) "Dynamic" else "Static",
+            onClick = {
+                host.touchDpadMode = if (host.touchDpadMode == TouchDpadMode.DYNAMIC) TouchDpadMode.STATIC else TouchDpadMode.DYNAMIC
+            },
+        )
+    }
+    QuickMenuItemRow(
+        id = "touch-haptics",
+        icon = Icons.Default.Vibration,
+        label = "Haptic feedback",
+        value = if (host.touchHapticsEnabled) "On" else "Off",
+        onClick = { host.touchHapticsEnabled = !host.touchHapticsEnabled },
+    )
+}
+
+/** Root-page entry that opens [page] (normally [controlsQuickMenuPage]). */
+@Composable
+fun QuickMenuScope.ControlsQuickMenuEntry(page: QuickMenuPage) = QuickMenuItemRow(
+    id = "controls", icon = Icons.Default.TouchApp, label = "Controls", hasSubmenu = true,
+) { openPage(page, returnFocusItemId = "controls") }
 
 /** Shared in-game Performance row for adaptive render skipping; app supplies and persists the core setting. */
 @Composable

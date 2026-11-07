@@ -228,6 +228,14 @@ interface ControlsHost {
     var touchHapticsEnabled: Boolean
         get() = true
         set(_) = Unit
+    /**
+     * Directional control placement (Static: fixed in the artwork; Dynamic: appears under the thumb, see
+     * [FloatingDPadZone]). Apps whose touch pad supports it override both members; the app saves the change.
+     */
+    val supportsDynamicDpad: Boolean get() = false
+    var touchDpadMode: TouchDpadMode
+        get() = TouchDpadMode.STATIC
+        set(_) = Unit
 }
 
 /**
@@ -304,6 +312,13 @@ fun ControlsPage(host: ControlsHost, controllerExtras: (@Composable ColumnScope.
                         1 -> TouchControlsMode.ON
                         2 -> TouchControlsMode.OFF
                         else -> TouchControlsMode.AUTO
+                    }
+                }
+                if (host.supportsDynamicDpad) {
+                    SettingsDivider()
+                    ChoiceRow("Directional pad", "Static keeps the D-pad in its place. Dynamic hides it until you touch its side of the controller: it appears under your thumb and follows it.",
+                        listOf("Static", "Dynamic"), if (host.touchDpadMode == TouchDpadMode.DYNAMIC) 1 else 0) {
+                        host.touchDpadMode = if (it == 1) TouchDpadMode.DYNAMIC else TouchDpadMode.STATIC
                     }
                 }
                 SettingsDivider()

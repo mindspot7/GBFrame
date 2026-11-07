@@ -198,6 +198,11 @@ of these repositories.
 - The game picture is aligned to the top of the screen: when the screen is narrower than the picture (square, 5:4, a
   16:9 mode on 4:3) all the black bars go below it; side bars stay centered.
 - Touch controls are hidden automatically while a physical controller is connected (handhelds' built-in controls count).
+- **Controls in game:** the quick menu has a Controls page (`controlsQuickMenuPage` + `ControlsQuickMenuEntry`) with the
+  same touch options as Settings → Controls → Touch: touch controls, directional pad (Static/Dynamic, when the app
+  supports the floating stick, `FloatingDPadZone`) and haptic feedback. Both places change the same `ControlsHost`.
+- **BIOS import:** only `.bin` files (`BiosFiles`). The file picker asks for `application/octet-stream` (Android filters
+  by MIME type, not extension), a folder import lists only `.bin` names, and a picked file of another kind is refused.
 - **Portrait gameplay (phones):** the game screen uses the whole window, with no status/navigation bar padding (the game
   runs immersive). The picture sits at the top; the printed controller goes below it through `PortraitControllerLayout`:
   the controller's body (not its image box: pass the artwork's transparent margins) ends at the navigation bar's edge,
