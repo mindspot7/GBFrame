@@ -8,8 +8,8 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 
 /**
- * Edge-to-edge, full-screen window shared by every GB app. The system bars are hidden in games and on devices with a
- * physical controller (see [hideSystemBars]), so the bar colors never show and are not set.
+ * Edge-to-edge, full-screen window shared by every GB app. The system bars stay hidden throughout the app, so the bar
+ * colors never show and are not set.
  *
  * Google Play flags apps that target SDK 35 and still use the edge-to-edge window APIs that Android 15 deprecates
  * (`Window.setStatusBarColor`/`setNavigationBarColor`, the `shortEdges`/`default` cutout modes, the
@@ -39,15 +39,11 @@ object FullScreen {
 
     /**
      * Hides the status and navigation bars; a swipe shows them for a moment. Call again when the window regains focus.
-     * The bars are only hidden in a game ([inGame]) or on a device with a physical controller, which has no need for
-     * the on-screen navigation. On a touch-only device they stay visible in menus and the library.
+     * This applies to every screen, including menus and the library on touch-only phones.
      */
+    @Suppress("UNUSED_PARAMETER")
     fun hideSystemBars(activity: Activity, inGame: Boolean = false) {
         val window = activity.window
-        if (!inGame && !hasPhysicalController(activity)) {
-            showSystemBars(activity)
-            return
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Accessing Window.insetsController before PhoneWindow creates its decor can throw on newer Android.
             // decorView initializes it; its controller can still be null until attachment and focus will retry.

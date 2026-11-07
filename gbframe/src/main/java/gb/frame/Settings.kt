@@ -174,6 +174,7 @@ fun ChoiceRow(title: String, sub: String?, options: List<String>, selected: Int,
             options.forEachIndexed { i, label ->
                 val focused = focusedIndex == i
                 SegmentedButton(selected = i == selected, onClick = { onSelect(i) }, shape = SegmentedButtonDefaults.itemShape(i, options.size),
+                    icon = {},
                     modifier = Modifier.onFocusChanged {
                         if (it.isFocused) focusedIndex = i else if (focusedIndex == i) focusedIndex = -1
                     },

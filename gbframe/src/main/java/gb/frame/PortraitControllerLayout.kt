@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
  *   height: they are not counted as space, so the body (not the image box) touches the navigation bar.
  * - An optional [logo] sits between the game and the controller, [gap] away from both. It takes the height left over,
  *   up to [maxLogoHeight]; the controller gives up at most [minLogoHeight] for it.
+ * - [logoVerticalOffset] adjusts the visual center for artwork whose transparent edges differ from its visible shape.
  *
  * [artworkSize] fits the artwork into a width and height (for example GBSat's saturnControllerV12PortraitArtworkSize);
  * [controller] draws it with the modifier it receives.
@@ -46,25 +47,29 @@ fun PortraitControllerLayout(
     gap: Dp = 10.dp,
     minLogoHeight: Dp = 26.dp,
     maxLogoHeight: Dp = 36.dp,
+    logoVerticalOffset: Dp = 0.dp,
     controller: @Composable (Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier) {
         val navBar = WindowInsets.navigationBarsIgnoringVisibility.asPaddingValues().calculateBottomPadding()
-        val body = 1f - marginTop - marginBottom
         val withLogo = logo != null && maxHeight > 300.dp
         val reserved = if (withLogo) gap * 2 + minLogoHeight else 0.dp
-        val bodyBudget = (maxHeight - navBar - reserved).coerceAtLeast(0.dp)
-        val art = artworkSize(maxWidth, bodyBudget / body)
+        // The artwork's bottom margin extends below the navigation edge. The top of the visible body therefore
+        // depends on the entire artwork above that edge, including its transparent bottom margin.
+        val artBudget = (maxHeight - navBar - reserved).coerceAtLeast(0.dp)
+        val art = artworkSize(maxWidth, artBudget / (1f - marginTop))
         val bodyTop = maxHeight - navBar - art.height * (1f - marginTop)
         if (withLogo) {
             val logoHeight = (bodyTop - gap * 2).coerceIn(0.dp, maxLogoHeight)
             if (logoHeight >= 18.dp) {
+                val logoTop = ((bodyTop - logoHeight) / 2 + logoVerticalOffset)
+                    .coerceIn(0.dp, (bodyTop - logoHeight).coerceAtLeast(0.dp))
                 Image(
                     painter = logo!!,
                     contentDescription = logoDescription,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.align(Alignment.TopStart).fillMaxWidth()
-                        .padding(top = bodyTop - gap - logoHeight).height(logoHeight),
+                        .padding(top = logoTop).height(logoHeight),
                 )
             }
         }

@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -43,6 +44,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
@@ -187,6 +190,10 @@ fun HomeLibrary(
      * focus, and when it turns true again (menu closed) the selection goes back to the game selected last.
      */
     focusEnabled: Boolean = true,
+    /** Show a gameplay thumbnail above the Showcase actions on portrait phones. */
+    portraitShowcaseScreenshot: Boolean = false,
+    /** Optional system artwork drawn in the space above the Showcase shelf. */
+    showcaseWatermark: (@Composable (Modifier) -> Unit)? = null,
 ) {
     // No animation until the library has settled after appearing (see homeAnimates)
     DisposableEffect(Unit) { onDispose { homeAnimates.value = false } }
@@ -197,6 +204,11 @@ fun HomeLibrary(
     }
     val latest = remember(states) { states.sortedByDescending { it.time }.distinctBy { it.game } }
     val latestByGame = remember(latest) { latest.associateBy { it.game } }
+    val screenshotsByGame = remember(states, portraitShowcaseScreenshot) {
+        if (portraitShowcaseScreenshot) states.filter { it.screenshot != null }
+            .groupBy { it.game }.mapValues { (_, entries) -> entries.maxBy { it.time } }
+        else emptyMap()
+    }
     val first = remember { FocusRequester() }
     var libraryFocused by remember { mutableStateOf(false) } // something in the library has the focus
     // The selection only exists with a physical controller (handhelds' built-in controls count)
@@ -239,7 +251,8 @@ fun HomeLibrary(
             empty != null -> empty()
             style == HomeStyle.Grid -> GridHome(games, latest, latestByGame, actions, first, coverVersion, compact = fullscreen)
             style == HomeStyle.Continue -> ContinueHome(games, latest, actions, first, coverVersion, fullscreen = fullscreen)
-            else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen = fullscreen)
+            else -> ShowcaseHome(games, latestByGame, actions, first, coverVersion, fullscreen,
+                portraitShowcaseScreenshot, screenshotsByGame, showcaseWatermark)
         }
     }
 }
@@ -255,7 +268,10 @@ fun HomeLibrary(
 internal val homeAnimates = mutableStateOf(false)
 
 @Composable
-fun HomeTopBar(icon: Painter, label: String, onClick: () -> Unit, modifier: Modifier = Modifier, menuOpen: Boolean = false) {
+fun HomeTopBar(
+    icon: Painter, label: String, onClick: () -> Unit, modifier: Modifier = Modifier,
+    menuOpen: Boolean = false, subtitle: String? = null,
+) {
     val ctx = LocalContext.current
     val p = palette
     var time by remember { mutableStateOf("") }
@@ -282,8 +298,14 @@ fun HomeTopBar(icon: Painter, label: String, onClick: () -> Unit, modifier: Modi
         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Image(icon, null, Modifier.size(40.dp))
             Spacer(Modifier.width(12.dp))
-            KitText(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column {
+                KitText(label, style = if (subtitle == null) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (subtitle != null) {
+                    KitText(subtitle, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = .70f),
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
             Icon(if (menuOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore, "Menu", tint = p.highlight)
             Spacer(Modifier.weight(1f))
             KitText(time, style = MaterialTheme.typography.titleSmall, color = Color.White.copy(alpha = .9f))
@@ -314,6 +336,29 @@ fun rememberCover(title: String, version: Int = 0): ImageBitmap? {
     return cover
 }
 
+/** Subtle color enhancement for library artwork without modifying the source image. */
+@Composable
+fun rememberArtworkEnhancement(brightness: Float = 1f): ColorFilter = remember(brightness) {
+    ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
+        1.0787f * brightness, -.0715f * brightness, -.0072f * brightness, 0f, 0f,
+        -.0213f * brightness, 1.0285f * brightness, -.0072f * brightness, 0f, 0f,
+        -.0213f * brightness, -.0715f * brightness, 1.0928f * brightness, 0f, 0f,
+        0f, 0f, 0f, 1f, 0f,
+    )))
+}
+
+/** A system logo drawn as a subtle enhanced watermark behind the library. */
+@Composable
+fun LibraryWatermark(painter: Painter, modifier: Modifier = Modifier) {
+    Image(
+        painter = painter,
+        contentDescription = null,
+        modifier = modifier.graphicsLayer { alpha = .27f },
+        contentScale = ContentScale.Fit,
+        colorFilter = rememberArtworkEnhancement(brightness = 1.12f),
+    )
+}
+
 private fun Modifier.optionsKey(onOptions: () -> Unit) = onPreviewKeyEvent { e ->
     if (e.type == KeyEventType.KeyDown && e.key == Key.ButtonY) { onOptions(); true } else false
 }
@@ -326,17 +371,19 @@ private val TealSave = Color(0xFF7FD7C4)
 fun CoverCard(
     title: String, version: Int, width: Dp, height: Dp, modifier: Modifier = Modifier,
     reflection: Boolean = true, focusScale: Float = 1.15f,
+    selectedByTouch: Boolean = false,
     onClick: () -> Unit, onOptions: () -> Unit, onFocused: (ImageBitmap?) -> Unit = {},
 ) {
     val cover = rememberCover(title, version)
+    val coverFilter = rememberArtworkEnhancement()
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (focused) focusScale else 1f,
+    val scale by animateFloatAsState(if (focused || selectedByTouch) focusScale else 1f,
         if (homeAnimates.value) androidx.compose.animation.core.spring() else androidx.compose.animation.core.snap(), label = "scale")
     val reflH = if (reflection) height * 0.16f else 0.dp
     // The cover area uses the system's selected frame ratio, so covers sit on its bottom without being cut
     val ratio = Covers.frameAspectRatio
     val boxH = width / ratio
-    Column(modifier.zIndex(if (focused) 1f else 0f).width(width)
+    Column(modifier.zIndex(if (focused || selectedByTouch) 1f else 0f).width(width)
         .graphicsLayer { scaleX = scale; scaleY = scale; transformOrigin = TransformOrigin(0.5f, boxH / (boxH + reflH)) }) {
         Box(
             Modifier.size(width, boxH)
@@ -350,8 +397,16 @@ fun CoverCard(
             if (cover != null) {
                 // Covers are normalized to one fixed frame ratio by Covers.decode().
                 val ratio = Covers.frameAspectRatio
-                Image(cover, title, Modifier.fillMaxWidth().aspectRatio(ratio).clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, palette.border, RoundedCornerShape(10.dp)), contentScale = ContentScale.Fit)
+                val selected = focused || selectedByTouch
+                val shape = RoundedCornerShape(10.dp)
+                Box(Modifier.fillMaxWidth().aspectRatio(ratio).clip(shape)
+                    .border(1.dp, if (selected) palette.highlight.copy(alpha = .75f) else palette.border, shape)) {
+                    Image(cover, title, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, colorFilter = coverFilter)
+                    Box(Modifier.matchParentSize().background(Brush.linearGradient(listOf(
+                        Color.White.copy(alpha = if (selected) .14f else .09f),
+                        Color.Transparent, Color.Transparent, Color.Black.copy(alpha = .06f),
+                    ))))
+                }
             } else {
                 CoverPlaceholder(title, Modifier.size(width, height))
             }
@@ -468,6 +523,8 @@ private fun Shelf(
     val rowState = remember(games.isEmpty()) { LazyListState((start - 1).coerceAtLeast(0)) }
     var focusIndex by remember { mutableIntStateOf(-1) }
     var selectedIndex by remember(games) { mutableIntStateOf(start) }
+    var touchSelectedKey by remember(games) { mutableStateOf<String?>(null) }
+    val view = LocalView.current
     val firstGameFocus = remember(games) { FocusRequester() }
     val lastGameFocus = remember(games) { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
@@ -510,9 +567,17 @@ private fun Shelf(
                         games.lastIndex -> Modifier.focusRequester(lastGameFocus)
                         else -> Modifier
                     }),
-                reflection = reflection, focusScale = focusScale,
-                onClick = { LibraryView.lastGame = g.key; actions.play(g) }, onOptions = { actions.options(g) },
-                onFocused = { cover -> LibraryView.lastGame = g.key; selectedIndex = i; onSelected(g, cover); pace.focused(); focusIndex = i })
+                reflection = reflection, focusScale = focusScale, selectedByTouch = touchSelectedKey == g.key,
+                onClick = {
+                    LibraryView.lastGame = g.key
+                    if (view.isInTouchMode) {
+                        touchSelectedKey = g.key
+                        selectedIndex = i
+                        onSelected(g, null)
+                        focusIndex = i
+                    } else actions.play(g)
+                }, onOptions = { actions.options(g) },
+                onFocused = { cover -> touchSelectedKey = null; LibraryView.lastGame = g.key; selectedIndex = i; onSelected(g, cover); pace.focused(); focusIndex = i })
         }
     }
 }
@@ -553,24 +618,56 @@ private fun Modifier.steadyKeys(pace: RowPace, onBoundary: (Key) -> Boolean = { 
 // ---- A: Showcase ------------------------------------------------------------------------------------------------------
 
 @Composable
-private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean = false) {
+private fun ShowcaseHome(
+    games: List<HomeGame>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions, first: FocusRequester,
+    version: Int, fullscreen: Boolean, portraitShowcaseScreenshot: Boolean, screenshotsByGame: Map<String, ResumeEntry>,
+    showcaseWatermark: (@Composable (Modifier) -> Unit)?,
+) {
     val p = palette
     var selected by remember(games) { mutableStateOf(games.getOrNull(LibraryView.gameIndex(games))) }
     val bg = p.background.last()
     BoxWithConstraints(Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(bg.copy(alpha = .35f))) {
         // Short screens (e.g. 640x480 at hdpi): smaller title; buttons are hidden only when the layout is genuinely too short.
         val compact = maxHeight < 300.dp
+        val portrait = portraitShowcaseScreenshot && maxWidth < 600.dp && maxWidth < maxHeight
+        val screenshotHeight = minOf(maxWidth * .57f, maxHeight * .33f, 248.dp)
+        val sidePadding = if (fullscreen) 30.dp else 24.dp
         Column(Modifier.fillMaxSize()) {
             selected?.let { g ->
                 val st = latestByGame[g.key]
-                Column(Modifier.fillMaxWidth().padding(start = if (fullscreen) 30.dp else 24.dp, end = if (fullscreen) 30.dp else 24.dp, top = if (fullscreen) 10.dp else if (compact) 10.dp else 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(if (compact || fullscreen) 4.dp else 8.dp)) {
-                    HeroTitle(g.title, compact)
-                    GameInfo(g, st != null)
-                    if (!compact) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(if (fullscreen) 14.dp else 10.dp)) {
-                        PillButton(if (st != null) "Continue" else "Play", true, Icons.Default.PlayArrow) { if (st != null) actions.resume(st) else actions.play(g) }
-                        PillButton("Start fresh", false) { actions.fresh(g) }
-                        PillButton("Options", false) { actions.options(g) }
+                val shot = if (portrait) rememberScreenshot(screenshotsByGame[g.key]) else null
+                Box(Modifier.fillMaxWidth().then(if (shot != null) Modifier.heightIn(min = screenshotHeight)
+                    .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)) else Modifier)) {
+                    if (shot != null) {
+                        val screenshotFilter = rememberArtworkEnhancement()
+                        Image(shot, contentDescription = null, contentScale = ContentScale.Crop,
+                            modifier = Modifier.matchParentSize().blur(2.dp).graphicsLayer { alpha = .85f },
+                            colorFilter = screenshotFilter)
+                        Box(Modifier.matchParentSize().background(Brush.linearGradient(
+                            listOf(Color.White.copy(alpha = .09f), Color.Transparent, Color.Transparent)
+                        )))
+                        Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+                            0f to Color.Black.copy(alpha = .12f),
+                            .35f to Color.Black.copy(alpha = .28f),
+                            1f to Color.Black.copy(alpha = .88f),
+                        )))
+                    }
+                    Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(horizontal = sidePadding)
+                        .padding(top = if (fullscreen || compact) 10.dp else 20.dp, bottom = if (shot != null) 12.dp else 0.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (compact || fullscreen) 4.dp else 8.dp)) {
+                        HeroTitle(g.title, compact || portrait)
+                        GameInfo(g, st != null)
+                        if (!compact) {
+                            Row(Modifier.padding(top = 6.dp)
+                                .then(if (portrait) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
+                                horizontalArrangement = Arrangement.spacedBy(if (fullscreen) 14.dp else 10.dp)) {
+                                PillButton(if (st != null) "Continue" else "Play", true, Icons.Default.PlayArrow) {
+                                    if (st != null) actions.resume(st) else actions.play(g)
+                                }
+                                PillButton("Start fresh", false) { actions.fresh(g) }
+                                PillButton("Options", false) { actions.options(g) }
+                            }
+                        }
                     }
                 }
             }
@@ -583,8 +680,17 @@ private fun ShowcaseHome(games: List<HomeGame>, latestByGame: Map<String, Resume
                 val k = if (withRefl) 1.44f else 1.26f // (growth + cover box + reflection) per dp of card height
                 val cardH = (room / k).coerceIn(64.dp, 260.dp)
                 val boxH = cardH * 0.72f / Covers.frameAspectRatio
+                val topRoom = boxH * (s - 1f) + if (fullscreen) 8.dp else 12.dp
+                val shelfHeight = topRoom + boxH + (if (withRefl) cardH * .16f else 0.dp) + 4.dp
+                val watermarkHeight = (maxHeight - shelfHeight).coerceAtLeast(0.dp)
+                if (portrait && showcaseWatermark != null && watermarkHeight > 0.dp) {
+                    Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().height(watermarkHeight),
+                        contentAlignment = Alignment.Center) {
+                        showcaseWatermark(Modifier.fillMaxWidth(.48f).fillMaxHeight(.9f))
+                    }
+                }
                 Shelf(games, version, cardH * 0.72f, cardH, first, reflection = withRefl, focusScale = s, actions = actions, startPad = 20.dp,
-                    topRoom = boxH * (s - 1f) + if (fullscreen) 8.dp else 12.dp, edge = if (fullscreen) 32.dp else 24.dp) { g, _ -> selected = g } // lined up with the title
+                    topRoom = topRoom, edge = if (fullscreen) 32.dp else 24.dp) { g, _ -> selected = g } // lined up with the title
             }
             Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
         }
@@ -616,6 +722,7 @@ private fun GridHome(
     games: List<HomeGame>, latest: List<ResumeEntry>, latestByGame: Map<String, ResumeEntry>, actions: HomeActions,
     first: FocusRequester, version: Int, compact: Boolean = false,
 ) {
+    var touchSelection by remember { mutableStateOf<String?>(null) }
     Row(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).fillMaxHeight()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -660,12 +767,27 @@ private fun GridHome(
                                         0 -> Modifier.focusRequester(firstGameFocus)
                                         games.lastIndex -> Modifier.focusRequester(lastGameFocus)
                                         else -> Modifier
-                                    }), actions) {
-                                selectedIndex = i
-                                selectionTick++
-                            }
+                                    }), actions, selectedByTouch = touchSelection == g.key,
+                                onTouchSelected = {
+                                    touchSelection = g.key
+                                    selectedIndex = i
+                                    selectionTick++
+                                }, onSelected = {
+                                    touchSelection = null
+                                    selectedIndex = i
+                                    selectionTick++
+                                })
                         }
                     }
+                }
+            }
+            games.firstOrNull { it.key == touchSelection }?.let { game ->
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    KitText(game.title, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = Color.White, style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.width(8.dp))
+                    PillButton("Play", true, Icons.Default.PlayArrow) { actions.play(game) }
                 }
             }
         }
@@ -674,23 +796,30 @@ private fun GridHome(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Modifier, actions: HomeActions, onSelected: () -> Unit = {}) {
+private fun GridCard(
+    g: HomeGame, hasState: Boolean, version: Int, modifier: Modifier, actions: HomeActions,
+    selectedByTouch: Boolean, onTouchSelected: () -> Unit, onSelected: () -> Unit = {},
+) {
     val cover = rememberCover(g.title, version)
+    val view = LocalView.current
     var focused by remember { mutableStateOf(false) }
     // 3D box (cover + spine). The selected one grows (over its neighbours: zIndex); the grid's spacing leaves room for it
-    val scale by animateFloatAsState(if (focused) 1.08f else 1f,
+    val scale by animateFloatAsState(if (focused || selectedByTouch) 1.08f else 1f,
         if (homeAnimates.value) androidx.compose.animation.core.spring() else androidx.compose.animation.core.snap(), label = "scale")
-    Column(Modifier.zIndex(if (focused) 1f else 0f).graphicsLayer { scaleX = scale; scaleY = scale }) {
+    Column(Modifier.zIndex(if (focused || selectedByTouch) 1f else 0f).graphicsLayer { scaleX = scale; scaleY = scale }) {
         // Covers keep their proportions (Saturn box art ranges from square to tall), sitting on the cell's bottom
         Box(
             modifier.fillMaxWidth().aspectRatio(Covers.frameAspectRatio)
                 .onFocusChanged { focused = it.isFocused; if (it.isFocused) { LibraryView.lastGame = g.key; onSelected() } }
                 .optionsKey { actions.options(g) }
                 .combinedClickable(interactionSource = remember { MutableInteractionSource() }, indication = null,
-                    onClick = { LibraryView.lastGame = g.key; actions.play(g) }, onLongClick = { actions.options(g) }),
+                    onClick = {
+                        LibraryView.lastGame = g.key
+                        if (view.isInTouchMode) onTouchSelected() else actions.play(g)
+                    }, onLongClick = { actions.options(g) }),
             contentAlignment = Alignment.BottomCenter,
         ) {
-            if (cover != null) BoxArt3D(cover, Modifier.fillMaxSize())
+            if (cover != null) BoxArt3D(cover, Modifier.fillMaxSize(), selected = focused || selectedByTouch)
             else CoverPlaceholder(g.title, Modifier.fillMaxSize())
             if (hasState) KitText("SAVED", Modifier.align(Alignment.BottomEnd).padding(6.dp)
                 .background(Color.Black.copy(alpha = .65f), RoundedCornerShape(8.dp)).padding(horizontal = 7.dp, vertical = 2.dp),
@@ -703,6 +832,8 @@ private fun GridCard(g: HomeGame, hasState: Boolean, version: Int, modifier: Mod
 
 @Composable
 private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actions: HomeActions, first: FocusRequester, version: Int, fullscreen: Boolean = false) {
+    var touchSelection by remember { mutableStateOf<String?>(null) }
+    val view = LocalView.current
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val hasStates = latest.isNotEmpty()
         val thumbW = ((maxHeight * 0.34f) * (4f / 3f)).coerceIn(140.dp, 320.dp)
@@ -722,7 +853,12 @@ private fun ContinueHome(games: List<HomeGame>, latest: List<ResumeEntry>, actio
             SectionLabel(if (games.isEmpty()) "ALL GAMES" else "ALL GAMES · ${games.size}", Color.White.copy(alpha = .75f))
             // Prefer the last selected game whenever games exist. Save-state cards are only the fallback when the library is empty.
             Shelf(games, version, cardH * 0.72f, cardH, first, reflection = false, focusScale = 1.1f,
-                actions = actions, startPad = if (fullscreen) 28.dp else 8.dp, edge = if (fullscreen) 28.dp else null) { _, _ -> }
+                actions = actions, startPad = if (fullscreen) 28.dp else 8.dp, edge = if (fullscreen) 28.dp else null) { game, _ ->
+                touchSelection = if (view.isInTouchMode) game.key else null
+            }
+            games.firstOrNull { it.key == touchSelection }?.let { game ->
+                PillButton("Play", true, Icons.Default.PlayArrow) { actions.play(game) }
+            }
         }
     }
 }
@@ -917,8 +1053,11 @@ private fun MenuRow(icon: MenuIcon, label: String, modifier: Modifier, onClick: 
  * the cover's proportions. Real 3D box renders aren't needed: any cover works.
  */
 @Composable
-fun BoxArt3D(cover: ImageBitmap, modifier: Modifier = Modifier) {
+fun BoxArt3D(cover: ImageBitmap, modifier: Modifier = Modifier, selected: Boolean = false) {
     val bmp = remember(cover) { cover.asAndroidBitmap() }
+    val enhancement = remember {
+        android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix().apply { setSaturation(1.10f) })
+    }
     androidx.compose.foundation.Canvas(modifier) {
         val W = size.width; val H = size.height
         // Covers.decode() normalizes all artwork to the same ratio; keep the 3D face aligned to the system's shared box-art frame.
@@ -942,6 +1081,7 @@ fun BoxArt3D(cover: ImageBitmap, modifier: Modifier = Modifier) {
             nat.restore()
         }
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG)
+            .apply { colorFilter = enhancement }
         // Spine: the cover's left 7%, darkened, slanting away to the left
         val spineSrc = android.graphics.RectF(0f, 0f, bmp.width * 0.07f, bmp.height.toFloat())
         val spinePaint = android.graphics.Paint(paint).apply { colorFilter = android.graphics.LightingColorFilter(0xFF8A8A8A.toInt(), 0) }
@@ -954,7 +1094,7 @@ fun BoxArt3D(cover: ImageBitmap, modifier: Modifier = Modifier) {
         val path = androidx.compose.ui.graphics.Path().apply {
             moveTo(depth, top); lineTo(W, top + shrink); lineTo(W, bottom - shrink); lineTo(depth, bottom); close()
         }
-        drawPath(path, Brush.linearGradient(listOf(Color.White.copy(alpha = .22f), Color.Transparent, Color.Transparent, Color.Black.copy(alpha = .12f)),
+        drawPath(path, Brush.linearGradient(listOf(Color.White.copy(alpha = if (selected) .30f else .24f), Color.Transparent, Color.Transparent, Color.Black.copy(alpha = .12f)),
             start = androidx.compose.ui.geometry.Offset(depth, top), end = androidx.compose.ui.geometry.Offset(W, bottom)))
         drawLine(Color.White.copy(alpha = .35f), androidx.compose.ui.geometry.Offset(depth, top), androidx.compose.ui.geometry.Offset(depth, bottom), strokeWidth = 1.5f)
     }

@@ -27,12 +27,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
- * Insets for anything drawn over the game: only the display cutout. A game always runs immersive, so the system bars
- * show only for a moment (while the game screen opens, or after a swipe); padding by them (`safeDrawingPadding`) moved
- * the overlays down by the status bar's height in that moment.
+ * Keep overlays at the top of the immersive game window while respecting cutouts on the horizontal edges.
  */
 @Composable
-fun Modifier.gameOverlayInsets(): Modifier = windowInsetsPadding(WindowInsets.displayCutout)
+fun Modifier.gameOverlayInsets(): Modifier =
+    windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
 
 /**
  * What every app draws over the running game, in the same places: the menu button (top left) with the optional
@@ -51,9 +50,8 @@ fun BoxScope.GameplayOverlayChrome(
     message: String? = null,
     controlsProvideMenuAndFastForward: Boolean = false,
 ) {
-    // The menu and fast-forward buttons start at the left edge of the full screen, beside the camera cutout
-    // (only the top inset is kept, for a cutout at the top of a portrait screen)
-    Row(Modifier.align(Alignment.TopStart).windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Top)).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    // Keep the controls at the top edge while respecting cutouts on the sides.
+    Row(Modifier.align(Alignment.TopStart).gameOverlayInsets().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (!controlsProvideMenuAndFastForward) FilledTonalIconButton(
             onClick = onMenu,
             colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color.Black.copy(alpha = .45f), contentColor = Color.White),

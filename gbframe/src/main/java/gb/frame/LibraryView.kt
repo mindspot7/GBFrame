@@ -7,7 +7,10 @@ object LibraryView {
     private const val KEY_GAME = "gbframe.libraryLastGame"
     private const val KEY_STATE = "gbframe.libraryLastState"
     private const val KEY_OPENED = "gbframe.libraryLastOpenedGame"
+    private const val KEY_RECENT = "gbframe.libraryRecentGames"
     private var prefs: SharedPreferences? = null
+    private val recent = androidx.compose.runtime.mutableStateOf<List<String>>(emptyList())
+    val recentGames: List<String> get() = recent.value
 
     /**
      * The game ([HomeGame.key]) and save state ([ResumeEntry.key]) selected last in the library: the home screen
@@ -24,13 +27,20 @@ object LibraryView {
 
     fun init(prefs: SharedPreferences) {
         this.prefs = prefs
+        val saved = runCatching { org.json.JSONArray(prefs.getString(KEY_RECENT, "[]")) }.getOrNull()
+        val restored = saved?.let { array ->
+            (0 until array.length()).mapNotNull { array.optString(it).takeIf(String::isNotBlank) }
+        }.orEmpty()
+        recent.value = restored.ifEmpty { listOfNotNull(prefs.getString(KEY_OPENED, null)) }
         lastGame = prefs.getString(KEY_OPENED, null) ?: prefs.getString(KEY_GAME, null)
         lastState = prefs.getString(KEY_STATE, null)
     }
 
     /** Call after a game launch succeeds, including fresh starts and save-state resumes. */
     fun gameOpened(key: String) {
-        prefs?.edit()?.putString(KEY_OPENED, key)?.apply()
+        recent.value = (listOf(key) + recent.value.filterNot { it == key }).take(30)
+        prefs?.edit()?.putString(KEY_OPENED, key)
+            ?.putString(KEY_RECENT, org.json.JSONArray(recent.value).toString())?.apply()
         lastGame = key
     }
 
